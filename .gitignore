@@ -1,0 +1,11 @@
+.vscode
+src/.vscode
+src/.sync
+scripts/.error
+scripts/*.*depend
+scripts/*.sh
+dst
+src/.depend
+.temp
+node_modules/
+package-lock.json
