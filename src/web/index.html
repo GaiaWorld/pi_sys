@@ -54,19 +54,18 @@
 
 	<!--百度禁止转码-->
 	<meta http-equiv="Cache-Control" content="no-siteapp" />
-<script type="text/javascript" src="./sys.es6.js"></script>
 
 <script type="text/javascript">
 	// alert("请打开chrome://inspect 做好调试准备");
 	var winit = {};
-	winit.startTime = Date.now();
 	winit.env = { // 在这里设置环境信息
-		name: "zz", // 每个项目需要定义自己的名称，该名称决定了访问二级域名和本地存储名
-		log: {"pi/**":2, "app/**":1}, // 定义每模块的日志等级
+		name: "zz", // !!!每个项目必须定义自己的名称，该名称决定了访问二级域名和本地存储名
+		log: {"pi/**":2, "app/**":1}, // 定义每模块的日志等级， debug:1 info:2 warn:3
 		catch: true, // 全局错误捕捉，记录次数后发送到服务器上
-		version_path: "/dst/boot/.version?", // 版本文件的路径
-		root_path: "/dst/", // 文件的根路径
+		version_path: "/web/.version?", // 版本文件的路径
+		root_path: "/", // 文件的根路径
 		batch_path: "/batch?", // 批下载的路径
+		start_time: Date.now(), // 启动时间
 		load: ["pi/", "pi_gui/"], // 起始加载的代码模块
 		load_bar: { // 加载进度条的配置
 			text_color: "#fff", // 进度条的文字颜色
@@ -86,7 +85,7 @@
 	};
 	(function () {
 		// 防止广告过滤
-		winit.win = {pi_modules: 1};
+		winit.win = {"_$pi": 1};
 		var k;
 		for (k in window) {
 			if (window.hasOwnProperty(k))
@@ -106,7 +105,7 @@
 			//清除window上新增的对象
 			var k;
 			for (k in window) {
-				if (window.hasOwnProperty(k) && !win[k])
+				if (window.hasOwnProperty(k) && !winit.win[k])
 					window[k] = null;
 			}
 			//清除body里面的非pi元素（自己添加的元素都有pi属性）
@@ -147,7 +146,6 @@
 			}
 			var xhr = new XMLHttpRequest();
 			xhr.withCredentials = false;
-			xhr.responseType = 'json';
 			xhr.onabort = function () {
 				if (!xhr) return;
 				timeout && clearTimeout(xhr.timerRef);
@@ -183,7 +181,11 @@
 				} else if (xhr.status !== 0 && xhr.status !== 200 && xhr.status !== 304) { // iOS的file协议，成功的状态码是0
 					winit.loadJson(roots, url, timeout, callback, errorCallback, "error status: " + xhr.status + " " + xhr.statusText, i === undefined ? 0 : i + 1);
 				} else {
-					callback(xhr.response);
+					try {
+						callback(JSON.parse(xhr.responseText));
+					} catch (e) {
+						winit.loadJson(roots, url, timeout, callback, errorCallback, "error json: "+xhr.responseText, i === undefined ? 0 : i + 1);
+					}
 				}
 			};
 			xhr.open('GET', roots[i || 0] + url, true);
@@ -193,6 +195,7 @@
 			alert(err + ", " + url)
 		};
 		winit.start = function () {
+			var times = [Date.now(), 0, 0];
 			// 从主站上加载版本json
 			winit.loadJson(winit.env.domains.slice(1), winit.env.version_path+Math.random(), 8*1000, function(version){
 				// 表示加载版本成功，可以做成渐变过去的效果
@@ -202,16 +205,20 @@
 				var sys, depend;
 				winit.loadJS(winit.env.domains, version.sys_path, function(){
 					sys = true;
-					depend && winit.next(depend);
+					times[1] = Date.now() - times[0];
+					depend && winit.next(depend, times);
 				}, winit.loadFail);
 				winit.loadJson(winit.env.domains, version.depend_path, 10*1000, function(json){
 					depend = json;
-					sys && winit.next(depend);
+					times[2] = Date.now() - times[0];
+					sys && winit.next(depend, times);
 				}, winit.loadFail);
 			}, winit.loadFail);
 		};
 		// 进一步加载引擎和应用引导代码
-		winit.next = function (depend) {
+		winit.next = function (depend, times) {
+			times[0] -= winit.env.start_time;
+			console.log("ver, sys, depend times: ", times);
 			// sys的初始化
 			_$pi.require("sys/main").main(winit.env, depend);
 			winit.clear();

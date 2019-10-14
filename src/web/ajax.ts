@@ -66,8 +66,6 @@ export class AjaxRequest {
 		let xhr = ar.xhr;
 		if (respType === RESP_TYPE_BIN) {
 			xhr.responseType = 'arraybuffer';
-		}else if(respType === RESP_TYPE_JSON) {
-			xhr.responseType = 'json';
 		}
 		let activeTime = 0;
 		let timerRef = 0;
@@ -131,12 +129,16 @@ export class AjaxRequest {
 				} else if (xhr.status !== 0 && xhr.status !== 200 && xhr.status !== 304) {
 					// iOS的file协议，成功的状态码是0
 					reject(new AjaxError(ar.url, ERR_NORMAL, "error status: " + xhr.status + " " + xhr.statusText + ", " + ar.url, ev));
-				} else if (respType === RESP_TYPE_TEXT || !respType) {
-					resolve(xhr.responseText);
-				} else if (respType === RESP_TYPE_BIN && !xhr.response) {
-					resolve(new ArrayBuffer(0));
+				} else if (respType === RESP_TYPE_BIN) {
+					resolve(xhr.response || new ArrayBuffer(0));
+				}else if (respType === RESP_TYPE_JSON) {
+					try {
+						resolve(JSON.parse(xhr.responseText));
+					} catch (e) {
+						reject(new AjaxError(ar.url, ERR_NORMAL, "error json: " + xhr.responseText + ", " + ar.url, ev))
+					}
 				} else {
-					resolve(xhr.response);
+					resolve(xhr.responseText);
 				}
 			};
 	

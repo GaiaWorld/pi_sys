@@ -7,9 +7,10 @@ export class FileInfo {
 	public suffix: string;
 	constructor(args: any[]) {
 		this.path = args[0];
-		this.sign = args[1];
 		this.size = args[2];
-		this.depend = args[3] || [];
+		this.sign = args[3];
+		if(args[4])
+			this.depend = args[4];
 		this.suffix = fileSuffix(this.path);
 	}
 }
@@ -69,21 +70,8 @@ export const initDir = (f: FileInfo, map: Map<string, DirInfo>, isSuffix: boolea
 		info = new DirInfo(dir);
 		map.set(dir, info);
 		let sub = info;
-		do {
-			dir = dir.slice(0, j + 1);
-			let parent = map.get(dir);
-			if(parent){
-				parent.children.push(sub);
-				sub.parent = parent;
-				break;
-			}
-			parent = new DirInfo(dir);
-			parent.children = [];
-			map.set(dir, parent);
-			parent.children.push(sub);
-			sub.parent = parent;
-			sub = parent;
-			j = dir.lastIndexOf("/");
+		while(true) {
+			j = dir.lastIndexOf("/", j - 1);
 			if(j <= 0) {
 				let root = map.get("");
 				if(!root) {
@@ -93,8 +81,26 @@ export const initDir = (f: FileInfo, map: Map<string, DirInfo>, isSuffix: boolea
 				}
 				root.children.push(sub);
 				sub.parent = root;
+				break;
 			}
-		}while(j > 0);
+			dir = dir.slice(0, j + 1);
+			let parent = map.get(dir);
+			if(parent){
+				if(parent.children){
+					parent.children.push(sub);
+				}else{
+					parent.children = [sub];
+				}
+				sub.parent = parent;
+				break;
+			}
+			parent = new DirInfo(dir);
+			parent.children = [];
+			map.set(dir, parent);
+			parent.children.push(sub);
+			sub.parent = parent;
+			sub = parent;
+		}
 	}
 	info.add(f, isSuffix);
 }
@@ -120,12 +126,12 @@ export const fileDot = (file: string) => {
 	return -1;
 }
 export const fileSuffix = (file: string) => {
-	let dot = this.fileDot(file);
+	let dot = fileDot(file);
 	return (dot >= 0) ? file.slice(dot + 1) : "";
 }
 export const fileBasename = (file: string) => {
-	let i = this.lastIndexOf("/");
-	let dot = this.fileDot(file);
+	let i = file.lastIndexOf("/");
+	let dot = fileDot(file);
 	return (i > dot) ? file.slice(i + 1, dot) : file.slice(i + 1);
 }
 export const relativePath = (filePath:string, dir:string) => {

@@ -66,11 +66,11 @@ export const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"v
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }
     let n = document.createElement(eleType);
-    n.onerror = function () {
+    n.onerror = () => {
         n.onload = n.onerror = undefined;
         loadObj(load, file, eleType, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
     };
-    n.onload = function () {
+    n.onload = () => {
         n.onload = n.onerror = undefined;
         map.set(file.path, n);
         load.loaded+=file.size;

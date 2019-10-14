@@ -26,7 +26,7 @@ export class Store {
 	 * @description 创建指定名称的存储
 	 * @example
 	 */
-	static create = (dbName?: string, tabName?: string) : Promise<Store> => { // 返回值类型1|类型2
+	static create = (dbName: string, tabName = "_db") : Promise<Store> => { // 返回值类型1|类型2
 		return new Promise((resolve, reject) => {
 			if (!iDB) {
 				let s = new Store(dbName, tabName);
@@ -55,7 +55,7 @@ export class Store {
 			}
 		});
 	}
-	constructor(dbName = "_idb_db", tabName = "_idb_tab") {
+	constructor(dbName: string, tabName: string) {
 		this.dbName = dbName;
 		this.tabName = tabName;
 	}
@@ -129,7 +129,7 @@ export class Store {
 	 * @description 迭代, callback返回false表示停止迭代
 	 * @example
 	 */
-	public iterate = (callback: (result:{key:any, value:any}) => boolean, errorCallback: (err: Event) => void) => {
+	public iterate(callback: (result:{key:any, value:any}) => boolean, errorCallback: (err: Event) => void) {
 		let store = this;
 		if (!iDB) {
 			return setTimeout(() => {

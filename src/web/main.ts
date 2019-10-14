@@ -1,8 +1,4 @@
 
-// declare var global;
-// export const _$self = (<any>window) || (<any>global);
-// _$self.pi_modules = _$self.pi_modules || {};
-
 import {init as envInit, get} from "./env";
 import {init as dependInit} from "./depend";
 import {init as logInit} from "./log";
@@ -20,14 +16,18 @@ export const main = (cfg:any, depend: any) => {
 	objInit(cfg.domains, cfg.root_path);
 	binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec("") );
 	// window全局错误捕捉，记录次数后发送到服务器上
-	(<any>window).onerror = cfg.catch ? undefined : onError;
+	if(cfg.catch) {
+		window.addEventListener('unhandledrejection', onReject);
+		(<any>window).onerror =onError;
+	}
 };
 
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
 export const loadExec = (next:string) => {
 	let load = new  BatchLoad(get(next+"load"));
 	let bar = new Bar(get(next+"load_bar"));
-	bar.show(get(next+"load_text"), load.total);
+	bar.show(get(next+"load_text"), load.total, load.loaded);
+	load.addProcess(bar.onProcess.bind(bar));
 	load.start().then(() => {
 		bar.clear();
 		if(!next)
@@ -46,7 +46,8 @@ const sid = Date.now().toString(36) + "X" + Math.floor(Math.random() * 0xfffffff
 const count = (e:string) => {
 	let r = errMap.get(e);
 	if(!r) {
-		errMap.set(e, {count: 0});
+		r = {count: 0};
+		errMap.set(e, r);
 	}
 	r.count+=1;
 	let c = 1;
@@ -56,16 +57,21 @@ const count = (e:string) => {
 		c += c;
 	}
 };
-
+const onReject = (ev:PromiseRejectionEvent) => {
+	console.warn(ev.reason.stack);
+	let e = JSON.stringify(ev.reason.stack);
+	let c = count(e);
+	c && ((new Image()).src = "errlog?s=" + sid + "&e=" + encodeURIComponent(e) + "&c=" + c + "&r=" + Math.random());
+}
 const onError = (msg:any, uri:string, line:string, column:string, error:any) => {
 	let e:any;
 	if (msg.stack) {
-		e = msg;
+		e = msg.stack;
 	} else if (error && error.stack) {
-		e = error;
+		e = error.stack;
 	} else
 		return;
-	console.log(e);
+	console.warn(e);
 	e = JSON.stringify(e) + ", uri:"+uri + ", line:"+line+ ", column:"+column;
 	let c = count(e);
 	c && ((new Image()).src = "errlog?s=" + sid + "&e=" + encodeURIComponent(e) + "&c=" + c + "&r=" + Math.random());

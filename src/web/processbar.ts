@@ -11,13 +11,14 @@
     public total: number = 0;
     // 加载的当前进度
     public loaded: number = 0;
+    old: number = 0;
     last: number = 0;
     opacity: number = 0;
 
     public constructor(cfg:any) {
         this.text = document.createElement('div');
         this.text.setAttribute("pi", "1");
-        this.text.setAttribute("style", "position:absolute;bottom:30px;left: 50%;width: 0px;height: 24px;font-size:20px;");
+        this.text.setAttribute("style", "position:absolute;bottom:30px;left: 50%;width: 100%;height: 24px;font-size:20px;");
         this.text.style.color = cfg.text_color || "#fff";
         this.div = document.createElement('div');
         this.div.setAttribute("pi", "1");
@@ -29,9 +30,10 @@
         this.div.appendChild(this.divProcess);
     }
     // 显示文字和进度条， 文字有呼吸灯的效果
-    public show(text: string, total: number) {
+    public show(text: string, total: number, loaded: number) {
         this.text.innerHTML = text;
         this.total = total;
+        this.old = loaded;
         if(this.timeRef)
             return;
         document.body.appendChild(this.text);
@@ -48,11 +50,12 @@
         if(this.last === this.loaded)
             return;
         this.last = this.loaded;
-        this.divProcess.style.width = this.last * 100/ this.total + "%";
+        this.divProcess.style.width = (this.last - this.old) * 100/ (this.total - this.old) + "%";
     }
     public clear() {
         this.total = 0;
         this.loaded = 0;
+        this.old = 0;
         if(this.timeRef)
             clearTimeout(this.timeRef);
         this.timeRef = 0;
