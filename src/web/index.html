@@ -66,6 +66,12 @@
 		root_path: "/", // 文件的根路径
 		batch_path: "/batch?", // 批下载的路径
 		start_time: Date.now(), // 启动时间
+		code_suffixs: ["js"], // 代码的后缀
+		cfg_suffixs: ["xcfg", "wcfg"], // 配置的后缀
+		res_suffixs: ["gltf", "ani"], // 资源的后缀
+		obj_suffixs: ["png", "jpg", "jpeg", "webp", "gif", "svg", "wav", "mp3", "aac", "webm", "mp4", "ogg", "m3u8", "ttf", "otf","woff","woff2"], // 资源对象的后缀
+		res_timeout: 5*60*1000, // 资源的超时时间
+		res_cache_size: 5*1024*1024, // 全部资源缓存的内存大小
 		load: ["pi/", "pi_gui/"], // 起始加载的代码模块
 		load_bar: { // 加载进度条的配置
 			text_color: "#fff", // 进度条的文字颜色

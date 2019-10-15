@@ -1,11 +1,11 @@
 
 import {init as envInit, get} from "./env";
-import {init as dependInit} from "./depend";
-import {init as logInit} from "./log";
-import {init as codeInit} from './code_load';
-import {init as objInit} from './obj_load';
+import {init as dependInit, FileInfo} from "./depend";
+import {init as logInit, cc, log} from "./log";
+import {init as codeInit, CodeLoad} from './code_load';
+import {init as objInit, ObjLoad} from './obj_load';
 import { init as binLoadInit } from './bin_load';
-import { BatchLoad } from './app_load';
+import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from './app_load';
 import { Bar } from './processbar';
 
 export const main = (cfg:any, depend: any) => {
@@ -15,6 +15,11 @@ export const main = (cfg:any, depend: any) => {
 	codeInit(cfg.domains, cfg.root_path);
 	objInit(cfg.domains, cfg.root_path);
 	binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec("") );
+	setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
+	for(let s of cfg.cfg_suffixs)
+		setCfgHandler(s, null);
+	for(let s of cfg.res_suffixs)
+		setResLru(s, cfg.res_timeout, cfg.res_cache_size/cfg.res_suffixs.length);
 	// window全局错误捕捉，记录次数后发送到服务器上
 	if(cfg.catch) {
 		window.addEventListener('unhandledrejection', onReject);
