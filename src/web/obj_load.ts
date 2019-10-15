@@ -24,7 +24,7 @@ export class ObjLoad extends FileLoad {
      * @description 开始
      * @example
      */
-    public async start() {
+    public start() {
         let load = this;
         let map = new Map;
         let arr = [];
@@ -39,8 +39,7 @@ export class ObjLoad extends FileLoad {
                 }
             }));
         }
-        await Promise.all(arr);
-        return map;
+        return Promise.all(arr).then(() => {return map});
     }
 
 }

@@ -21,7 +21,7 @@ export class CodeLoad extends FileLoad {
      * @description 开始
      * @example
      */
-    public async start() {
+    public start() {
         let load = this;
         let arr = [];
         for(let info of this.files.values()) {
@@ -29,8 +29,7 @@ export class CodeLoad extends FileLoad {
                 loadJS(load, info, resolve, reject)
             }));
         }
-        await Promise.all(arr);
-        return;
+        return Promise.all(arr);
     }
 }
 
