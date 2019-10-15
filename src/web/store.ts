@@ -64,12 +64,11 @@ export class Store {
 	 * @example
 	 */
 	public read(key:number|string) : Promise<any> {
-		let store = this;
 		return new Promise((resolve, reject) => {
-			if(store.map) {
-				return resolve([key, store.map.get(key)]);
+			if(this.map) {
+				return resolve([key, this.map.get(key)]);
 			}
-			let request = store.tab.transaction(store.tabName, "readonly").objectStore(store.tabName).get(key);
+			let request = this.tab.transaction(this.tabName, "readonly").objectStore(this.tabName).get(key);
 			request.onsuccess = (e) => resolve((<any>e.target).result);
 			request.onerror = reject;
 		});
@@ -79,14 +78,13 @@ export class Store {
 	 * @example
 	 */
 	public write(key:number|string, data) : Promise<any> {
-		let store = this;
 		return new Promise((resolve, reject) => {
-			if(store.map) {
-				store.map.set(key, data);
+			if(this.map) {
+				this.map.set(key, data);
 				return resolve();
 			}
-			let tx = store.tab.transaction(store.tabName, "readwrite");
-			tx.objectStore(store.tabName).put(data, key);
+			let tx = this.tab.transaction(this.tabName, "readwrite");
+			tx.objectStore(this.tabName).put(data, key);
 			tx.oncomplete = resolve;
 			tx.onerror = reject;
 		});
@@ -96,14 +94,13 @@ export class Store {
 	 * @example
 	 */
 	public delete(key:number|string) : Promise<any> {
-		let store = this;
 		return new Promise((resolve, reject) => {
-			if(store.map) {
-				store.map.delete(key);
+			if(this.map) {
+				this.map.delete(key);
 				return resolve();
 			}
-			let tx = store.tab.transaction(store.tabName, "readwrite");
-			tx.objectStore(store.tabName).delete(key);
+			let tx = this.tab.transaction(this.tabName, "readwrite");
+			tx.objectStore(this.tabName).delete(key);
 			tx.oncomplete = resolve;
 			tx.onerror = reject;
 		});
@@ -113,14 +110,13 @@ export class Store {
 	 * @example
 	 */
 	public clear() : Promise<any> {
-		let store = this;
 		return new Promise((resolve, reject) => {
-			if(store.map) {
-				store.map.clear();
+			if(this.map) {
+				this.map.clear();
 				return resolve();
 			}
-			let tx = store.tab.transaction(store.tabName, "readwrite");
-			tx.objectStore(store.tabName).clear();
+			let tx = this.tab.transaction(this.tabName, "readwrite");
+			tx.objectStore(this.tabName).clear();
 			tx.oncomplete = resolve;
 			tx.onerror = reject;
 		});
@@ -130,17 +126,16 @@ export class Store {
 	 * @example
 	 */
 	public iterate(callback: (result:{key:any, value:any}) => boolean, errorCallback: (err: Event) => void) {
-		let store = this;
 		if (!iDB) {
 			return setTimeout(() => {
-				for (let [key, value] of store.map) {
+				for (let [key, value] of this.map) {
 					if (callback({key, value}) === false)
 						return
 				}
 				callback(null);
 			}, 0);
 		}
-		let cursor = store.tab.transaction(store.tabName, "readonly").objectStore(store.tabName).openCursor();
+		let cursor = this.tab.transaction(this.tabName, "readonly").objectStore(this.tabName).openCursor();
 		cursor.onsuccess = () => {
 			let r = cursor.result;
 			if (r) {

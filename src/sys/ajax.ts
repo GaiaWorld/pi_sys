@@ -62,96 +62,7 @@ export class AjaxRequest {
 		this.url = url;
 	}
 	public request(headers: any, reqData:string|ArrayBuffer|FormData, respType:string, timeout: number) {
-		let xhr = this.xhr;
-		if (respType === RESP_TYPE_BIN) {
-			xhr.responseType = 'arraybuffer';
-		}
-		let activeTime = 0;
-		let timerRef = 0;
-		// NOTE: 一定不能设置withCredentials，否则跨域变得很严格
-		xhr.withCredentials = false;
-		return new Promise((resolve, reject) => {
-			xhr.onabort= () => {
-				if (!xhr) return;
-				timeout && clearTimeout(timerRef);
-				reject(new AjaxError(this.url, ERR_ABORT, "abort, " + this.url));
-			};
-	
-			if (timeout > 0) {
-				// 有些(iOS)浏览器版本可能不支持xhr.timeout属性
-				// 自己处理超时，超时指超过规定时间没有收到数据
-				activeTime = Date.now();
-				let timer = () => {
-					let t = activeTime + timeout - Date.now();
-					if (t > 0) {
-						timerRef = setTimeout(timer, t);
-					} else {
-						// 如处理过就不用管了，否则就设置为处理过了。
-						// 必须设置，否则，就会调用两次errorCallback
-						if (!xhr) return;
-						xhr = null;
-						timeout = 0;
-						reject(new AjaxError(this.url, ERR_TIMEOUT, "timeout, " + this.url));
-					}
-				};
-				timerRef = setTimeout(timer, timeout);
-			}
-	
-			xhr.onerror= (ev) => {
-				// 避免定时器超时后重复调用
-				if (!xhr) return;
-				timeout && clearTimeout(timerRef);
-				reject(new AjaxError(this.url, ERR_NORMAL, "error status: " + xhr.status + " " + xhr.statusText + ", " + this.url, ev));
-			};
-	
-			xhr.upload.onprogress = (ev) => {
-				// 避免定时器超时后重复调用
-				if (!xhr) return;
-				activeTime = Date.now();
-				this.onprocess && this.onprocess(this.url, 'upload', ev.total, ev.loaded);
-			};
-	
-			xhr.onprogress= (ev) =>{
-				// 避免定时器超时后重复调用
-				if (!xhr) return;
-				activeTime = Date.now();
-				this.onprocess && this.onprocess(this.url, 'download', ev.total, ev.loaded);
-			};
-	
-			xhr.onload= (ev) => {
-				// 避免定时器超时后重复调用
-				if (!xhr) return;
-				timeout && clearTimeout(timerRef);
-	
-				if (xhr.status === 300 || xhr.status === 301 || xhr.status === 302 || xhr.status === 303) {
-					reject(new AjaxError(this.url, ERR_LOCATION, xhr.getResponseHeader("Location")));
-				} else if (xhr.status !== 0 && xhr.status !== 200 && xhr.status !== 304) {
-					// iOS的file协议，成功的状态码是0
-					reject(new AjaxError(this.url, ERR_NORMAL, "error status: " + xhr.status + " " + xhr.statusText + ", " + this.url, ev));
-				} else if (respType === RESP_TYPE_BIN) {
-					resolve(xhr.response || new ArrayBuffer(0));
-				}else if (respType === RESP_TYPE_JSON) {
-					try {
-						resolve(JSON.parse(xhr.responseText));
-					} catch (e) {
-						reject(new AjaxError(this.url, ERR_NORMAL, "error json: " + xhr.responseText + ", " + this.url, ev))
-					}
-				} else {
-					resolve(xhr.responseText);
-				}
-			};
-	
-			xhr.open(this.type, this.url, true);
-	
-			//传输的文件HTTP头信息， 必须在open之后设置
-			if (headers) {
-				for (let i in headers) {
-					if (headers.hasOwnProperty(i))
-						xhr.setRequestHeader(i, headers[i]);
-				}
-			}
-			xhr.send(reqData);
-		});
+		return Promise.resolve("")
 	}
 	public abort() {
 		this.xhr.abort();
@@ -222,22 +133,5 @@ export class AjaxDownload {
 
 // 下载, 如果是微信这类没有进度信息的，需要重写该代码，用统计的网速和设置的total模拟进度信息
 const download = (load: AjaxDownload, resolve: (value?: unknown) => void, reject: (reason?: any) => void, retry: number, err?: AjaxError) => {
-    if (retry > load.urls.length) {
-        return reject(err);
-	}
-	let ar = new AjaxRequest('GET', load.urls[retry > 0 ? retry - 1 : 0] + load.path);
-	let p = ar.request(null, undefined, RESP_TYPE_BIN, load.timeout);
-	load.request = ar;
-	ar.onprocess = (url:string, type:string, total:number, loaded:number) => {
-		if(type === 'upload')
-			return;
-		load.total = total;
-		load.loaded = loaded;
-		load.onprocess(load.path, type, total, loaded);
-	}
-    p.then((value) => {
-        resolve(value);
-    }).catch((err: AjaxError)=> {
-        download(load, resolve, reject, retry + 1, err)
-    });
+
 };

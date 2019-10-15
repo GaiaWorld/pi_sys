@@ -59,9 +59,7 @@ export const init = (storeName: string, domainUrls: string[], downloadPath:strin
     limitLength = urllimitLength;
     sizeLimit = reqSizeLimit;
     if (localSign) {
-        return new Promise((resolve) => {
-            resolve();
-        });
+        return Promise.resolve();
     }
     return Store.create(storeName).then(store => {
         return store.read("").then(value => {
@@ -170,7 +168,6 @@ export class LocalLoad extends FileLoad {
      * @example
      */
     public start() {
-        let load = this;
         let arr = [];
         let map: Map<string, Uint8Array> = new Map;
         for(let info of this.files.values()) {
@@ -184,8 +181,8 @@ export class LocalLoad extends FileLoad {
             }
             arr.push(p.then((value: any)=>{
                 map.set(path, value);
-                load.loaded+=size;
-                load.onProcess(path, "fileLocalLoad", load.total, load.loaded, value);
+                this.loaded+=size;
+                this.onProcess(path, "fileLocalLoad", this.total, this.loaded, value);
             }));
         }
         return Promise.all(arr).then(_v => {
