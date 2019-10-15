@@ -58,11 +58,13 @@
 <script type="text/javascript">
 	// alert("请打开chrome://inspect 做好调试准备");
 	var winit = {};
+	var debug = true;
 	winit.env = { // 在这里设置环境信息
+		debug: debug,
 		name: "zz", // !!!每个项目必须定义自己的名称，该名称决定了访问二级域名和本地存储名
 		log: {"pi/**":2, "app/**":1}, // 定义每模块的日志等级， debug:1 info:2 warn:3
 		catch: true, // 全局错误捕捉，记录次数后发送到服务器上
-		version_path: "/web/.version?", // 版本文件的路径
+		version_path: "/.version" + (debug ? ".debug" : ".release") + "?", // 版本文件的路径
 		root_path: "/", // 文件的根路径
 		batch_path: "/batch?", // 批下载的路径
 		start_time: Date.now(), // 启动时间
