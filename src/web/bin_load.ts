@@ -53,31 +53,31 @@ export const deleteStore = () => {
 /**
  * 初始化存储, 及默认参数。 limitLength 限制url的长度， sizeLimit 一次请求的byte限制
  */
-export const init = async (storeName: string, domainUrls: string[], downloadPath:string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) => {
+export const init = (storeName: string, domainUrls: string[], downloadPath:string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) => {
     urls = domainUrls;
     batchPath = downloadPath;
     limitLength = urllimitLength;
     sizeLimit = reqSizeLimit;
     if (localSign) {
-        return new Promise((resolve) => {
-            resolve();
-        });
+        return Promise.resolve();
     }
-    const store = await Store.create(storeName);
-    let value: any = await store.read("");
-    if (value) {
-        localInitCheck(store, value, false);
-    } else {
-        // 初始化的时候要先读取资源信息数组
-        value = {};
-        return assetGet().then((arr: any[]) => {
-            localStore = store;
-            for (let info of arr) {
-                value[info[0]] = "-" + info[3];
+    return Store.create(storeName).then(store => {
+        return store.read("").then(value => {
+            if (value) {
+                localInitCheck(store, value, false);
+            } else {
+                // 初始化的时候要先读取资源信息数组
+                value = {};
+                return assetGet().then((arr: any[]) => {
+                    localStore = store;
+                    for (let info of arr) {
+                        value[info[0]] = "-" + info[3];
+                    }
+                    localInitCheck(store, value, false);
+                });
             }
-            localInitCheck(store, value, false);
-        });
-    }
+        });    
+    });
 }
 
 /**
@@ -157,7 +157,8 @@ export class FileLoad {
      * @description 开始
      * @example
      */
-    public async start(): Promise<any> {
+    public start(): Promise<any> {
+        return
     }
 }
 
@@ -166,8 +167,7 @@ export class LocalLoad extends FileLoad {
      * @description 开始
      * @example
      */
-    public async start() {
-        let load = this;
+    public start() {
         let arr = [];
         let map: Map<string, Uint8Array> = new Map;
         for(let info of this.files.values()) {
@@ -181,17 +181,16 @@ export class LocalLoad extends FileLoad {
             }
             arr.push(p.then((value: any)=>{
                 map.set(path, value);
-                load.loaded+=size;
-                load.onProcess(path, "fileLocalLoad", load.total, load.loaded, value);
+                this.loaded+=size;
+                this.onProcess(path, "fileLocalLoad", this.total, this.loaded, value);
             }));
         }
-        let my = this;
-        await Promise.all(arr).then(
-            (_value:any)=>my.onResult(map)
-        ).catch(
-            (reason:any)=>my.onResult(null, reason)
-        );
-        return map;
+        return Promise.all(arr).then(_v => {
+            this.onResult(map);
+            return map;
+        }).catch( reason => {
+            this.onResult(null, reason)
+        });
     }
 }
 
@@ -214,7 +213,7 @@ export class Download extends FileLoad {
      * @description 开始
      * @example
      */
-    public async start() {
+    public start() {
         let downWait: Promise<void>[] = [];
         let localSignWait: Promise<void>[] = [];
         this.downloadMap = new Map;
@@ -238,14 +237,13 @@ export class Download extends FileLoad {
                 break;
             result = new Result;
         }
-        let my = this;
-        await Promise.all(downWait).then(
-            (_value:any)=>my.onResult(fileMap)
-        ).catch(
-            (reason:any)=>my.onResult(null, reason)
-        );
-        Promise.all(localSignWait).then(() => localStore.write("", localSign));
-        return fileMap;
+        return Promise.all(downWait).then(_v => {
+            this.onResult(map);
+            Promise.all(localSignWait).then(() => localStore.write("", localSign));
+            return fileMap;
+        }).catch( reason => {
+            this.onResult(null, reason)
+        });
     }
     /**
      * @description 停止
@@ -259,8 +257,7 @@ export class Download extends FileLoad {
         }
     }
     // 指定目录和文件的一次下载
-    async startURL(durl: string, furl: string, files:FileInfo[], localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
-        let my = this;
+    startURL(durl: string, furl: string, files:FileInfo[], localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
         let len = files.length, size = 0, h = 0; // hash值
         if (len === 0)
             return;
@@ -273,19 +270,18 @@ export class Download extends FileLoad {
         let down = new AjaxDownload(urls, path, this.timeout, this.total);
         this.downloadMap.set(path, down);
         down.onprocess = () => {
-            my.loaded = 0;
-            for(let v of my.downloadMap.values()) {
-                my.loaded += v.loaded;
+            this.loaded = 0;
+            for(let v of this.downloadMap.values()) {
+                this.loaded += v.loaded;
             }
-            my.onProcess(path, 'fileDownload', my.total, my.loaded);
+            this.onProcess(path, 'fileDownload', this.total, this.loaded);
         };
-        const value = await down.start();
-        my.save((value as ArrayBuffer), localSignWait, fileMap);
+        return down.start().then(value => {
+            this.save((value as ArrayBuffer), localSignWait, fileMap);
+        });
     }
     save(buff: ArrayBuffer, localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
-        let my = this;
         let view = new DataView(buff);
-        let u8 = new Uint8Array(buff);
         let offset = 0;
         while(true) {
             let len = view.getInt16(offset, true);
@@ -299,7 +295,7 @@ export class Download extends FileLoad {
             let data = new Uint8Array(buff, offset, datalen);
             offset+=datalen;
             fileMap.set(path, data);
-            my.onProcess(path, "saveFile", 0, 0, data);
+            this.onProcess(path, "saveFile", 0, 0, data);
             localSignWait.push(savefile(path, data, info.sign));
         }
     };
@@ -426,9 +422,10 @@ const replace = (s:string) => {
 };
 
 // 保存文件
-const savefile = async (path: string, data:Uint8Array, sign:string) => {
-    await localStore.write(path, data);
-    localSign[path] = sign;
+const savefile = (path: string, data:Uint8Array, sign:string) => {
+    return localStore.write(path, data).then(_ => {
+        localSign[path] = sign;
+     });
 };
 
 // ============================== 立即执行

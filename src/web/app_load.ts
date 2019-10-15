@@ -99,7 +99,13 @@ export class BatchLoad extends FileLoad {
     /**
      * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
      */
-    public async load(down: boolean) {
+    public start() {
+        return this.load(false);
+    }
+    /**
+     * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
+     */
+    public load(down: boolean) {
         let binload = new LocalLoad();
         let download = new Download();
         let codeload = new CodeLoad();
@@ -136,11 +142,10 @@ export class BatchLoad extends FileLoad {
             arr.push(waitLoad(objload, objLoad, p));
             this.addLoad(objload);
         }
-        let my = this;
-        await Promise.all(arr).then(
-            (value:any)=>my.onResult(value)
+        return Promise.all(arr).then(
+            (value:any)=>this.onResult(value)
         ).catch(
-            (reason:any)=>my.onResult(null, reason)
+            (reason:any)=>this.onResult(null, reason)
         );
     }
     loadDir(
@@ -152,6 +157,8 @@ export class BatchLoad extends FileLoad {
         codeload: CodeLoad,
         objload: ObjLoad,
         result: Promise<any>[]) {
+        if(!dir)
+            return;
         let s = dir.path.slice(path.length); // 要用从该目录起的相对路径
         for(let r of this.dirFilters[0]) {
             if(!r.test(s))
@@ -444,20 +451,18 @@ const filter = (path: string, within: RegExp[], without: RegExp[]) =>{
     return true
 }
 // 等待加载
-const waitLoad = async (load: FileLoad, set: Set<any>, p: Promise<any>) => {
+const waitLoad = (load: FileLoad, set: Set<any>, p: Promise<any>) => {
     set.add(load);
     //p.finally(()=>set.delete(load))
-    try {
-        let r = await p;
+    return p.then(r => {
         set.delete(load);
         return r;
-    }
-    catch (e) {
-        return set.delete(load);
-    }
+    }).catch(e => {
+        return set.delete(load)
+    });
 }
 // 检查等待加载
-const checkWaitLoad = async (file: FileInfo, set: Set<FileLoad>) => {
+const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
     for(let load of set) {
         if(load.files.has(file.path)) { // 文件正在加载
             return new Promise((resolve, reject) => {

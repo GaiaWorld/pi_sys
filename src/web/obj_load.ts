@@ -24,8 +24,7 @@ export class ObjLoad extends FileLoad {
      * @description 开始
      * @example
      */
-    public async start() {
-        let load = this;
+    public start() {
         let map = new Map;
         let arr = [];
         for(let info of this.files.values()) {
@@ -33,19 +32,18 @@ export class ObjLoad extends FileLoad {
                 let suffix = fileSuffix(info.path);
                 let type = Suffixs[suffix];
                 if(type) {
-                    loadObj(load, info, type, map, resolve, reject)
+                    loadObj(this, info, type, map, resolve, reject)
                 }else if(FontSuffixs.has(suffix)) {
-                    loadFont(load, info, resolve, reject)
+                    loadFont(this, info, map, resolve, reject)
                 }
             }));
         }
-        await Promise.all(arr);
-        return map;
+        return Promise.all(arr).then(() => {return map});
     }
 
 }
 // 字体比较特别，需要单独处理
-export const loadFont = (load: ObjLoad, file: FileInfo, callback: () => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, callback: (f: FontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }
@@ -54,14 +52,15 @@ export const loadFont = (load: ObjLoad, file: FileInfo, callback: () => void, er
     (document as any).fonts.add(font);
     font.load().then(() =>{
         load.loaded+=file.size;
+        map.set(file.path, font as any as Element);
         load.onProcess(file.path, "objLoad", load.total, load.loaded);
-        callback();
+        callback(font);
     }).catch((errText) => {
         (document as any).fonts.remove(font);
-        loadFont(load, file, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
+        loadFont(load, file, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
     });
 }
-export const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", map: Map<string, Element>, callback: (e:Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", map: Map<string, Element>, callback: (e:Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }

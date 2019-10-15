@@ -21,20 +21,18 @@ export class CodeLoad extends FileLoad {
      * @description 开始
      * @example
      */
-    public async start() {
-        let load = this;
+    public start() {
         let arr = [];
         for(let info of this.files.values()) {
             arr.push(new Promise((resolve, reject)=>{
-                loadJS(load, info, resolve, reject)
+                loadJS(this, info, resolve, reject)
             }));
         }
-        await Promise.all(arr);
-        return;
+        return Promise.all(arr);
     }
 }
 
-export const loadJS = (load: CodeLoad, file: FileInfo, callback: (e:Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadJS = (load: CodeLoad, file: FileInfo, callback: (e:Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }
