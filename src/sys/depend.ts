@@ -7,10 +7,10 @@ export class FileInfo {
 	public suffix: string;
 	constructor(args: any[]) {
 		this.path = args[0];
-		this.size = args[2];
-		this.sign = args[3];
-		if(args[4])
-			this.depend = args[4];
+		this.size = args[1];
+		this.sign = args[2];
+		if(args[3])
+			this.depend = args[3];
 		this.suffix = fileSuffix(this.path);
 	}
 }
