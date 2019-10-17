@@ -100,12 +100,12 @@ export class BatchLoad extends FileLoad {
      * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
      */
     public start() {
-        return this.load(false);
+        return this.load();
     }
     /**
      * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
      */
-    public load(down: boolean) {
+    public load(down=true) {
         let binload = new LocalLoad();
         let download = new Download();
         let codeload = new CodeLoad();
@@ -168,14 +168,18 @@ export class BatchLoad extends FileLoad {
             if(r.test(s))
                 return;
         }
-        for(let f of dir.files){
-            s = f.path.slice(path.length);
-            if(filter(s, this.fileFilters[0], this.fileFilters[1])) {
-                this.loadFile(f, down, binload, download, codeload, objload, result);
+        if(dir.files){
+            for(let f of dir.files){
+                s = f.path.slice(path.length);
+                if(filter(s, this.fileFilters[0], this.fileFilters[1])) {
+                    this.loadFile(f, down, binload, download, codeload, objload, result);
+                }
             }
         }
-        for(let d of dir.children) {
-            this.loadDir(path, d, down, binload, download, codeload, objload, result);
+        if(dir.children) {
+            for(let d of dir.children) {
+                this.loadDir(path, d, down, binload, download, codeload, objload, result);
+            }
         }
     }
     loadFile(
