@@ -20,11 +20,11 @@
 */
 
 // ============================== 导入
-import {FileInfo, DirInfo, getFile, initDir} from "./depend";
-import {Store} from "./store";
-import {get as assetGet, read} from "./asset_load";
-import {AjaxDownload, ProcessFunc} from "./ajax";
-import { utf8Decode } from "./str";
+import {FileInfo, DirInfo, getFile, initDir} from "../setup/depend";
+import {Store} from "../feature/store";
+import {get as assetGet, read} from "./asset";
+import {AjaxDownload, ProcessFunc} from "../feature/http";
+import { utf8Decode } from "../feature/string";
 
 // ============================== 导出
 export interface ResultFunc {

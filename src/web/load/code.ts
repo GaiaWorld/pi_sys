@@ -3,8 +3,8 @@
 */
 
 // ============================== 导入
-import { FileLoad } from './bin_load';
-import { FileInfo } from './depend';
+import { FileLoad } from './bin';
+import { FileInfo } from '../setup/depend';
 
 // ============================== 导出
 /**

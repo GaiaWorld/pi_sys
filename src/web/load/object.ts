@@ -6,8 +6,8 @@ declare class FontFace {
     load(): Promise<any>;
 }
 // ============================== 导入
-import { FileLoad } from './bin_load';
-import { fileSuffix, fileBasename, FileInfo } from './depend';
+import { FileLoad } from './bin';
+import { fileSuffix, fileBasename, FileInfo } from '../setup/depend';
 
 // ============================== 导出
 /**

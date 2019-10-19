@@ -8,11 +8,11 @@
  * 可以设置资源的下载缓冲时间和大小LRU，下载缓存的目标仅是为了下载后不用重新加载。
  */
 // ============================== 导入
-import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin_load';
-import {FileInfo, fileSuffix, DirInfo, getDir, getFile} from "./depend";
-import {cc, log, pattern} from "./log";
-import { CodeLoad } from './code_load';
-import { ObjLoad } from './obj_load';
+import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
+import {FileInfo, fileSuffix, DirInfo, getDir, getFile} from "../setup/depend";
+import {cc, log, pattern} from "../feature/log";
+import { CodeLoad } from './code';
+import { ObjLoad } from './object';
 
 // ============================== 导出
 export enum SuffixType{
