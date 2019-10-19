@@ -1,54 +1,68 @@
-# pi_sys
+# pi_sys 系统
 
-前端平台层，和平台相关的模块
+* 依赖构建系统，将不同系统的兼容代码构建成不同的引导代码。 
+* 应用项目可以通过配置来改变引导和获得控制权。
 
-## 支持的平台
+## 多平台
 
-* web，浏览器/WebView
-* mobile
-   + Android
-   + iOS
-* PC
-   + Windows
-* 微信
-   + 小游戏
-   + 小程序
-* Service/VM，平台服务端
+* Web
+* WebView: mobile | iOS | 小程序 | PC
+* 微信小游戏
+* 平台 Service | VM
 
-## 功能
+## 启动
 
-* 全局变量：_$pi
-   + define(...)
-   + require(...)
-   + modules = { 模块 }
-* loader，加载器
-   + code 代码
-   + object 底层对象
-   + res 二进制资源
-   + cfg 文本配置
-* 功能
-   + depend，依赖
-   + log, 日志
-   + timer，定时器
-   + store，存储/数据库
-   + file，文件系统
-   + thread，线程worker
-   + sound，声音播放
-   + video，视频
-   + net
-      * http, https
-      * ws, wss
-* device
-   + 设备id
-   + camera，相机
-   + image，图像选择
-   + 加速器
-   + 陀螺仪
-   + 蓝牙
-   + 录音
-   + ...
-* user
-   + 登录/注册
-   + 分享
-   + 支付
-   + ...
+* 全局变量
+   + self，比如web版本的windows对象
+   + self._$pi = {define, require, modules = {} }
+   + env：环境相关的变量
+      * winit
+      * userAgent
+
+## 启动及模块加载
+    # 提供_$self _$pi全局环境
+
+## 设备
+
+## 进程或activity
+
+## 线程
+
+## 网络
+
+## 存储
+
+## 图片
+
+## 声音
+
+## 视频
+
+## 字体
+
+## 时间
+
+## 数字文字处理和其他杂项
+    大数 utf8 base64等
+
+
+## 调试标识、日志和错误处理
+
+
+## 账户、支付及分享
+
+web: index.html -> .version -> sys.js + .depend -> 下载代码模块(pi, pi_gui, app, app_a/), 引导代码app_a/main.js
+app_h5: file:///index.html + file:///sys.js -> .version -> .depend + 更新 -> 下载代码模块(pi, pi_gui, app, app_a/), 引导代码app_a/main.js
+app: main.js(sys.js)-> .version -> .depend + 更新 -> 下载代码模块(pi, pi_gui, app, app_a/), 引导代码app_a/main.js
+mini_game: main.js(sys.js)-> .version -> .depend -> 下载代码模块(pi, pi_gui, app, app_a/), 引导代码app_a/main.js
+
+因为GUI的初始化较慢，为了和网络下载并行，应该将pi, pi_gui作为第一部分进行加载，然后加载app, app_a。同步初始化GUI。
+
+===========
+
+下周：构建，运行hello：pi-demo
+
+* 我/子午线：跑通pi-sys。helloworld。 userAgent->env
+* 小游戏：陈中辉。以一个小游戏跑起来。
+* 小燕：pi-2d拆出来，跑通以一个gui-demo跑起来。
+* 白鹏：pi-babylon，跟 厨房 性能。以一个3ddemo跑起来。
