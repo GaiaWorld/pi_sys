@@ -56,10 +56,13 @@ export const setResLru = (suffix: string, timeout: number, cacheSize: number) =>
 
 // 整理资源
 export const collect = (time: number) => {
+    let exit = true;
     for(let v of resMap.values()) {
         v.collect_time(time);
         v.collect_size();
+        exit = exit && v.size === 0;
     }
+    return exit
 }
 
 /**
@@ -105,7 +108,7 @@ export class BatchLoad extends FileLoad {
     /**
      * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
      */
-    public load(down=true) {
+    public load(onlyDown=true) {
         let binload = new LocalLoad();
         let download = new Download();
         let codeload = new CodeLoad();
@@ -113,11 +116,11 @@ export class BatchLoad extends FileLoad {
         let arr = [];
         for(let s of this.dirOrFiles) {
             if(s.charAt(s.length - 1) === '/') {
-                this.loadDir(s, getDir(s), down, binload, download, codeload, objload, arr);
+                this.loadDir(s, getDir(s), onlyDown, binload, download, codeload, objload, arr);
             }else{
                 let info = getFile(s);
                 if(info)
-                    this.loadFile(info, down, binload, download, codeload, objload, arr);
+                    this.loadFile(info, onlyDown, binload, download, codeload, objload, arr);
                 else
                     cc.warn() && log("batchload, invalid file, ", s);
             }
@@ -151,7 +154,7 @@ export class BatchLoad extends FileLoad {
     loadDir(
         path: string,
         dir: DirInfo,
-        down: boolean,
+        onlyDown: boolean,
         binload: LocalLoad,
         download: Download,
         codeload: CodeLoad,
@@ -172,19 +175,19 @@ export class BatchLoad extends FileLoad {
             for(let f of dir.files){
                 s = f.path.slice(path.length);
                 if(filter(s, this.fileFilters[0], this.fileFilters[1])) {
-                    this.loadFile(f, down, binload, download, codeload, objload, result);
+                    this.loadFile(f, onlyDown, binload, download, codeload, objload, result);
                 }
             }
         }
         if(dir.children) {
             for(let d of dir.children) {
-                this.loadDir(path, d, down, binload, download, codeload, objload, result);
+                this.loadDir(path, d, onlyDown, binload, download, codeload, objload, result);
             }
         }
     }
     loadFile(
         file: FileInfo,
-        down: boolean,
+        onlyDown: boolean,
         binload: LocalLoad,
         download: Download,
         codeload: CodeLoad,
@@ -203,9 +206,9 @@ export class BatchLoad extends FileLoad {
             let lru = resMap.get(suffix);
             if(lru.map.get(file.path))
                 return;
-            this.downOrload(file, down, binload, download, result)
+            this.downOrload(file, onlyDown, binload, download, result)
         }else if(st === SuffixType.OBJ) {
-            if(this.checkLoad(file, objLoad, result))
+            if((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result))
                 objload.add(file);
         }else if(st === SuffixType.CFG) {
             // 先检查是否在cfgMap
@@ -224,7 +227,7 @@ export class BatchLoad extends FileLoad {
             let rd = cfgTempMap.get(file.path);
             if(rd)
                 return;
-            this.downOrload(file, down, binload, download, result)
+            this.downOrload(file, onlyDown, binload, download, result)
         }else{
             if(this.checkLoad(file, codeLoad, result))
                 codeload.add(file);
@@ -233,12 +236,12 @@ export class BatchLoad extends FileLoad {
     // 下载或加载
     downOrload (
         file: FileInfo,
-        down: boolean,
+        onlyDown: boolean,
         binload: LocalLoad,
         download: Download,
         result: Promise<any>[]) {
         if(file.sign === getSign(file.path)) {
-            if((!down) && this.checkLoad(file, localLoad, result))
+            if((!onlyDown) && this.checkLoad(file, localLoad, result))
                 binload.add(file);
         }else{
             if(this.checkLoad(file, downLoad, result))
@@ -381,6 +384,8 @@ const cfgMap: Map<string, ResultFunc[]> = new Map;
 const cfgTempMap: Map<string, Uint8Array> = new Map;
 // 资源缓存表
 const resMap: Map<string, Lru> = new Map;
+// 资源缓存表当前是否真正整理
+let timerStart = false;
 
 // 正在运行的代码加载器
 const codeLoad: Set<CodeLoad> = new Set;
@@ -409,6 +414,7 @@ class Lru {
     add(file: string, data: Uint8Array) {
         this.map.set(file, {time: Date.now() + this.timeout, data: data});
         this.size += data.byteLength;
+        startCollectTimer();
     }
     remove(file: string) {
         let r = this.map.get(file);
@@ -436,12 +442,21 @@ class Lru {
         }
     }
 }
-
 // 启动整理定时器
 const startCollectTimer = () =>{
-    collect(Date.now());
-    setTimeout(startCollectTimer, 100);
+    if(timerStart)
+        return;
+    timerStart = true;
+    collectTimer();
 }
+// 启动整理定时器
+const collectTimer = () => {
+    if(collect(Date.now()))
+        timerStart = false;
+    else
+        setTimeout(collectTimer, 100);
+}
+
 // 判断文件是否匹配
 const filter = (path: string, within: RegExp[], without: RegExp[]) =>{
     for(let r of within) {
@@ -526,4 +541,3 @@ const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8
     });
 }
 // ============================== 立即执行
-startCollectTimer();

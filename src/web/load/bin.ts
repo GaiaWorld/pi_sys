@@ -283,11 +283,11 @@ export class Download extends FileLoad {
     save(buff: ArrayBuffer, localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
         let view = new DataView(buff);
         let offset = 0;
-        while(true) {
+        while(offset < buff.byteLength) {
             let len = view.getInt16(offset, true);
             offset+=2;
             let path = utf8Decode(new Uint8Array(buff, offset, len));
-            let info = getFile[path];
+            let info = getFile(path);
             offset+=len;
             let datalen = view.getInt32(offset, true);
             offset+=4;
@@ -295,8 +295,8 @@ export class Download extends FileLoad {
             let data = new Uint8Array(buff, offset, datalen);
             offset+=datalen;
             fileMap.set(path, data);
-            this.onProcess(path, "saveFile", 0, 0, data);
-            localSignWait.push(savefile(path, data, info.sign));
+            this.onProcess(path, "downFile", 0, 0, data);
+            localSignWait.push(savefile(path, data, info?info.sign:""));
         }
     };
 }
@@ -326,10 +326,10 @@ let localStore: Store;
 let localSign: any;
 
 class Result {
-    url: "";
-    d: "";
-    f: "";
-    files: FileInfo[];
+    url = "";
+    d = "";
+    f = "";
+    files: FileInfo[] = [];
     size = 0;
     next = false;
 };
@@ -347,21 +347,22 @@ const isAsset = (sign:string) => {
     return (sign.charCodeAt(0) === 45)
 }
 // 本地加载检查
-const localInitCheck = (store: Store, localSign:any, save:boolean) => {
+const localInitCheck = (store: Store, signs:any, save:boolean) => {
     localStore = store;
+    localSign = signs;
     // 删除不存在或签名不正确的文件
-    for (let k in localSign) {
-        if (!localSign.hasOwnProperty(k))
+    for (let k in signs) {
+        if (!signs.hasOwnProperty(k))
             continue;
         let info = getFile(k);
         if (info && getSign(k) === info.sign)
             continue;
         store.delete(k);
-        delete localSign[k];
+        delete signs[k];
         save = true;
     }
     if (save)
-        store.write("", localSign);
+        store.write("", signs);
 };
 
 // 获取文件的去掉第一个后缀的文件名
@@ -373,41 +374,45 @@ const basename = (file:string) => {
 // 上行消息结构： (后缀1(文件名1:文件名2)后缀2(文件名1:文件名2):目录1()目录2())
 const stringify = (tree:DirInfo, limit:number, result:Result) => {
     // 先写入本目录下的文件，按后缀归类
-    for (let [k, arr] of tree.suffixMap) {
-        let i = arr.length - 1;
-        let f = arr[i--];
-        let rk = replace(k);
-        let rs = replace(basename(f.path));
-        if (result.url.length + rk.length + rs.length > limit || result.size + f.size > sizeLimit && result.files.length) {
-            result.next = true;
-            result.size = 0;
-            return;
-        }
-        result.files.push(f);
-        result.size += f.size;
-        result.url += rk + "(" + rs;
-        for (; i >= 0; i--) {
-            f = arr[i];
-            rs = replace(basename(f.path));
-            if (result.url.length + rs.length > limit || result.size + f.size > sizeLimit && result.files.length) {
-                arr.length = i + 1;
+    if(tree.suffixMap) {
+        for (let [k, arr] of tree.suffixMap) {
+            let i = arr.length - 1;
+            let f = arr[i--];
+            let rk = replace(k);
+            let rs = replace(basename(f.path));
+            if (result.url.length + rk.length + rs.length > limit || result.size + f.size > sizeLimit && result.files.length) {
                 result.next = true;
-                result.url += ")";
                 result.size = 0;
                 return;
             }
-            result.url += ":" + rs;
             result.files.push(f);
             result.size += f.size;
+            result.url += rk + "(" + rs;
+            for (; i >= 0; i--) {
+                f = arr[i];
+                rs = replace(basename(f.path));
+                if (result.url.length + rs.length > limit || result.size + f.size > sizeLimit && result.files.length) {
+                    arr.length = i + 1;
+                    result.next = true;
+                    result.url += ")";
+                    result.size = 0;
+                    return;
+                }
+                result.url += ":" + rs;
+                result.files.push(f);
+                result.size += f.size;
+            }
+            result.url += ")";
+            tree.suffixMap.delete(k);
         }
-        result.url += ")";
-        tree.suffixMap.delete(k);
     }
     result.url += ":";
+    if(!tree.children)
+        return
     let dir: DirInfo;
     while (dir = tree.children[tree.children.length - 1]) {
         let i = dir.path.lastIndexOf("/", dir.path.length - 2);
-        let rk = replace(dir.path.slice(i+1, dir.path.length - 2));
+        let rk = replace(dir.path.slice(i+1, dir.path.length - 1));
         result.url += rk + "(";
         stringify(dir, limit, result);
         result.url += ")";
