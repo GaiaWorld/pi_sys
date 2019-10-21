@@ -8,9 +8,7 @@
  * @example
  */
 export const get = (): Promise<any[]> => {
-    return new Promise((resolve) =>{
-        resolve([]);
-    });
+    return Promise.resolve([]);
 };
 
 /**
@@ -18,7 +16,5 @@ export const get = (): Promise<any[]> => {
  * @example
  */
 export const read = (key:string) : Promise<ArrayBuffer> => {
-    return new Promise((resolve) =>{
-        resolve(null);
-    });
+    return Promise.resolve(null);
 };
