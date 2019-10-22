@@ -16,7 +16,7 @@ import { ObjLoad } from './object';
 
 // ============================== 导出
 export enum SuffixType{
-    CODE,
+    CODE = 1,
     CFG,
     OBJ,
     RES,
