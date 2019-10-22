@@ -5,16 +5,13 @@
  */
 
 // ============================== 导入
-
-import { commonjs } from '../lang/mod';
 import { now as timeNow } from '../lang/time';
-import { getGlobal } from '../widget/frame_mgr';
-import { debug, LogLevel, logLevel, warn } from './log';
+import { getGlobal } from './frame_mgr';
+import { cc, log } from '../../feature/log';
 import { TaskPool, TaskType, temp } from './task_pool';
 import { call } from './util';
 
 // ============================== 导出
-export let level = commonjs.debug ? logLevel : LogLevel.info;
 
 /**
  * @description 定时器引用
@@ -107,11 +104,11 @@ export const callTime = (func: Function, args: any[], name: string, start?: numb
 	try {
 		call(func, args);
 	} catch (ex) {
-		warn(level, name, ', ex: ', ex, ', func: ', func, args);
+		cc.warn() && log(', ex: ', ex, ', func: ', func, args);
 	}
 	const end = timeNow();
 	if (end - start > logTimeout) {
-		level <= LogLevel.debug && debug(level, name, ' slow, cost: ', (end - start), func, args);
+		cc.debug() && log(name, ' slow, cost: ', (end - start), func, args);
 	}
 
 	return end;

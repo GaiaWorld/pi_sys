@@ -4,8 +4,7 @@
 */
 import * as Hash from './hash';
 import { str_md5 } from './md5';
-import { BonBuffer } from './bon';
-import { isNumber } from './util';
+import { BonBuffer } from '../serialization/bon';
 
 export class RSync {
 	size;
@@ -19,11 +18,11 @@ export class RSync {
 		let results: Array<Checksum> = [], result;
 
 		while (start < length) {
-			var chunk  = data.slice(start, end)
-				, weak   = Hash.weak32(chunk).sum
+			var chunk = data.slice(start, end)
+				, weak = Hash.weak32(chunk).sum
 				, strong = str_md5(chunk);
 
-			result = {weak: weak, strong: strong, index: blockIndex}
+			result = { weak: weak, strong: strong, index: blockIndex }
 			results.push(result);
 			start += incr;
 			end = (end + incr) > length ? length : end + incr;
@@ -33,23 +32,23 @@ export class RSync {
 	}
 
 	//计算差异
-	diff(newData: Uint8Array, oldChecksums: Array<Checksum>): Array<Diff>{
+	diff(newData: Uint8Array, oldChecksums: Array<Checksum>): Array<Diff> {
 		let results = [], length = newData.length, start = 0, end = this.size > length ? length : this.size, lastMatchedEnd = 0, prevRollingWeak = null;
 		const hashtable = createHashtable(oldChecksums);
-		
+
 		let weak, weak16, match;
 		for (; end <= length;) {
 			weak = Hash.weak32(newData, prevRollingWeak, start, end);
 			weak16 = Hash.weak16(weak.sum);
-			
+
 			let checkSums = hashtable.get(weak16)
 			if (checkSums) {
 				for (let i = 0; i < checkSums.length; i++) {
 					if (checkSums[i].weak === weak.sum) {
 						const mightMatch = checkSums[i]
-						, chunk = newData.slice(start, end)
-						, strong = str_md5(chunk);
-	
+							, chunk = newData.slice(start, end)
+							, strong = str_md5(chunk);
+
 						if (mightMatch.strong === strong) {
 							match = mightMatch;
 							break;
@@ -57,25 +56,25 @@ export class RSync {
 					}
 				}
 			}
-	
+
 			if (match) {
 				let d;
-				if(start > lastMatchedEnd) {
+				if (start > lastMatchedEnd) {
 					d = newData.slice(lastMatchedEnd, start);
 				}
-				results.push({index: match.index, data: d});
+				results.push({ index: match.index, data: d });
 				start = end;
 				lastMatchedEnd = end;
 				end += this.size;
 				prevRollingWeak = null;
-			}else{
+			} else {
 				start++;
 				end++;
 				prevRollingWeak = weak;
 			}
-		}	
+		}
 
-		if(lastMatchedEnd < length) {
+		if (lastMatchedEnd < length) {
 			results.push({
 				data: newData.slice(lastMatchedEnd, length)
 			});
@@ -85,21 +84,21 @@ export class RSync {
 	}
 
 	//同步数据
-	sync (oldData: Uint8Array, diffs: Array<Diff>){
-		if(typeof oldData === 'undefined') {
+	sync(oldData: Uint8Array, diffs: Array<Diff>) {
+		if (typeof oldData === 'undefined') {
 			throw new Error("must do checksum() first");
 		}
 
 		let len = diffs.length, synced = new Uint8Array(0);
-		for(let i = 0 ; i < len; i++) {
+		for (let i = 0; i < len; i++) {
 			let chunk = diffs[i];
 
-			if(typeof chunk.data === 'undefined') { //use slice of original file
+			if (typeof chunk.data === 'undefined') { //use slice of original file
 				synced = concatU8(synced, rawslice(oldData, chunk.index, this.size))
 			} else {
 				synced = concatU8(synced, chunk.data)
 
-				if(typeof chunk.index !== 'undefined') {
+				if (typeof chunk.index !== 'undefined') {
 					synced = concatU8(synced, rawslice(oldData, chunk.index, this.size))
 				}
 			}
@@ -114,10 +113,10 @@ export const encodeDiffs = (diffs: Array<Diff>, bb: BonBuffer) => {
 	let diff;
 	for (let i = 0; i < diffs.length; i++) {
 		diff = diffs[i]
-		if(diff.data){
+		if (diff.data) {
 			bb.writeBin(diff.data);
 		}
-		if(diff.index !== undefined){
+		if (diff.index !== undefined) {
 			bb.writeInt(diff.index);
 		}
 	}
@@ -126,23 +125,24 @@ export const encodeDiffs = (diffs: Array<Diff>, bb: BonBuffer) => {
 //反序列化差异数据
 export const decodeDiffs = (bb: BonBuffer): Array<Diff> => {
 	let arr: Array<Diff> = [];
-	while(bb.head < bb.tail){
+	while (bb.head < bb.tail) {
 		let r = bb.read();
-		if(typeof r === 'number'){
-			arr.push({index: r});
-		}else //if(ArrayBuffer.isView(r)){
-		{	arr.push({data: r});
+		if (typeof r === 'number') {
+			arr.push({ index: r });
+		} else //if(ArrayBuffer.isView(r)){
+		{
+			arr.push({ data: r });
 		}
 	}
 	return arr;
 }
 
-interface Diff{
+interface Diff {
 	index?: number;
 	data?: Uint8Array;
 }
 
-interface Checksum{
+interface Checksum {
 	index: number;
 	weak: number;
 	strong: string;
@@ -153,7 +153,7 @@ const createHashtable = (checksums: Array<Checksum>): Map<number, Array<Checksum
 	let map = new Map<number, Array<Checksum>>();
 	for (let i = 0; i < checksums.length; i++) {
 		var checksum = checksums[i]
-		, weak16 = Hash.weak16(checksum.weak);
+			, weak16 = Hash.weak16(checksum.weak);
 
 		let cs = map.get(weak16);
 		if (cs) {
@@ -176,9 +176,9 @@ const concatU8 = (data1: Uint8Array, data2: Uint8Array) => {
 }
 
 const rawslice = (raw: Uint8Array, index: number, chunkSize: number) => {
-	var start = index*chunkSize
-	, end = start + chunkSize > raw.length 
-			? raw.length 
+	var start = index * chunkSize
+		, end = start + chunkSize > raw.length
+			? raw.length
 			: start + chunkSize;
 
 	return raw.slice(start, end);

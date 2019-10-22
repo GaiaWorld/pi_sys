@@ -8,7 +8,7 @@ import {
 } from './util';
 import { decode as xxtea64Decode, encode as xxtea64Encode } from './xxtea64';
 import { deflateSync, inflateSync } from './zlib';
-import { u64Merge, bufferToU64 } from '../../util/bigint/util';
+import { bufferToU64 } from '../../math/bigint/util';
 
 const random = (seed) => {
 	const r = seed ^ 123459876;

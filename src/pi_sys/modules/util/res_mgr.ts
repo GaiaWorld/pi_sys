@@ -4,8 +4,8 @@
  */
 
 // ============================== 导入
-import { butil, commonjs, depend, load } from '../lang/mod';
 import { now } from '../lang/time';
+import { fileSuffix } from "../../setup/depend"
 
 // ============================== 导出
 /**
@@ -14,8 +14,8 @@ import { now } from '../lang/time';
  */
 export const RES_TYPE_BLOB = 'blob';
 export const RES_TYPE_FILE = 'file';
-export const RES_TYPE_LOCAL = 'local';
 const RES_TYPE_IMAGE = 'image';
+
 /**
  * @description 资源
  * @example
@@ -323,52 +323,6 @@ export const getResMap = () => {
 };
 
 /**
- * @description 创建本地资源（小游戏）
- * @example
- */
-const createLocalRes = (
-    name: string,
-    type: string,
-    file: any,
-    fileMap: Map<string, ArrayBuffer>,
-    construct: Function
-) => {
-    if (fileMap) {
-        const data = fileMap[file]
-        if (data) {
-            pi_modules["pi/minigame/adapter"].exports.replaceImagePath(file, localPath => {
-                loadOK(name, type, file, construct, localPath)
-            })
-            return
-        }
-    }
-    const info = depend.get(file);
-    if (!info) {
-        return loadError(name, {
-            error: 'FILE_NOT_FOUND',
-            reason: `createBlobURLRes fail: ${file}`
-        })
-    }
-    if (load.isWXMiniGame()) {
-        (<any>window).pi_modules['pi/minigame/adapter'].exports.readResContext(file, r => {
-            pi_modules["pi/minigame/adapter"].exports.replaceImagePath(file, localPath => {
-                loadOK(name, type, file, construct, localPath)
-            })
-        }, err => {
-            loadError(name, err)
-        });
-    } else {
-        const down = load.create([info], r => {
-            pi_modules["pi/minigame/adapter"].exports.replaceImagePath(file, localPath => {
-                loadOK(name, type, file, construct, localPath)
-            })
-        }, err => {
-            loadError(name, err)
-        });
-        load.start(down)
-    }
-}
-/**
  * @description 创建ArrayBuffer资源
  * @example
  */
@@ -389,28 +343,13 @@ const createABRes = (name: string, type: string, file: string, fileMap: Map<stri
             reason: `createBlobURLRes fail: ${file}`
         });
     }
-    // const down = load.create([info], (r) => {
-    //     loadOK(name, type, file, construct, r[file]);
-    // }, (err) => {
-    //     loadError(name, err);
-    // });
-    // load.start(down);
 
-    // 小游戏兼容
-    if (load.isWXMiniGame()) {
-        (<any>window).pi_modules['pi/minigame/adapter'].exports.readResContext(file, (r) => {
-            loadOK(name, type, file, construct, r);
-        }, (err) => {
-            loadError(name, err);
-        });
-    } else {
-        const down = load.create([info], (r) => {
-            loadOK(name, type, file, construct, r[file]);
-        }, (err) => {
-            loadError(name, err);
-        });
-        load.start(down);
-    }
+    const down = load.create([info], (r) => {
+        loadOK(name, type, file, construct, r[file]);
+    }, (err) => {
+        loadError(name, err);
+    });
+    load.start(down);
 };
 /**
  * @description 获取 png jpg jpeg 自动转换成同名的webp, webp必须在depend中存在
@@ -420,11 +359,11 @@ export const getTransWebpName = (name: string): string => {
     if (!(commonjs.flags.webp && commonjs.flags.webp.alpha)) {
         return name;
     }
-    const suf = butil.fileSuffix(name);
+    const suf = fileSuffix(name);
     if (!(suf === 'png' || suf === 'jpg' || suf === 'jpeg')) {
         return name;
     }
-    const s = `${name.slice(0, name.length - suf.length)}webp`;	
+    const s = `${name.slice(0, name.length - suf.length)}webp`;
     const i = s.indexOf(':');
 
     return depend.get(i < 0 ? s : s.slice(i + 1)) ? s : name;
@@ -435,25 +374,25 @@ const loadImageCall = (resTab: ResTab, path: string, cb: (res2: Res, succCall: F
     const res = resTab.get(key);
     if (res) {
         cb(
-            res, 
+            res,
             () => {
                 resTab.delete(res, 0);
             }
         );
     } else {
         resTab.load(
-            key, 
-            RES_TYPE_BLOB, 
-            path, 
-            undefined, 
-            (res: Res) => { 
+            key,
+            RES_TYPE_BLOB,
+            path,
+            undefined,
+            (res: Res) => {
                 cb(
-                    res, 
+                    res,
                     () => {
                         resTab.delete(res, 0);
                     }
-                ); 
-            }, 
+                );
+            },
             (error: any) => {
                 try {
                     throw new Error(`load.ts loadRes${RES_TYPE_BLOB} failed, path = ${path}, error = ${error.reason}`);
@@ -502,21 +441,21 @@ const loadImageCallNew = (resTab: ResTab, path: string, cb: (res2: Res, succCall
     const res = resTab.get(key);
     if (res) {
         cb(
-            res, 
-            () => {}
+            res,
+            () => { }
         );
     } else {
         resTab.load(
-            key, 
-            RES_TYPE_BLOB, 
-            path, 
-            undefined, 
-            (res: Res) => { 
+            key,
+            RES_TYPE_BLOB,
+            path,
+            undefined,
+            (res: Res) => {
                 cb(
-                    res, 
-                    () => {}
-                ); 
-            }, 
+                    res,
+                    () => { }
+                );
+            },
             (error: any) => {
                 try {
                     throw new Error(`load.ts loadRes${RES_TYPE_BLOB} failed, path = ${path}, error = ${error.reason}`);
@@ -563,7 +502,7 @@ class BlobURLRes extends Res {
      * @example
      */
     public create(data: any): void {
-        const type = butil.fileSuffix(this.args);
+        const type = fileSuffix(this.args);
         const blob = new Blob([data], { type: BlobType[type] });
         this.link = URL.createObjectURL(blob);
     }
@@ -638,24 +577,9 @@ export class ImageRes extends Res {
 }
 
 const createImageRes = (name: string, type: string, url: string, res: ResTab) => {
-    if ((<any>window).pi_modules.load && (<any>window).pi_modules.load.exports.isWXMinigame && (<any>window).pi_modules.load.exports.isWXMinigame()) {
-        const image = new Image();
-        image.onload = () => {
-            loadOK(name, type, null, ImageRes, image);
-        };
-
-        (<any>window).pi_modules['pi/minigame/adapter'].exports.replaceImagePath(url, (a) => {
-            image.src = a;
-        }, () => {
-            image.src = `/${url}`;
-        });
-    } else {
-        // image.src = `/${url}`;
-        loadImageRes(url, res, (image: HTMLImageElement) => {
-            loadOK(name, type, null, ImageRes, image);
-        });
-    }
-
+    loadImageRes(url, res, (image: HTMLImageElement) => {
+        loadOK(name, type, null, ImageRes, image);
+    });
 };
 
 // ============================== 立即执行
@@ -671,14 +595,3 @@ register(RES_TYPE_IMAGE, (name: string, type: string, args: string, fileMap: Map
 register(NORMAL_IMAGE_TYPE, (name: string, type: string, url: string, res: ResTab) => {
     createImageRes(name, type, url, res);
 });
-register(
-    RES_TYPE_LOCAL,
-    (
-        name: string,
-        type: string,
-        args: string,
-        fileMap: Map<string, ArrayBuffer>
-    ) => {
-        createLocalRes(name, type, args, fileMap, Res)
-    }
-)
