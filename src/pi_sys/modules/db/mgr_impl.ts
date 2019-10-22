@@ -1,7 +1,3 @@
-/**
- * 
- */
-
 import { TabMeta } from '../serialization/sinfo';
 import { CDB, CSession, CTransaction } from './client';
 import { Handler, Item, Mgr as MgrInterface, Tr as TrInterface } from './mgr';

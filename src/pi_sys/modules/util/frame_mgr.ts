@@ -12,11 +12,10 @@
 // PITODO
 
 import { now as timeNow } from '../lang/time';
-import { logLevel, warn } from 'sys/log';
+import { cc, log } from "../../feature/log"
 import { call } from '../util/util';
 
 // ============================== 导出
-export let level = logLevel;
 
 /**
  * @description 设置全局渲染帧函数的回调函数
@@ -392,7 +391,7 @@ const funCall = (func, args) => {
     try {
         call(func, args);
     } catch (ex) {
-        warn(level, 'frame, ex: ', ex, ', func: ', func);
+        cc.warn() && log('frame, ex: ', ex, ', func: ', func);
     }
 
     return timeNow();

@@ -1,4 +1,4 @@
-_$define("pi/net/mqtt", function (require1, exports1, module1) {
+_$pi.define("pi_sys/modules/net/mqtt", function (require1, exports1, module1) {
     /*******************************************************************************
      * Copyright (c) 2013 IBM Corp.
      *
