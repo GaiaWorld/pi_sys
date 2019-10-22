@@ -9,7 +9,7 @@ export class FileInfo {
 		this.path = args[0];
 		this.size = args[1];
 		this.sign = args[2];
-		if(args[3])
+		if (args[3])
 			this.depend = args[3];
 		this.suffix = fileSuffix(this.path);
 	}
@@ -27,25 +27,25 @@ export class DirInfo {
 	}
 	add(info: FileInfo, isSuffix: boolean) {
 		let r: FileInfo[];
-		if(isSuffix) {
-			if(!this.suffixMap)
+		if (isSuffix) {
+			if (!this.suffixMap)
 				this.suffixMap = new Map;
 			r = this.suffixMap.get(info.suffix);
-			if(!r) {
+			if (!r) {
 				r = [];
 				this.suffixMap.set(info.suffix, r);
 			}
-		}else{
+		} else {
 			r = this.files;
-			if(!r){
+			if (!r) {
 				this.files = r = [];
 			}
 		}
 		r.push(info);
 		let p: DirInfo = this;
-		while(p) {
-			p.count+=1;
-			p.size+=info.size;
+		while (p) {
+			p.count += 1;
+			p.size += info.size;
 			p = p.parent;
 		}
 	}
@@ -53,7 +53,7 @@ export class DirInfo {
 
 // 根据文件表初始化依赖表
 export const init = (files: any[][]) => {
-	for(let args of files) {
+	for (let args of files) {
 		let f = new FileInfo(args);
 		fileMap.set(f.path, f);
 		initDir(f, dirMap, false);
@@ -66,15 +66,15 @@ export const initDir = (f: FileInfo, map: Map<string, DirInfo>, isSuffix: boolea
 	let j = path.lastIndexOf("/");
 	let dir = j > 0 ? path.slice(0, j + 1) : "";
 	let info = map.get(dir);
-	if(!info) {
+	if (!info) {
 		info = new DirInfo(dir);
 		map.set(dir, info);
 		let sub = info;
-		while(true) {
+		while (true) {
 			j = dir.lastIndexOf("/", j - 1);
-			if(j <= 0) {
+			if (j <= 0) {
 				let root = map.get("");
-				if(!root) {
+				if (!root) {
 					root = new DirInfo("");
 					root.children = [];
 					map.set("", root);
@@ -85,10 +85,10 @@ export const initDir = (f: FileInfo, map: Map<string, DirInfo>, isSuffix: boolea
 			}
 			dir = dir.slice(0, j + 1);
 			let parent = map.get(dir);
-			if(parent){
-				if(parent.children){
+			if (parent) {
+				if (parent.children) {
 					parent.children.push(sub);
-				}else{
+				} else {
 					parent.children = [sub];
 				}
 				sub.parent = parent;
@@ -134,7 +134,7 @@ export const fileBasename = (file: string) => {
 	let dot = fileDot(file);
 	return (i > dot) ? file.slice(i + 1, dot) : file.slice(i + 1);
 }
-export const relativePath = (filePath:string, dir:string) => {
+export const relativePath = (filePath: string, dir: string) => {
 	if (filePath.charCodeAt(0) !== 46)
 		return filePath;
 	let i = 0;
@@ -165,5 +165,5 @@ export const relativePath = (filePath:string, dir:string) => {
 	return dir + filePath;
 }
 
-const fileMap: Map<string, FileInfo>=new Map;// 文件表
-const dirMap: Map<string, DirInfo>=new Map;// 目录表
+const fileMap: Map<string, FileInfo> = new Map;// 文件表
+const dirMap: Map<string, DirInfo> = new Map;// 目录表

@@ -1,4 +1,4 @@
-_$define("pi/net/mqtt", function (require1, exports1, module1) {
+_$pi.define("pi_sys/modules/net/mqtt", function (require1, exports1, module1) {
     /*******************************************************************************
      * Copyright (c) 2013 IBM Corp.
      *
@@ -81,18 +81,17 @@ _$define("pi/net/mqtt", function (require1, exports1, module1) {
     * @namespace Paho.MQTT
     */
 
-    var isWXMiniGame = pi_modules.load.exports.isWXMiniGame();
     var wireMessage;
 
     /* jshint shadow:true */
     (function ExportLibrary(root, factory) {
         // 微信小游戏环境下， this 为 undefined
         root = root || window;
-        if (typeof exports === 'object' && typeof module === 'object' && !isWXMiniGame) {
+        if (typeof exports === 'object' && typeof module === 'object') {
             module.exports = factory();
-        } else if (typeof define === 'function' && define.amd && !isWXMiniGame) {
+        } else if (typeof define === 'function' && define.amd) {
             define(factory);
-        } else if (typeof exports === 'object' && !isWXMiniGame) {
+        } else if (typeof exports === 'object') {
             exports = factory();
         } else {
             if (typeof root.Paho === 'undefined') {
@@ -2648,5 +2647,4 @@ _$define("pi/net/mqtt", function (require1, exports1, module1) {
 
     exports1.MqttClient = Paho.MQTT.Client;
     exports1.Message = Paho.MQTT.Message;
-    isWXMiniGame && Object.assign(exports, exports1);
 });

@@ -1,4 +1,4 @@
-_$define("pi/bigint/biginteger", function (require, exports, module) {
+_$pi.define("pi_sys/modules/math/bigint/biginteger", function (require, exports, module) {
 
 var bigInt = (function (undefined) {
     "use strict";

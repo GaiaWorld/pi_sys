@@ -3,14 +3,13 @@
  */
 
 // ============================== 导入
-import { commonjs } from '../lang/mod';
 import { now as timeNow } from '../lang/time';
 import { Func } from '../lang/type';
-import { debug, LogLevel, logLevel, warn } from './log';
+import { cc, log } from '../../feature/log';
 import { arrInsert, arrRemove, call, objCall } from './util';
 
 // ============================== 导出
-export let level = commonjs.debug ? logLevel : LogLevel.info;
+
 // 3毫秒以上的事件会打印
 const timeout = 3;
 
@@ -295,11 +294,11 @@ const call1 = (func: Function, args: any[]) => {
     try {
         r = call(func, args);
     } catch (ex) {
-        return warn(level, 'event, ex: ', ex, ', func: ', func, args);
+        return cc.warn() && log('event, ex: ', ex, ', func: ', func, args);
     }
     const end = timeNow();
     if (end - start > timeout) {
-        level <= LogLevel.debug && debug(level, `event slow, cost: ${end - start}`, func, args);
+        cc.debug() && log(`event slow, cost: ${end - start}`, func, args);
     }
 
     return r;
@@ -311,11 +310,11 @@ const objCall1 = (obj: any, func: string, args: any[]) => {
     try {
         r = objCall(obj, func, args);
     } catch (ex) {
-        return warn(level, 'event, ex: ', ex, ', func: ', obj, func, args);
+        return cc.warn() && log('event, ex: ', ex, ', func: ', obj, func, args);
     }
     const end = timeNow();
     if (end - start > timeout) {
-        level <= LogLevel.debug && debug(level, `event slow, cost: ${end - start}`, obj, func, args);
+        cc.debug() && log(`event slow, cost: ${end - start}`, obj, func, args);
     }
 
     return r;
