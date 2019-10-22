@@ -1,3 +1,7 @@
+/**
+ * 
+ */
+
 import { TabMeta } from '../serialization/sinfo';
 import { CDB, CSession, CTransaction } from './client';
 import { Handler, Item, Mgr as MgrInterface, Tr as TrInterface } from './mgr';
@@ -163,7 +167,7 @@ export class Tr implements TrInterface {
     }
     // 迭代器
     // PITODO
-    public iter_raw?<K, V>(ware: string, tab: string, key: any, descending: boolean, _filter: string): DbItertor1<[K, V]> {
+    public iter_raw?<K, V>(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterator<[K, V]> {
         const tr = this.getTr(ware);
 
         return new DbItertor1(tr.iter(tab, _filter));
@@ -209,7 +213,7 @@ export class DbItertor<K, V> implements Iterator<[K, V]> {
     }
 }
 
-// 迭代器， 文件数据库不能使用foreach迭代， 因此封装了该迭代器， 直接代用next方法进行迭代
+// 迭代器， 文件数据库不能使用foreach迭代， 因此封装了该迭代器， 直接用next方法进行迭代
 export class DbItertor1<K, V> implements Iterator<[K, V]> {
     public inner: IterableIterator<{ key: K; value: V }>;
 
@@ -220,7 +224,7 @@ export class DbItertor1<K, V> implements Iterator<[K, V]> {
     public next() {
         const r = this.inner.next();
 
-        return r.done !== true ? [r.value.key, r.value.value] : undefined;
+        return r.done == true ? {done: true, value: [r.value.key, r.value.value] as any} : undefined;
     }
 
 }
