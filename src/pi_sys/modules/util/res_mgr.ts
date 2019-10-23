@@ -173,29 +173,37 @@ export class ResTab {
 
         let key = genKey(type, name);
 
+        // 取到就返回，内部做了引用+1了
         let r = this.get(key);
         if (r) {
             return Promise.resolve(r);
         }
 
+        // 正在等待，就返回等待的东西
         let p = waitMap.get(key);
         if (p) {
             return p;
         }
 
+        // 取对应类型的加载函数
         let func = typeMap.get(type);
         if (!func) {
             throw new Error("res_mgr load failed, type isn't registered, type = " + type);
         }
 
         p = func.load(this, name, type, ...loadArgs).then((link) => {
-            this.createRes(name, type, link);
+            // 加载完成，创建res，并从等待移除
+            let res = this.createRes(name, type, link);
             waitMap.delete(key);
+            return res;
         }).catch((err) => {
+            // 加载失败，从等待移除，从新抛出错误。
+            // 注：暂时不能用Promise.finally，因为需要浏览器版本比较新，Chrome 63
             waitMap.delete(key);
             return Promise.reject(err);
         });
 
+        // 将Promise设置到等待列表
         waitMap.set(key, p);
         return p;
     }
@@ -294,7 +302,7 @@ export const getResMap = () => {
 // 类型表
 const typeMap: Map<string, { load: (...args: any[]) => Promise<any>, destroy: (link: any) => void }> = new Map();
 // 等待加载表
-const waitMap: Map<string, Promise<any>> = new Map();
+const waitMap: Map<string, Promise<Res>> = new Map();
 // 全局资源
 const resMap: Map<string, Res> = new Map();
 // 定时的时间
