@@ -15,7 +15,7 @@
 * 全局变量
    + self，比如web版本的windows对象
    + self._$pi = {define, require, modules = {} }
-   + env：环境相关的变量
+   + env: 环境相关的变量
       * winit
       * userAgent
 
@@ -60,9 +60,40 @@ mini_game: main.js(sys.js)-> .version -> .depend -> 下载代码模块(pi, pi_gu
 
 ===========
 
-下周：构建，运行hello：pi-demo
+1，项目需要根据情况控制个别图片的压缩质量。
+2，多平台的多种压缩方式: 
+   压缩图片: png, jpg, webp
+   压缩纹理: etc(Android), pvrtc(iOS), astc
+3，多平台的多分辨率需求。默认3种。
 
-* 我/子午线：跑通pi-sys。helloworld。 userAgent->env
-* 小游戏：陈中辉。以一个小游戏跑起来。
-* 小燕：pi-2d拆出来，跑通以一个gui-demo跑起来。
-* 白鹏：pi-babylon，跟 厨房 性能。以一个3ddemo跑起来。
+如果不做压缩，所有图片其实都是png和jpg。不透明和只有透明不透明2种的，也是jpg出图，透明部分为纯黑色。
+我们的目标是项目内最低成本的拥有多分辨率，质量和大小最平衡的图片。
+
+在GUI版本上，GUI会有一个图片组件负责显示。
+UI的图片组件，名字为psd的名字，里面有每图层的名字和对应图片及UV。 在tpl中使用时，直接使用该组件，参数为图层名。
+以后UI的美术出图会使用PSD作为标准格式。由构建工具生成多种分辨率和多种压缩的合并图片。项目可以在PSD上修改特定字段来平衡质量。
+
+Scene则还是会使用GLTF配置。会有一个单独的构建合并过程，来修改UV和配置。
+
+web和webview平台: 
+    android:  png, webp | webp, etc,
+    IOS:  png, pvrtc | jpg, pvrtc,
+    win:  png, webp, dds | webp, dds,
+微信小游戏: 
+    android:  png | jpg, etc,
+    IOS: png, pvrtc | jpg, pvrtc,
+VM: 
+    android:  png, astc | astc,
+    IOS: png, astc | astc,
+
+不透明的默认格式为jpg, 根据平台使用 etc pvrtc dds astc。 不透明必然使用压缩图片或纹理，可以调整压缩率。
+透明的默认格式为png, 根据平台使用 webp pvrtc dds astc
+启动代码必须确定分辨率，可以用 是否为mobile，屏幕大小，配置，作为系数确定分辨率。小游戏和vm版可以维护一个机型配置表。
+启动代码必须确定平台。 平台和分辨率一起确定.depend.
+每平台的每个分辨率对应一个depend。一个图片在一个depend上，只有一个文件，该文件的格式由项目的配置决定。
+全局的压缩配置，直接在app.conf里面配置。
+psd配置里面， 可以决定每个图片，在每平台每分辨率下的压缩级别和参数。
+
+项目在使用UI时， 应该使用psd中的图层名， 由组件来添加后缀名。后缀名包括分辨率和类型。
+项目在使用场景渲染时， 一般应该有配置，配置里面应该引用的是md5值的图片资源，该图片资源应该是png或jpg，md5值为该文件的hash。 也就是说场景导出的图片全是最佳的png或jpg。然后通过构建转换成多分辨率和多格式。 然后有单独的函数来做转换。
+
