@@ -1,6 +1,28 @@
 /**
- * 负责创建、销毁BlobURL，负责维护资源的缓存和引用计数
- * 异步加载二进制数据，同步创建BlobURL，异步加载资源（图像、字体……）
+ * 通用的资源管理，二级缓冲。
+ * 
+ * 1、注册，以 Texture 为例，前提：image已经注册到res去了。
+ * 
+ *   register("texture", (resTab, name, type, path, config) => {
+ *          return resTab.load("image", name, [path, config]).then(imageRes => {
+ *              // 在这里调用创建纹理的实现
+ *              let texture = createTexture(imageRes.link);
+ *              
+ *              // 注：如果不缓存图片，这里应该直接调用unuse
+ *              imageRes.unuse();
+ *             
+ *              return Promise.resolve(texture);
+ *           });
+ *    }, (texture) => {
+ *       // 在这里释放纹理，texture就是上面加载函数创建的纹理
+ *       destroyTexture(texture);
+ *    });
+ * 
+ * 2、加载，以纹理为例：
+ *    
+ *    resTab.load("texture", name, [path, config]).then(textureRes => {
+ *       // 纹理就是 textureRes.link
+ *    });
  */
 
 // ============================== 导入
@@ -166,7 +188,7 @@ export class ResTab {
             throw new Error("res_mgr load failed, type isn't registered, type = " + type);
         }
 
-        p = func.load(key, type, ...loadArgs).then((link) => {
+        p = func.load(this, name, type, ...loadArgs).then((link) => {
             this.createRes(name, type, link);
             waitMap.delete(key);
         }).catch((err) => {
@@ -250,7 +272,7 @@ export class ResTab {
  * @param load 加载函数，返回Promise<link>，通过返回值，可以取到 将要 放到res.link的数据
  * @param destroy 销毁函数，用于销毁res.link
  */
-export const register = (type: string, load: (key: string, type: string, ...args: any[]) => Promise<any>, destroy: (link: any) => void) => {
+export const register = (type: string, load: (tab: ResTab, name: string, type: string, ...args: any[]) => Promise<any>, destroy: (link: any) => void) => {
     if (typeMap.has(type)) {
         throw new Error("res_mgr register failed, type has registered, type = " + type);
     }
