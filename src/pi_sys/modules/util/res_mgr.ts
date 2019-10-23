@@ -14,25 +14,35 @@ import { now } from '../lang/time';
  */
 export class Res {
     // 必须要赋初值，不然new出来的实例里面是没有这些属性的
-    // 名称
-    public key: string = '';
-    // 引用数
-    public count: number = 0;
     // 超时时间
     public timeout: number = 0;
-
     // 链接数据
     public link: any = null;
-    // 链接数据的释放函数
-    private linkDestroy: (link: any) => void = null;
 
-    /**
-     * @description 创建, 参数为源数据 可以是二进制数据，也可以是其他
-     * @example
-     */
-    public create(link: any, linkDestroy: (link: any) => void): void {
+    // 名
+    private name: string = '';
+    // 类型
+    private type: string = '';
+    // 引用数
+    private count: number = 0;
+
+    // 键
+    private _key: string = '';
+    public get key() {
+        if (!this._key) {
+            this._key = genKey(this.type, this.name);
+        }
+        return this._key;
+    }
+
+    public create(name: string, type: string, link: any) {
+        if (!typeMap.has(type)) {
+            throw new Error("res create failed, type isn't registered, type = " + type);
+        }
+
+        this.name = name;
+        this.type = type;
         this.link = link;
-        this.linkDestroy = linkDestroy;
     }
 
     /**
@@ -77,10 +87,10 @@ export class Res {
      */
     // tslint:disable:no-empty
     public destroy(): void {
-        if (this.linkDestroy) {
-            let func = this.linkDestroy;
-            this.linkDestroy = undefined;
-            func(this.link);
+        let func = typeMap.get(this.type);
+        if (func && this.link) {
+            func.destroy(this.link);
+            this.link = undefined;
         }
     }
 }
@@ -134,21 +144,38 @@ export class ResTab {
         return r;
     }
 
-    /**
-     * @description 创建资源
-     * @example
+    /** 
+     * 加载资源
      */
-    public createRes(key: string, data: any, destroy: (link: any) => void): Res {
-        let r = this.tab.get(key);
+    load(name: string, type: string, loadArgs: any[]): Promise<Res> {
+
+        let key = genKey(type, name);
+
+        let r = this.get(key);
         if (r) {
-            return r;
+            return Promise.resolve(r);
         }
 
-        r = createResGlobal(key, data, destroy);
-        r.use();
-        this.tab.set(r.key, r);
+        let p = waitMap.get(key);
+        if (p) {
+            return p;
+        }
 
-        return r;
+        let func = typeMap.get(type);
+        if (!func) {
+            throw new Error("res_mgr load failed, type isn't registered, type = " + type);
+        }
+
+        p = func.load(key, type, ...loadArgs).then((link) => {
+            this.createRes(name, type, link);
+            waitMap.delete(key);
+        }).catch((err) => {
+            waitMap.delete(key);
+            return Promise.reject(err);
+        });
+
+        waitMap.set(key, p);
+        return p;
     }
 
     /**
@@ -204,6 +231,33 @@ export class ResTab {
 
         return true;
     }
+
+    private createRes(name: string, type: string, link: any): Res {
+        let r = new Res();
+        r.create(name, type, link);
+        resMap.set(r.key, r);
+
+        r.use();
+        this.tab.set(r.key, r);
+
+        return r;
+    }
+
+}
+
+/** 
+ * 注册：类型名，以及该类型的加载函数，还有销毁函数
+ * @param load 加载函数，返回Promise<link>，通过返回值，可以取到 将要 放到res.link的数据
+ * @param destroy 销毁函数，用于销毁res.link
+ */
+export const register = (type: string, load: (key: string, type: string, ...args: any[]) => Promise<any>, destroy: (link: any) => void) => {
+    if (typeMap.has(type)) {
+        throw new Error("res_mgr register failed, type has registered, type = " + type);
+    }
+    typeMap.set(type, {
+        load,
+        destroy
+    })
 }
 
 /**
@@ -215,6 +269,10 @@ export const getResMap = () => {
 };
 
 // ============================== 本地
+// 类型表
+const typeMap: Map<string, { load: (...args: any[]) => Promise<any>, destroy: (link: any) => void }> = new Map();
+// 等待加载表
+const waitMap: Map<string, Promise<any>> = new Map();
 // 全局资源
 const resMap: Map<string, Res> = new Map();
 // 定时的时间
@@ -262,16 +320,6 @@ const timeoutRelease = (res: Res, nowTime: number, releaseTime: number): void =>
     timerRef = setTimeout(collect, timerTime - nowTime);
 };
 
-/** 
- * 在全局缓冲中创建资源
- */
-const createResGlobal = (key: string, link: any, destroy: (link: any) => void) => {
-    let r = resMap.get(key);
-    if (!r) {
-        r = new Res();
-        r.key = key;
-        r.create(link, destroy);
-        resMap.set(r.key, r);
-    }
-    return r;
+const genKey = (type: string, name: string) => {
+    return `${type}:${name}}`;
 }
