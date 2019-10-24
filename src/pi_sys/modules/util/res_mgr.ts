@@ -1,20 +1,34 @@
 /**
- * 负责创建、销毁BlobURL，负责维护资源的缓存和引用计数
- * 异步加载二进制数据，同步创建BlobURL，异步加载资源（图像、字体……）
+ * 通用的资源管理，二级缓冲。
+ * 
+ * 1、注册，以 Texture 为例，前提：image已经注册到res去了。
+ *   
+ *   register("texture", (resTab, type, name, path, imageConfig) => {
+ *          // load的最后一个参数，代表需不需要为该资源添加引用计数
+ *          // 如果是外部人员使用，默认是true；
+ *          // 这里用于图片仅仅是加载纹理的中间对象，不要缓冲，传false
+ *          return resTab.load("image", name, [path, imageConfig], false).then(imageRes => {
+ *              // 在这里调用创建纹理的实现
+ *              let texture = createTexture(imageRes.link);
+ *              
+ *              return Promise.resolve(texture);
+ *           });
+ *    }, (texture) => {
+ *       // 在这里释放纹理，texture就是上面加载函数创建的纹理
+ *       destroyTexture(texture);
+ *    });
+ * 
+ * 2、加载，以纹理为例：
+ *    
+ *    resTab.load("texture", name, [path, config]).then(textureRes => {
+ *       // 纹理就是 textureRes.link
+ *    });
  */
 
 // ============================== 导入
 import { now } from '../lang/time';
-import { fileSuffix } from "../../setup/depend"
 
 // ============================== 导出
-/**
- * @description blob的资源类型
- * @example
- */
-export const RES_TYPE_BLOB = 'blob';
-export const RES_TYPE_FILE = 'file';
-const RES_TYPE_IMAGE = 'image';
 
 /**
  * @description 资源
@@ -22,67 +36,89 @@ const RES_TYPE_IMAGE = 'image';
  */
 export class Res {
     // 必须要赋初值，不然new出来的实例里面是没有这些属性的
-    // 名称
-    public name: string = '';
-    // 类型
-    // tslint:disable:no-reserved-keywords
-    public type: string = '';
-    // 参数
-    public args: any = null;
-    // 引用数
-    public count: number = 0;
     // 超时时间
     public timeout: number = 0;
-    // 链接
+    // 链接数据
     public link: any = null;
 
-    /**
-     * @description 创建, 参数为源数据 可以是二进制数据，也可以是其他
-     * @example
-     */
-    public create(data: any): void {
-        this.link = data;
+    // 名
+    private name: string = '';
+    // 类型
+    private type: string = '';
+    // 引用数
+    // 注意：该引用代表的语义是：有几个ResTab在引用它。
+    private _count = 0;
+    public get count() {
+        return this._count;
     }
+
+    // 键
+    private _key: string = '';
+    public get key() {
+        if (!this._key) {
+            this._key = genKey(this.type, this.name);
+        }
+        return this._key;
+    }
+
+    public create(name: string, type: string, link: any) {
+        if (!typeMap.has(type)) {
+            throw new Error("res create failed, type isn't registered, type = " + type);
+        }
+
+        this.name = name;
+        this.type = type;
+        this.link = link;
+    }
+
     /**
-     * @description 使用
-     * @example
+     * @description 使用，引用计数加1
+     * 注意：只有ResTab能调用该函数
+     * 注意：每个ResTab最多只能调用一次use
      */
     public use(): void {
-        this.count++;
+        ++this._count;
     }
+
     /**
-     * @description 不使用
-     * @example
+     * @description 不使用，引用计数减1
+     * 注意：只有ResTab能调用该函数
      */
     public unuse(timeout: number, nowTime: number): void {
-        this.count--;
+        --this._count;
         if (timeout > this.timeout) {
             this.timeout = timeout;
         }
         this.release(nowTime);
     }
+
     /**
      * @description 释放
      * @example
      */
     public release(nowTime: number): void {
-        if (this.count > 0) {
+        if (this._count > 0) {
             return;
         }
         if (nowTime < this.timeout) {
             timeoutRelease(this, nowTime, this.timeout);
         } else {
-            resMap.delete(this.name);
+            resMap.delete(this.key);
             this.destroy();
         }
     }
+
     /**
-     * @description 销毁，需要子类重载
+     * @description 销毁
      * @example
      */
     // tslint:disable:no-empty
     public destroy(): void {
-
+        let func = typeMap.get(this.type);
+        if (func && this.link) {
+            func.destroy(this.link);
+            this.link = undefined;
+        }
     }
 }
 
@@ -104,80 +140,99 @@ export class ResTab {
     public size(): number {
         return this.tab ? this.tab.size : -1;
     }
+
     /**
      * @description 是否已释放
      */
     public isReleased(): boolean {
         return !this.tab;
     }
+
     /**
      * @description 获取资源
      * @example
      */
-    public get(name: string): Res {
+    public get(key: string, hasTabRes: boolean): Res {
         const tab = this.tab;
         if (!tab) {
             return;
         }
-        let r = tab.get(name);
+        let r = tab.get(key);
         if (r) {
             return r;
         }
-        r = resMap.get(name);
+        r = resMap.get(key);
         if (!r) {
             return;
         }
-        r.use();
-        tab.set(name, r);
 
+        if (hasTabRes) {
+            this.addRes(key, r);
+        }
         return r;
     }
-    /**
-     * @description 加载资源
-     * @example
+
+    /** 
+     * 加载资源
+     * loadArgs 加载函数的参数，调用的时候会展开
+     * hasTabRes 该Res是否需要放到tab中，默认true；但是如果是注册一种资源的时候，需要加载的中间资源，可以是false
+     *    比如：注册加载纹理的load函数，使用的图片，就是中间资源，可以不放在res中，填false
      */
-    public load(name: string, type: string, args: any, funcArgs: any, successCallback?: (res: Res) => any, errorCallback?: Function): any {
-        const r = this.get(name);
-        successCallback = successCallback || empty;
-        errorCallback = errorCallback || empty;
-        if (r) {
-            return successCallback(r);
+    load(type: string, name: string, loadArgs: any[], hasTabRes = true): Promise<Res> {
+
+        let key = genKey(type, name);
+
+        // 取到就返回，内部做了引用+1了
+        let res = this.get(key, hasTabRes);
+        if (res) {
+            return Promise.resolve(res);
         }
-        const create = typeMap.get(type);
-        if (!create) {
-            return false;
-        }
-        const cb = (r) => {
-            const tab = this.tab;
-            if (tab && !tab.has(name)) {
-                r.use();
-                tab.set(r.name, r);
+
+        // 等待的Promise
+        let wait = waitMap.get(key);
+        if (!wait) {
+            // 取对应类型的加载函数
+            let func = typeMap.get(type);
+            if (!func) {
+                throw new Error("res_mgr load failed, type isn't registered, type = " + type);
             }
-            successCallback(r);
-        };
-        const wait = waitMap.get(name);
-        if (wait) {
-            return wait.push(cb, errorCallback);
-        }
-        waitMap.set(name, [cb, errorCallback]);
 
-        return create(name, type, args, funcArgs);
-    }
-    /**
-     * @description 创建资源
-     * @example
-     */
-    public createRes(name: string, type: string, args: any, construct: any, data: any): Res {
-        const tab = this.tab;
-        if (!tab) {
-            return;
-        }
-        const r = loadOK(name, type, args, construct, data);
-        r.use();
-        tab.set(r.name, r);
+            // 等待
+            wait = func.load(this, type, name, ...loadArgs).then((link) => {
+                // 加载完成，创建res，并从等待移除
+                waitMap.delete(key);
+                return this.createRes(name, type, link);
+            }).catch((err) => {
+                // 加载失败，从等待移除，从新抛出错误。
+                // 注：暂时不能用Promise.finally，因为需要浏览器版本比较新，Chrome 63
+                waitMap.delete(key);
+                return Promise.reject(err);
+            });
 
-        return r;
+            // 将Promise设置到等待列表
+            waitMap.set(key, wait);
+        }
+
+        // 基于wait处理tab的信息
+        let p = wait.then((res) => {
+            // 异步回来的时候，可能tab已经被release
+            if (!this.tab) {
+                return Promise.reject(new Error("res_mgr load failed, resTab has released"));
+            }
+
+            if (hasTabRes) {
+                this.addRes(key, res);
+            } else if (res.count === 0) {
+                // 如果当前的res不被任何tab引用，则开始释放流程
+                const t = now();
+                timeoutRelease(res, t, t + defalutTimeout);
+            }
+            return res;
+        });
+
+        return p;
     }
+
     /**
      * @description 释放资源
      * @example
@@ -187,7 +242,7 @@ export class ResTab {
         if (!tab) {
             return false;
         }
-        const b = tab.delete(res.name);
+        const b = tab.delete(res.key);
         if (b) {
             const time = now();
             res.unuse(time + (timeout || this.timeout), time);
@@ -195,6 +250,7 @@ export class ResTab {
 
         return b;
     }
+
     /**
      * @description 清除全部资源
      * @example
@@ -211,6 +267,7 @@ export class ResTab {
         }
         tab.clear();
     }
+
     /**
      * @description 释放资源表
      * @example
@@ -229,90 +286,41 @@ export class ResTab {
 
         return true;
     }
-}
 
-/**
- * @description 后缀名对应的Blob类型
- * @example
- */
-export const BlobType = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    webp: 'image/webp',
-    gif: 'image/gif',
-    svg: 'image/svg+xml',
-    ttf: 'application/x-font-ttf',
-    otf: 'application/x-font-opentype',
-    woff: 'application/x-font-woff',
-    woff2: 'application/x-font-woff2'
-};
-
-/**
- * @description 创建BlobURL
- * @example
- */
-export const createURL = (data: ArrayBuffer, type: string): string => {
-    const blob = new Blob([data], { type: type });
-
-    return URL.createObjectURL(blob);
-};
-/**
- * @description 销毁BlobURL
- */
-export const revokeURL = (url: string): void => {
-    URL.revokeObjectURL(url);
-};
-
-/**
- * @description 注册资源类型对应的创建函数
- * @example
- */
-export const register = (type: string, create: Function) => {
-    typeMap.set(type, create);
-};
-
-/**
- * @description 等待成功
- * @example
- */
-export const loadOK = (name: string, type: string, args: any, construct: any, data: any) => {
-    let r = resMap.get(name);
-    if (!r) {
-        r = new construct();
-        r.name = name;
-        r.type = type;
-        r.args = args;
-        r.create(data);
-        resMap.set(r.name, r);
-        const t = now();
-        timeoutRelease(r, t, t + defalutTimeout);
+    /**
+     * 当表中没有对应的res的时候，才会将引用计数+1
+     * 记得：每个res的引用数，意味着它被多少个resTab握住。
+     */
+    private addRes(key: string, res: Res) {
+        if (!this.tab.has(key)) {
+            res.use();
+            this.tab.set(key, res);
+        }
     }
-    const arr = waitMap.get(name);
-    if (!arr) {
+
+    private createRes(name: string, type: string, link: any): Res {
+        let r = new Res();
+        r.create(name, type, link);
+        resMap.set(r.key, r);
         return r;
     }
-    waitMap.delete(name);
-    for (let i = arr.length - 2; i >= 0; i -= 2) {
-        arr[i](r);
-    }
 
-    return r;
-};
-/**
- * @description 等待失败
- * @example
+}
+
+/** 
+ * 注册：类型名，以及该类型的加载函数，还有销毁函数
+ * @param load 加载函数，返回Promise<link>，通过返回值，可以取到 将要 放到res.link的数据
+ * @param destroy 销毁函数，用于销毁res.link
  */
-export const loadError = (name: string, err: any) => {
-    const arr = waitMap.get(name);
-    if (!arr) {
-        return;
+export const register = (type: string, load: (tab: ResTab, type: string, name: string, ...args: any[]) => Promise<any>, destroy: (link: any) => void) => {
+    if (typeMap.has(type)) {
+        throw new Error("res_mgr register failed, type has registered, type = " + type);
     }
-    waitMap.delete(name);
-    for (let i = arr.length - 1; i >= 0; i -= 2) {
-        arr[i](err);
-    }
-};
+    typeMap.set(type, {
+        load,
+        destroy
+    })
+}
 
 /**
  * @description 获得资源主表
@@ -322,166 +330,17 @@ export const getResMap = () => {
     return resMap;
 };
 
-/**
- * @description 创建ArrayBuffer资源
- * @example
- */
-const createABRes = (name: string, type: string, file: string, fileMap: Map<string, ArrayBuffer>, construct: Function): void => {
-    file = getTransWebpName(file);
-    if (fileMap) {
-        const data = fileMap[file];
-        if (data) {
-            loadOK(name, type, file, construct, data);
-
-            return;
-        }
-    }
-    const info = depend.get(file);
-    if (!info) {
-        return loadError(name, {
-            error: 'FILE_NOT_FOUND',
-            reason: `createBlobURLRes fail: ${file}`
-        });
-    }
-
-    const down = load.create([info], (r) => {
-        loadOK(name, type, file, construct, r[file]);
-    }, (err) => {
-        loadError(name, err);
-    });
-    load.start(down);
-};
-/**
- * @description 获取 png jpg jpeg 自动转换成同名的webp, webp必须在depend中存在
- * @example
- */
-export const getTransWebpName = (name: string): string => {
-    if (!(commonjs.flags.webp && commonjs.flags.webp.alpha)) {
-        return name;
-    }
-    const suf = fileSuffix(name);
-    if (!(suf === 'png' || suf === 'jpg' || suf === 'jpeg')) {
-        return name;
-    }
-    const s = `${name.slice(0, name.length - suf.length)}webp`;
-    const i = s.indexOf(':');
-
-    return depend.get(i < 0 ? s : s.slice(i + 1)) ? s : name;
-};
-
-const loadImageCall = (resTab: ResTab, path: string, cb: (res2: Res, succCall: Function) => void) => {
-    const key = `${RES_TYPE_BLOB}:${path}`;
-    const res = resTab.get(key);
-    if (res) {
-        cb(
-            res,
-            () => {
-                resTab.delete(res, 0);
-            }
-        );
-    } else {
-        resTab.load(
-            key,
-            RES_TYPE_BLOB,
-            path,
-            undefined,
-            (res: Res) => {
-                cb(
-                    res,
-                    () => {
-                        resTab.delete(res, 0);
-                    }
-                );
-            },
-            (error: any) => {
-                try {
-                    throw new Error(`load.ts loadRes${RES_TYPE_BLOB} failed, path = ${path}, error = ${error.reason}`);
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        );
-    }
-};
-
-export const loadImageRes = (_url: string, resTab: ResTab, cb?) => {
-
-    loadImageCall(resTab, _url, (res: Res, succCall: Function) => {
-        const img = new Image();
-        img.decoding = 'async';
-        img.onload = () => {
-            cb && cb(img, res.args);
-            succCall && succCall();
-        };
-        img.src = res.link;
-
-        // res.unuse(0,0);
-    });
-
-};
-
-// 适应 20190821 GUI 资源管理更改
-export const loadImageResNew = (_url: string, resTab: ResTab, cb?) => {
-    resTab = resTab || _resTab;
-    loadImageCallNew(resTab, _url, (res: Res, succCall: Function) => {
-        const img = new Image();
-        img.decoding = 'async';
-        img.onload = () => {
-            cb && cb(img, res.args);
-            succCall && succCall();
-        };
-        img.src = res.link;
-
-        // res.unuse(0,0);
-    });
-
-};
-const loadImageCallNew = (resTab: ResTab, path: string, cb: (res2: Res, succCall: Function) => void) => {
-    const key = `${RES_TYPE_BLOB}:${path}`;
-    const res = resTab.get(key);
-    if (res) {
-        cb(
-            res,
-            () => { }
-        );
-    } else {
-        resTab.load(
-            key,
-            RES_TYPE_BLOB,
-            path,
-            undefined,
-            (res: Res) => {
-                cb(
-                    res,
-                    () => { }
-                );
-            },
-            (error: any) => {
-                try {
-                    throw new Error(`load.ts loadRes${RES_TYPE_BLOB} failed, path = ${path}, error = ${error.reason}`);
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        );
-    }
-};
-
 // ============================== 本地
-// 资源类型对应的构造函数表
-const typeMap: Map<string, Function> = new Map();
+// 类型表
+const typeMap: Map<string, { load: (...args: any[]) => Promise<any>, destroy: (link: any) => void }> = new Map();
+// 等待加载表
+const waitMap: Map<string, Promise<Res>> = new Map();
 // 全局资源
 const resMap: Map<string, Res> = new Map();
-// 全局等待表
-const waitMap: Map<string, Function[]> = new Map();
-// 空函数
-// tslint:disable-next-line:only-arrow-functions no-function-expression
-const empty = function () { };
 // 定时的时间
 const defalutTimeout = 1000;
 // 最小释放的时间
 const minReleaseTimeout = 500;
-
 // 等待释放的资源数组
 let releaseArray = [];
 // 回收方法的定时器的引用
@@ -491,29 +350,6 @@ let timerTime = Number.MAX_SAFE_INTEGER;
 
 const _resTab = new ResTab();
 _resTab.timeout = defalutTimeout;
-
-/**
- * @description BlobURL资源
- * @example
- */
-class BlobURLRes extends Res {
-    /**
-     * @description 创建
-     * @example
-     */
-    public create(data: any): void {
-        const type = fileSuffix(this.args);
-        const blob = new Blob([data], { type: BlobType[type] });
-        this.link = URL.createObjectURL(blob);
-    }
-    /**
-     * @description 销毁，需要子类重载
-     * @example
-     */
-    public destroy(): void {
-        URL.revokeObjectURL(this.link);
-    }
-}
 
 /**
  * @description 回收超时的资源
@@ -546,52 +382,6 @@ const timeoutRelease = (res: Res, nowTime: number, releaseTime: number): void =>
     timerRef = setTimeout(collect, timerTime - nowTime);
 };
 
-export const NORMAL_IMAGE_TYPE = 'normal_image';
-
-/**
- * @description Image资源
- * @example
- */
-export class ImageRes extends Res {
-    public link: HTMLImageElement;
-    /**
-     * @description 创建
-     * @example
-     */
-    public create(data: HTMLImageElement): void {
-        this.link = data;
-    }
-
-    /**
-     * 
-     * @description 销毁，需要子类重载
-     * @example v
-     */
-    public destroy(): void {
-        if (this.link) {
-            this.link.src = '';
-        }
-        this.link = undefined;
-
-    }
+const genKey = (type: string, name: string) => {
+    return `${type}:${name}`;
 }
-
-const createImageRes = (name: string, type: string, url: string, res: ResTab) => {
-    loadImageRes(url, res, (image: HTMLImageElement) => {
-        loadOK(name, type, null, ImageRes, image);
-    });
-};
-
-// ============================== 立即执行
-register(RES_TYPE_BLOB, (name: string, type: string, args: string, fileMap: Map<string, ArrayBuffer>) => {
-    createABRes(name, type, args, fileMap, BlobURLRes);
-});
-register(RES_TYPE_FILE, (name: string, type: string, args: string, fileMap: Map<string, ArrayBuffer>) => {
-    createABRes(name, type, args, fileMap, Res);
-});
-register(RES_TYPE_IMAGE, (name: string, type: string, args: string, fileMap: Map<string, ArrayBuffer>) => {
-    createABRes(name, type, args, fileMap, Res);
-});
-register(NORMAL_IMAGE_TYPE, (name: string, type: string, url: string, res: ResTab) => {
-    createImageRes(name, type, url, res);
-});
