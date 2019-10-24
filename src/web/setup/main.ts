@@ -1,11 +1,11 @@
 
 import { init as envInit, get, set } from "../../pi_sys/setup/env";
 import { init as dependInit } from "../../pi_sys/setup/depend";
-import { init as logInit } from "../../pi_sys//feature/log";
+import { init as logInit } from "../../pi_sys/feature/log";
 import { init as codeInit } from '../load/code';
 import { init as objInit } from '../load/object';
 import { init as binLoadInit } from '../load/bin';
-import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_sys//load/app';
+import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_sys/load/app';
 import { Bar } from '../device/processbar';
 
 export const main = (cfg: any, depend: any) => {
