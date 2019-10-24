@@ -28,7 +28,8 @@ export const setCodeObjSuffix = (code: string[], obj: string[]) => {
 // 设置配置的后缀类型及处理函数， 如果处理函数为null, 表示将配置的二进制数据临时存放。 如果已经有临时存放的配置，则会立即进行处理
 export let setCfgHandler = (
     suffix: string,
-    handler: (file: string, data: Uint8Array) => Promise<void>) => {
+    handler: (file: string, data: Uint8Array) => Promise<void>): Promise<any> => {
+		return null;
 }
 // 设置的后缀类型及缓存时间和大小
 export const setResLru = (suffix: string, timeout: number, cacheSize: number) => {

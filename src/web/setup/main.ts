@@ -40,9 +40,11 @@ const loadExec = (next:string) => {
 		if(!next)
 			loadExec("next_");
 		let exec = get(next+"exec");
-		exec[0] && import(exec[0]).then((mod) => {
-            mod[exec[1]](exec.slice(2));
-        });
+		for(let mfa of exec) {
+			mfa[0] && import(mfa[0]).then((mod) => {
+				mod[mfa[1]](mfa.slice(2));
+			});
+		}
 	});
 };
 
