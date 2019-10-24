@@ -9,12 +9,12 @@ import { cc, log } from "../../pi_sys/feature/log"
  * 导出成为资源
  */
 export const loadImageRes = (resTab: ResTab, path: string) => {
-    return resTab.load(path, ImageType, path);
+    return resTab.load(ImageType, path, [path]);
 }
 
 // ======================= 立即执行
 
-const load = (_tab: ResTab, _name: string, _type: string, path: string) => {
+const load = (_tab: ResTab, _type: string, _name: string, path: string) => {
     let info = getFile(path);
     if (!info) {
         return Promise.reject("loadImage failed, info not found, path = " + path);

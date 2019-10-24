@@ -2,15 +2,15 @@
  * 通用的资源管理，二级缓冲。
  * 
  * 1、注册，以 Texture 为例，前提：image已经注册到res去了。
- * 
- *   register("texture", (resTab, name, type, path, config) => {
- *          return resTab.load("image", name, [path, config]).then(imageRes => {
+ *   
+ *   register("texture", (resTab, type, name, path, imageConfig) => {
+ *          // load的最后一个参数，代表需不需要为该资源添加引用计数
+ *          // 如果是外部人员使用，默认是true；
+ *          // 这里用于图片仅仅是加载纹理的中间对象，不要缓冲，传false
+ *          return resTab.load("image", name, [path, imageConfig], false).then(imageRes => {
  *              // 在这里调用创建纹理的实现
  *              let texture = createTexture(imageRes.link);
  *              
- *              // 注：如果不缓存图片，这里应该直接调用unuse
- *              imageRes.unuse();
- *             
  *              return Promise.resolve(texture);
  *           });
  *    }, (texture) => {
@@ -46,7 +46,11 @@ export class Res {
     // 类型
     private type: string = '';
     // 引用数
-    private count: number = 0;
+    // 注意：该引用代表的语义是：有几个ResTab在引用它。
+    private _count = 0;
+    public get count() {
+        return this._count;
+    }
 
     // 键
     private _key: string = '';
@@ -68,19 +72,20 @@ export class Res {
     }
 
     /**
-     * @description 使用
-     * @example
+     * @description 使用，引用计数加1
+     * 注意：只有ResTab能调用该函数
+     * 注意：每个ResTab最多只能调用一次use
      */
     public use(): void {
-        ++this.count;
+        ++this._count;
     }
 
     /**
-     * @description 不使用
-     * @example
+     * @description 不使用，引用计数减1
+     * 注意：只有ResTab能调用该函数
      */
     public unuse(timeout: number, nowTime: number): void {
-        --this.count;
+        --this._count;
         if (timeout > this.timeout) {
             this.timeout = timeout;
         }
@@ -92,7 +97,7 @@ export class Res {
      * @example
      */
     public release(nowTime: number): void {
-        if (this.count > 0) {
+        if (this._count > 0) {
             return;
         }
         if (nowTime < this.timeout) {
@@ -147,7 +152,7 @@ export class ResTab {
      * @description 获取资源
      * @example
      */
-    public get(key: string): Res {
+    public get(key: string, hasTabRes: boolean): Res {
         const tab = this.tab;
         if (!tab) {
             return;
@@ -160,23 +165,27 @@ export class ResTab {
         if (!r) {
             return;
         }
-        r.use();
-        tab.set(key, r);
 
+        if (hasTabRes) {
+            this.addRes(key, r);
+        }
         return r;
     }
 
     /** 
      * 加载资源
+     * loadArgs 加载函数的参数，调用的时候会展开
+     * hasTabRes 该Res是否需要放到tab中，默认true；但是如果是注册一种资源的时候，需要加载的中间资源，可以是false
+     *    比如：注册加载纹理的load函数，使用的图片，就是中间资源，可以不放在res中，填false
      */
-    load(name: string, type: string, ...loadArgs: any[]): Promise<Res> {
+    load(type: string, name: string, loadArgs: any[], hasTabRes = true): Promise<Res> {
 
         let key = genKey(type, name);
 
         // 取到就返回，内部做了引用+1了
-        let r = this.get(key);
-        if (r) {
-            return Promise.resolve(r);
+        let res = this.get(key, hasTabRes);
+        if (res) {
+            return Promise.resolve(res);
         }
 
         // 等待的Promise
@@ -188,7 +197,8 @@ export class ResTab {
                 throw new Error("res_mgr load failed, type isn't registered, type = " + type);
             }
 
-            wait = func.load(this, name, type, ...loadArgs).then((link) => {
+            // 等待
+            wait = func.load(this, type, name, ...loadArgs).then((link) => {
                 // 加载完成，创建res，并从等待移除
                 waitMap.delete(key);
                 return this.createRes(name, type, link);
@@ -203,15 +213,21 @@ export class ResTab {
             waitMap.set(key, wait);
         }
 
-        // 基于等待的Promise处理真正的返回消息。
+        // 基于wait处理tab的信息
         let p = wait.then((res) => {
-            if (this.tab) {
-                res.use();
-                this.tab.set(res.key, res);
-                return res;
-            } else {
-                return Promise.reject(new Error("resTab.tab is null"));
+            // 异步回来的时候，可能tab已经被release
+            if (!this.tab) {
+                return Promise.reject(new Error("res_mgr load failed, resTab has released"));
             }
+
+            if (hasTabRes) {
+                this.addRes(key, res);
+            } else if (res.count === 0) {
+                // 如果当前的res不被任何tab引用，则开始释放流程
+                const t = now();
+                timeoutRelease(res, t, t + defalutTimeout);
+            }
+            return res;
         });
 
         return p;
@@ -271,6 +287,17 @@ export class ResTab {
         return true;
     }
 
+    /**
+     * 当表中没有对应的res的时候，才会将引用计数+1
+     * 记得：每个res的引用数，意味着它被多少个resTab握住。
+     */
+    private addRes(key: string, res: Res) {
+        if (!this.tab.has(key)) {
+            res.use();
+            this.tab.set(key, res);
+        }
+    }
+
     private createRes(name: string, type: string, link: any): Res {
         let r = new Res();
         r.create(name, type, link);
@@ -285,7 +312,7 @@ export class ResTab {
  * @param load 加载函数，返回Promise<link>，通过返回值，可以取到 将要 放到res.link的数据
  * @param destroy 销毁函数，用于销毁res.link
  */
-export const register = (type: string, load: (tab: ResTab, name: string, type: string, ...args: any[]) => Promise<any>, destroy: (link: any) => void) => {
+export const register = (type: string, load: (tab: ResTab, type: string, name: string, ...args: any[]) => Promise<any>, destroy: (link: any) => void) => {
     if (typeMap.has(type)) {
         throw new Error("res_mgr register failed, type has registered, type = " + type);
     }
