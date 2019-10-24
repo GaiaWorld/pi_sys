@@ -3,7 +3,7 @@
  */
 
 // ============================== 导入
-import { randomInt } from './math';
+import { randomInt } from '../math/math';
 
 // ============================== 导出
 /**
