@@ -20,11 +20,11 @@
 */
 
 // ============================== 导入
-import {FileInfo, DirInfo, getFile, initDir} from "../setup/depend";
+import {FileInfo, DirInfo, getFile, initDir} from "../../pi_sys/setup/depend";
 import {Store} from "../feature/store";
-import {get as assetGet, read} from "./asset";
-import {AjaxDownload, ProcessFunc} from "../feature/http";
-import { utf8Decode } from "../feature/string";
+import {get as assetGet, read} from "../../pi_sys/load/asset";
+import {HttpDownload, ProcessFunc} from "../feature/http";
+import { utf8Decode } from "../../pi_sys/feature/string";
 
 // ============================== 导出
 export interface ResultFunc {
@@ -197,7 +197,7 @@ export class LocalLoad extends FileLoad {
 export class Download extends FileLoad {
     // TODO 增加一个没有签名的文件列表
     // url为键，值为下载对象
-    downloadMap: Map<string, AjaxDownload>;
+    downloadMap: Map<string, HttpDownload>;
     // 下载超时时间，默认20秒
     public timeout: 20000;
 
@@ -267,7 +267,7 @@ export class Download extends FileLoad {
             // TODO 改成字符串的异或运算， h = butil.hash(info.sign, h);
         }
         let path = batchPath + "s=" + size + (durl ? "&d=" + durl : "") + (furl ? "&f=" + furl : "") + "&h=" + h;
-        let down = new AjaxDownload(urls, path, this.timeout, this.total);
+        let down = new HttpDownload(urls, path, this.timeout, this.total);
         this.downloadMap.set(path, down);
         down.onprocess = () => {
             this.loaded = 0;

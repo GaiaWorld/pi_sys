@@ -1,5 +1,5 @@
 import { ResTab, register } from '../../pi_sys/modules/util/res_mgr';
-import { loadRes } from "../load/app";
+import { loadRes } from "../../pi_sys/load/app";
 import { getFile } from "../../pi_sys/setup/depend";
 import { cc, log } from "../../pi_sys/feature/log"
 
