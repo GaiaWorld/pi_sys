@@ -11,5 +11,8 @@ export const get = (key: string) => {
 export const set = (key: string, val: any) => {
     return map.set(key, val)
 }
+export const keys = () => {
+    return map.keys()
+}
 // ============================== 本地
 const map: Map<string, any> = new Map;
