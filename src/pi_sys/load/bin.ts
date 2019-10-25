@@ -21,7 +21,7 @@
 
 // ============================== 导入
 import {FileInfo} from "../setup/depend";
-import {AjaxDownload, ProcessFunc} from "../feature/http";
+import {HttpDownload, ProcessFunc} from "../feature/http";
 
 // ============================== 导出
 export interface ResultFunc {
@@ -137,14 +137,14 @@ export class LocalLoad extends FileLoad {
      * @example
      */
     public start() {
-        return Promise.resolve();
+        return Promise.resolve(null);
     }
 }
 
 export class Download extends FileLoad {
     // TODO 增加一个没有签名的文件列表
     // url为键，值为下载对象
-    downloadMap: Map<string, AjaxDownload>;
+    downloadMap: Map<string, HttpDownload>;
     // 下载超时时间，默认20秒
     public timeout: 20000;
 
@@ -161,7 +161,7 @@ export class Download extends FileLoad {
      * @example
      */
     public start() {
-        return Promise.resolve();
+        return Promise.resolve(null);
     }
     /**
      * @description 停止
