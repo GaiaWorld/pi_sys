@@ -4,7 +4,7 @@
 
 // ============================== 导入
 import { FileLoad } from './bin';
-import { FileInfo } from '../setup/depend';
+import { FileInfo } from '../../pi_sys/setup/depend';
 
 // ============================== 导出
 /**

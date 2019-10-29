@@ -1,34 +1,33 @@
 /**
-// 二进制数据的加载和下载框架：
-1、提供下载器及加载器。根据资源列表和本地文件签名，判断是否需要找服务器要数据，分别使用下载器下载，加载器加载。
-2、服务器提供一次性下载多个文件的接口，GET上行要最小化文件列表，因为要CDN缓存。ajax取数据，支持上下行进度。
-3、下载器下载后，将数据保存在IndexedDB里面，并更新本地签名。
-4、对单个下载延时40ms进行合并。用尽量少的请求下载。
-5、由调用方来进行查重， 这里就不进行查重处理
-7、 TODO 支持SRI
+ // 二进制数据的加载和下载框架：
+ 1、提供下载器及加载器。根据资源列表和本地文件签名，判断是否需要找服务器要数据，分别使用下载器下载，加载器加载。
+ 2、服务器提供一次性下载多个文件的接口，GET上行要最小化文件列表，因为要CDN缓存。ajax取数据，支持上下行进度。
+ 3、下载器下载后，将数据保存在IndexedDB里面，并更新本地签名。
+ 4、对单个下载延时40ms进行合并。用尽量少的请求下载。
+ 5、由调用方来进行查重， 这里就不进行查重处理
+ 7、 TODO 支持SRI
 
 
-上行消息结构： (后缀1(文件名1:文件名2)后缀2(文件名1:文件名2):目录1()目录2()) (): $作为转义,$转$$ (转$1 )转$2
-上行消息支持路径，如果一个目录下所有文件都需要下载，则仅发送路径
-下行数据结构： [{2字节le的文件名长度, 文件名utf8编码, 4字节le的文件内容长度, 文件内容}, ...]
+ 上行消息结构： (后缀1(文件名1:文件名2)后缀2(文件名1:文件名2):目录1()目录2()) (): $作为转义,$转$$ (转$1 )转$2
+ 上行消息支持路径，如果一个目录下所有文件都需要下载，则仅发送路径
+ 下行数据结构： [{2字节le的文件名长度, 文件名utf8编码, 4字节le的文件内容长度, 文件内容}, ...]
 
-知识：
-文件名不能包含 \/:*?"<>|
-":@-._~!$&'()*+,;="等字符在url的路径部分允许不被转义，
-"/?:@-._~!$&'()*+,;="等字符在任何段中允许不被转义。
-
+ 知识：
+ 文件名不能包含 \/:*?"<>|
+ ":@-._~!$&'()*+,;="等字符在url的路径部分允许不被转义，
+ "/?:@-._~!$&'()*+,;="等字符在任何段中允许不被转义。
 */
 
 // ============================== 导入
-import {FileInfo, DirInfo, getFile, initDir} from "../../pi_sys/setup/depend";
+import {FileInfo, DirInfo, getFile, initDir} from "../setup/depend";
 import {Store} from "../feature/store";
-import {get as assetGet, read} from "../../pi_sys/load/asset";
-import {HttpDownload, ProcessFunc} from "../feature/http";
-import { utf8Decode } from "../../pi_sys/feature/string";
+import {get as assetGet, read} from "./asset";
+import {AjaxDownload, ProcessFunc} from "../feature/http";
+import { utf8Decode } from "../feature/string";
 
 // ============================== 导出
 export interface ResultFunc {
-	(val: any, err?: any): void
+    (val: any, err?: any): void
 }
 
 /**
@@ -76,7 +75,7 @@ export const init = (storeName: string, domainUrls: string[], downloadPath:strin
                     localInitCheck(store, value, false);
                 });
             }
-        });    
+        });
     });
 }
 
@@ -197,7 +196,7 @@ export class LocalLoad extends FileLoad {
 export class Download extends FileLoad {
     // TODO 增加一个没有签名的文件列表
     // url为键，值为下载对象
-    downloadMap: Map<string, HttpDownload>;
+    downloadMap: Map<string, AjaxDownload>;
     // 下载超时时间，默认20秒
     public timeout: 20000;
 
@@ -267,7 +266,7 @@ export class Download extends FileLoad {
             // TODO 改成字符串的异或运算， h = butil.hash(info.sign, h);
         }
         let path = batchPath + "s=" + size + (durl ? "&d=" + durl : "") + (furl ? "&f=" + furl : "") + "&h=" + h;
-        let down = new HttpDownload(urls, path, this.timeout, this.total);
+        let down = new AjaxDownload(urls, path, this.timeout, this.total);
         this.downloadMap.set(path, down);
         down.onprocess = () => {
             this.loaded = 0;
@@ -368,7 +367,7 @@ const localInitCheck = (store: Store, signs:any, save:boolean) => {
 // 获取文件的去掉第一个后缀的文件名
 const basename = (file:string) => {
     let i = file.lastIndexOf('/'),
-        j = file.lastIndexOf('.');
+    j = file.lastIndexOf('.');
     return j > i ? file.slice(i + 1, j) : file.slice(i + 1);
 };
 // 上行消息结构： (后缀1(文件名1:文件名2)后缀2(文件名1:文件名2):目录1()目录2())
@@ -430,8 +429,7 @@ const replace = (s:string) => {
 const savefile = (path: string, data:Uint8Array, sign:string) => {
     return localStore.write(path, data).then(_ => {
         localSign[path] = sign;
-     });
+    });
 };
 
 // ============================== 立即执行
-

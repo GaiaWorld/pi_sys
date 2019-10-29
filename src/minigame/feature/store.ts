@@ -70,9 +70,13 @@ export class Store {
     public write(key:string, data: any): Promise<any> {
         return new Promise((resolve) => {
             this.map.set(key, data);
-            this.wfq.add(key, { path: key, data, sign: getFile(key).sign });
+            // 写localSign时触发写队列开始写文件
+            if (key === "") {
+                this.wfq.start();
+            } else {
+                this.wfq.add(key, { path: key, data, sign: getFile(key).sign });
+            }
             resolve();
-            // TODO: 触发队列开始写
         });
     }
     /**

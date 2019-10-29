@@ -9,3 +9,4 @@ src/.depend
 .temp
 node_modules/
 package-lock.json
+/.log/

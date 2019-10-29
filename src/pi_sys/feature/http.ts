@@ -50,7 +50,7 @@ export const param = (data: any): string => {
 	return arr.join("");
 }
 
-export class AjaxRequest {
+export class HttpRequest {
 	public readonly type : string;
 	public readonly url : string;
 	public promise: Promise<string|ArrayBuffer|any>;
@@ -77,7 +77,7 @@ export const get= (url:string, headers: any, reqData: any, respType:string, time
 		reqData = param(reqData);
 		url = (url.indexOf("?") > 0) ? url + "&" + reqData : url + "?" + reqData;
 	}
-	let ar = new AjaxRequest('GET', url);
+	let ar = new HttpRequest('GET', url);
 	return ar.request(headers, undefined, respType, timeout);
 }
 
@@ -88,11 +88,11 @@ export const get= (url:string, headers: any, reqData: any, respType:string, time
 export const post= (url:string, headers: any, reqData:string|ArrayBuffer|FormData, contentType:string, respType:string, timeout: number) => {
 	headers = headers || {};
 	headers["Content-Type"] = contentType;
-	let ar = new AjaxRequest('POST', url);
+	let ar = new HttpRequest('POST', url);
 	return ar.request(headers, reqData, respType, timeout);
 }
 
-export class AjaxError extends Error {
+export class HttpError extends Error {
 	public readonly url: string;
 	public readonly type: string;
 	public readonly reason: string;
@@ -106,13 +106,13 @@ export class AjaxError extends Error {
 	}
 }
 
-export class AjaxDownload {
+export class HttpDownload {
 	urls: string[];
 	path: string;
 	timeout: number;
 	total: number;
 	loaded: number;
-	request: AjaxRequest;
+	request: HttpRequest;
 	public onprocess: ProcessFunc;
 
 	public constructor(urls: string[], path: string, timeout: number, total?: number) {
@@ -132,6 +132,6 @@ export class AjaxDownload {
 }
 
 // 下载, 如果是微信这类没有进度信息的，需要重写该代码，用统计的网速和设置的total模拟进度信息
-const download = (load: AjaxDownload, resolve: (value?: unknown) => void, reject: (reason?: any) => void, retry: number, err?: AjaxError) => {
+const download = (load: HttpDownload, resolve: (value?: unknown) => void, reject: (reason?: any) => void, retry: number, err?: HttpError) => {
 
 };
