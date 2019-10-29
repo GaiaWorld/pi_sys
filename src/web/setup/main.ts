@@ -39,10 +39,12 @@ const loadExec = (next: string) => {
         bar.clear();
         if (!next)
             loadExec("next_");
-        let exec = get(next + "exec");
-        exec[0] && import(exec[0]).then((mod) => {
-            mod[exec[1]](exec.slice(2));
-        });
+		let exec = get(next + "exec");
+		for(let i = 0; i < exec.length; i++) {
+			exec[i][0] && import(exec[i][0]).then((mod) => {
+				mod[exec[i][1]](exec[i].slice(2));
+			});
+		}
     });
 };
 
