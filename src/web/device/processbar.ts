@@ -18,7 +18,7 @@
     public constructor(cfg:any) {
         this.text = document.createElement('div');
         this.text.setAttribute("pi", "1");
-        this.text.setAttribute("style", "position:absolute;bottom:30px;left: 50%;width: 100%;height: 24px;font-size:20px;");
+        this.text.setAttribute("style", "position:absolute;bottom:30px;text-align:center;width: 100%;height: 32px;font-size:20px;");
         this.text.style.color = cfg.text_color || "#fff";
         this.div = document.createElement('div');
         this.div.setAttribute("pi", "1");

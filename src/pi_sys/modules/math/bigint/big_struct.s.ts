@@ -1,13 +1,13 @@
 
-import { BonBuffer } from "../../../../../../pi_sys/modules/serialization/bon";
-import { addToMeta, removeFromMeta, Struct, notifyModify, StructMgr, structMgr} from "../../../../../../pi_sys/modules/serialization/struct_mgr";
-import { StructInfo, Type, FieldInfo, EnumType, EnumInfo} from "../../../../../../pi_sys/modules/serialization/sinfo";
+import { BonBuffer } from "../../serialization/bon";
+import { addToMeta, removeFromMeta, Struct, notifyModify, StructMgr, structMgr} from "../../serialization/struct_mgr";
+import { StructInfo, Type, FieldInfo, EnumType, EnumInfo} from "../../serialization/sinfo";
 import { u64Merge,u128Merge,u64Unwrap,u128Unwrap } from "./util";
 
 export class U64 extends Struct {
 
     value: bigInt.BigInteger;
-	static _$info =  new StructInfo("pi_gui/../pi_sys/modules/math/bigint/big_struct.U64",3550679179,  new Map( [["constructor","true"]]), [new FieldInfo("value", 
+	static _$info =  new StructInfo("pi_sys/modules/math/bigint/big_struct.U64",4260461389,  new Map( [["constructor","true"]]), [new FieldInfo("value", 
 new EnumType( Type.U64 ), null) ]);
 
 	constructor(value?: bigInt.BigInteger, old?: U64){
@@ -47,7 +47,7 @@ new EnumType( Type.U64 ), null) ]);
 export class U128 extends Struct {
 
     value: bigInt.BigInteger;
-	static _$info =  new StructInfo("pi_gui/../pi_sys/modules/math/bigint/big_struct.U128",934044086,  new Map( [["constructor","true"]]), [new FieldInfo("value", 
+	static _$info =  new StructInfo("pi_sys/modules/math/bigint/big_struct.U128",1573642237,  new Map( [["constructor","true"]]), [new FieldInfo("value", 
 new EnumType( Type.U128 ), null) ]);
 
 	constructor(value?: bigInt.BigInteger, old?: U128){

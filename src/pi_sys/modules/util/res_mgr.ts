@@ -239,7 +239,7 @@ export class ResTab {
      */
     public delete(res: Res, timeout?: number): boolean {
         const tab = this.tab;
-        if (!tab) {
+        if (!tab || !res) { // TODO 可以不判断res是否存在， 临时解决pibabylon的资源释放问题
             return false;
         }
         const b = tab.delete(res.key);

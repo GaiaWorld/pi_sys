@@ -26,14 +26,16 @@ export class ObjLoad extends FileLoad {
      */
     public start() {
         let map = new Map;
-        let arr = [];
+		let arr = [];
         for (let info of this.files.values()) {
             arr.push(new Promise((resolve, reject) => {
                 let suffix = fileSuffix(info.path);
                 let type = Suffixs[suffix];
-                if (type) {
-                    loadObj(this, info, type, map, resolve, reject)
-                } else if (FontSuffixs.has(suffix)) {
+                if (type == "img") {
+                    loadObj(this, info, map, resolve, reject)
+                }else if (type) {
+					loadMedia(this, info, type, map, resolve, reject)
+				} else if (FontSuffixs.has(suffix)) {
                     loadFont(this, info, map, resolve, reject)
                 }
             }));
@@ -54,26 +56,47 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, call
         load.loaded += file.size;
         map.set(file.path, font as any as Element);
         load.onProcess(file.path, "objLoad", load.total, load.loaded);
-        callback(font);
+		callback(font);
     }).catch((errText) => {
         (document as any).fonts.remove(font);
         loadFont(load, file, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
     });
 }
-const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img" | "audio" | "video", map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObj = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
-    let n = document.createElement(eleType);
+    let n = document.createElement('img');
     n.onerror = () => {
         n.onload = n.onerror = undefined;
-        loadObj(load, file, eleType, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
+        loadObj(load, file, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
     };
     n.onload = () => {
         n.onload = n.onerror = undefined;
         map.set(file.path, n);
         load.loaded += file.size;
-        load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+		load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+        callback && callback(n);
+    };
+    n.crossOrigin = "anonymous";
+    n.src = urls[i || 0] + downPath + file.path + "?" + file.sign;
+}
+
+const loadMedia = (load: ObjLoad, file: FileInfo, eleType: "audio" | "video", map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+    if (i >= urls.length) {
+        return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
+    }
+	let n = document.createElement(eleType);
+	n.preload = "load";
+    n.onerror = () => {
+        n.onload = n.onerror = undefined;
+        loadMedia(load, file, eleType, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
+    };
+    n.onloadstart = () => {
+        n.onload = n.onerror = undefined;
+        map.set(file.path, n);
+        load.loaded += file.size;
+		load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
         callback && callback(n);
     };
     n.crossOrigin = "anonymous";
