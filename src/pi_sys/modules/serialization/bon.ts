@@ -297,7 +297,7 @@ export class BonBuffer {
 			this.view.setUint32(this.tail + 4, Math.floor(v / 0x100000000), true);
 			this.tail += 8;
 		} else {
-			throw new Error("this is a bigInteger, can not write as number:" + v);
+			throw new Error("can not write as number:" + v);
 			// if (this.tail + 9 > this.view.byteLength)
 			// 	this.extendCapity(9);
 			// // js里不会出现这种情况，最大安全整数只有 55位 9007199254740991

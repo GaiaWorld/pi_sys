@@ -14,6 +14,8 @@ import { cc, log, pattern } from "../feature/log";
 import { CodeLoad } from './code';
 import { ObjLoad } from './object';
 
+declare var _$pi;
+
 // ============================== 导出
 export enum SuffixType {
     CODE = 1,
@@ -134,9 +136,26 @@ export class BatchLoad extends FileLoad {
             let p = download.start();
             arr.push(waitLoad(download, downLoad, p.then(handleBinMap)));
             this.addLoad(download);
-        }
+		}
         if (codeload.files.size) {
-            let p = codeload.start();
+            let p = codeload.start().then((r) => {
+				// 通知模块等待列表
+				_$pi.mod_wait.forEach((wait, name) => {
+					let mod = _$pi.modules[name];
+					let func = mod.buildFunc;
+					if (func) {
+						mod.buildFunc = undefined;
+						func((reqModName) => {
+							return _$pi.require(reqModName, mod.id)
+						}, mod.exports, mod);
+					}
+					_$pi.mod_wait.delete(name);
+					for (var i = 0; i < wait.length; i++) {
+						wait[i](_$pi.modules[name].exports);
+					}
+				});
+				return r;
+			});
             arr.push(waitLoad(codeload, codeLoad, p));
             this.addLoad(codeload);
         }
@@ -222,12 +241,12 @@ export class BatchLoad extends FileLoad {
                 return
             } else if (rr === null) {// 忽略已经处理过的配置
                 return
-            };
+			};
             // 是否在cfgTempMap
             let rd = cfgTempMap.get(file.path);
             if (rd)
                 return;
-            this.downOrload(file, onlyDown, binload, download, result)
+            this.downOrload(file, false, binload, download, result)
         } else {
             if (this.checkLoad(file, codeLoad, result))
                 codeload.add(file);

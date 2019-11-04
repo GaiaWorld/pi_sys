@@ -1,5 +1,8 @@
 import {baseType} from "../lang/type";
 import {Struct} from "../serialization/struct_mgr";
+import {setCfgHandler} from "../../load/app";
+import {utf8Decode} from "./util";
+
 export class Cfg{
     map: Map<string, Map<any, Struct>> = new Map<string, Map<any, Struct>>();
     set(key: string, value: Map<any, Struct>){
@@ -87,3 +90,36 @@ export class Cfg{
 }
 
 export const cfgMgr = new Cfg();
+
+const SCFG_SUFFIX = "scfg";
+export const sCfgHandle = () => {
+	setCfgHandler(SCFG_SUFFIX, (file: string, data: Uint8Array) => {
+		return new Promise((resolve, reject) => {
+			try {
+				const cfgs = JSON.parse(utf8Decode(data));
+				let all = [];
+				for (let key in cfgs) {
+					let file = cfgs[key];
+					for (let structName in file) {
+						let arr = [];
+						let split_index = structName.indexOf(".");
+						let modName = structName.slice(0, split_index) + ".s";
+						let Ty = structName.slice(split_index + 1, structName.length);
+						let r = import(modName).then((mod) => {
+							for (let item of file[structName]) {
+								arr.push( mod[Ty].prototype.__create(item));
+							}
+							cfgMgr.set_arr(structName, arr);
+						});
+						all.push(r);
+					}
+				}
+				Promise.all(all).then(() => {
+					resolve(null);
+				});
+			} catch (e) {
+				reject(e);
+			}
+		});
+	});
+}

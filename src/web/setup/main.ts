@@ -8,6 +8,8 @@ import { init as binLoadInit } from '../load/bin';
 import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_sys/load/app';
 import { Bar } from '../device/processbar';
 
+declare var _$pi: any;
+
 export const main = (cfg: any, depend: any) => {
     envInit(cfg);
     dependInit(depend);
@@ -37,12 +39,19 @@ const loadExec = (next: string) => {
     load.addProcess(bar.onProcess.bind(bar));
     load.start().then(() => {
         bar.clear();
-        if (!next)
-            loadExec("next_");
-        let exec = get(next + "exec");
-        exec[0] && import(exec[0]).then((mod) => {
-            mod[exec[1]](exec.slice(2));
-        });
+		let exec = get(next + "exec");
+
+		let arr = [];
+		for(let i = 0; i < exec.length; i++) {
+			exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
+				mod[exec[i][1]](exec[i].slice(2));
+				return mod;
+			}));
+		}
+		Promise.all(arr).then(() => {
+			if (!next)
+				loadExec("next_");
+		});
     });
 };
 
