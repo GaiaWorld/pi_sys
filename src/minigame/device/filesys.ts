@@ -341,6 +341,9 @@ export class FileSys {
         }
 
         return new Promise((resolve, reject) => {
+            if (savePath) {
+                FileSys.prepareDir(savePath);
+            }
             wx.downloadFile({
                 url,
                 filePath: savePath,

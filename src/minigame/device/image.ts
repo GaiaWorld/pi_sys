@@ -1,6 +1,6 @@
 import { ResTab, register } from '../../pi_sys/modules/util/res_mgr';
 import { loadRes } from "../load/app";
-import { cc, log } from "../../pi_sys/feature/log"
+import { cc, log } from "../feature/log"
 import { DEPEND_MGR } from '../setup/depend';
 
 // ======================= 导出

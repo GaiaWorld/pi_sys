@@ -21,7 +21,7 @@
 // ============================== 导入
 import { FileInfo, DirInfo, DEPEND_MGR } from "../setup/depend";
 import { Store } from "../feature/store";
-import { get as assetGet, read } from "../../pi_sys/load/asset";
+import { get as assetGet, read } from "../load/asset";
 import { AjaxDownload, ProcessFunc } from "../feature/http";
 import { utf8Decode } from "../feature/string";
 

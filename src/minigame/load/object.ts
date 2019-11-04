@@ -31,15 +31,17 @@ class WXFontFace {
         this.src = src;
     }
 
-    load(): Promise<any> {
+    public load(): Promise<any> {
         const p = FileSys.download(this.src)
                     .then((localPath) => {
                         const family = wx.loadFont(localPath);
                         if (family === null) {
-                            throw new Error("wx load font failed");
+                            this.family = family;
+                            this.localPath = localPath;
+                        } else {
+                            this.family = family;
+                            this.localPath = localPath;
                         }
-                        this.family = family;
-                        this.localPath = localPath;
                         return localPath;
                     });
 
@@ -94,8 +96,8 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, c
     
     const font = new WXFontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}${file.path}?${file.sign}`);
     // 添加到全局的 FontFaceSet 中，小游戏中直接用 Set 模拟
-    (document as any).fonts = new Set();
-    (document as any).fonts.add(font);
+    (window as any).fonts = new Set();
+    (window as any).fonts.add(font);
     /*
      * TODO: (优化)
      * 为了快速实现功能，字体目前全部存放到临时目录里面，
@@ -107,7 +109,7 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, c
         load.onProcess(file.path, "objLoad", load.total, load.loaded);
         callback(font);
     }).catch((errText) => {
-        (document as any).fonts.delete(font);
+        (window as any).fonts.delete(font);
         loadFont(load, file, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
     });
 };
@@ -115,30 +117,39 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, c
 // TODO: video 在兼容层没做兼容，需要兼容，但优先级不高
 const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
 
-    const status = LoadMgr.wxdepend.checkMain(file);
+    const status = LoadMgr.wxdepend.checkMain(file, true);
 
     switch (status) {
+        case (0): {
+            // temp 目录
+            loadObjCall(load, file, false, eleType, map, callback, errorCallback);
+            break;
+        }
         case (1): {
             FileSys.deleteFile(LoadMgr.formatMainPath(file.path))
                 .then(() => {
-                    LoadMgr.wxdepend.updateMainSize(-file.size);
+                    LoadMgr.wxdepend.updateMainSize(-file.size, true);
                     LoadMgr.wxdepend.deleteMain(file.path);
+                    LoadMgr.wxdepend.writeDepend();
                 });
 
             // temp 目录
             loadObjCall(load, file, false, eleType, map, callback, errorCallback);
+            break;
         }
         case (2): {
             // 主目录
             loadObjCall(
                 load, file, true, eleType, map, 
                 (e) => {
-                    LoadMgr.wxdepend.updateMainSize(file.size);
+                    LoadMgr.wxdepend.updateMainSize(file.size, true);
                     LoadMgr.wxdepend.addMain(file); 
+                    LoadMgr.wxdepend.writeDepend();
                     callback(e);
                 },
                 errorCallback
             );
+            break;
         }
         case (3): {
             // 主目录
@@ -146,17 +157,19 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", 
                 (e) => { 
                     const old = LoadMgr.wxdepend.readMain(file.path);
                     if (old) {
-                        LoadMgr.wxdepend.updateMainSize(-old.size);
+                        LoadMgr.wxdepend.updateMainSize(-old.size, true);
                     }
                     LoadMgr.wxdepend.deleteMain(file.path);
 
-                    LoadMgr.wxdepend.updateMainSize(file.size);
+                    LoadMgr.wxdepend.updateMainSize(file.size, true);
                     LoadMgr.wxdepend.addMain(file);
+                    LoadMgr.wxdepend.writeDepend();
                     
                     callback(e); 
                 }, 
                 errorCallback
             );
+            break;
         }
         default: {
             // 主目录

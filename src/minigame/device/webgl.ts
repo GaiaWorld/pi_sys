@@ -330,6 +330,9 @@ export class TextureInstance {
 
     }
     public readonly fname: string;
+    public get texture() {
+        return this._tex;
+    }
     private _index: number;
     private _tex: WebGLTexture | null;
     private _engine: WebGLInstance;
@@ -424,7 +427,7 @@ export class WebGLInstance {
     }
     public delTexture(tex: TextureInstance) {
         this.textureMap.delete(tex.fname);
-        (<WebGLRenderingContext>this.gl).deleteTexture(tex);
+        (<WebGLRenderingContext>this.gl).deleteTexture(tex.texture);
     }
     public addScene(cfg: Scene) {
         this.sceneMap.set(cfg.sname, cfg);

@@ -6,7 +6,7 @@ export type ENV_CFG = any;
 
 export class ENV_MGR {
     private static env: Map<string, any> = new Map();
-    public static INIT(CFG: ENV_CFG) {
+    public static init(CFG: ENV_CFG) {
         for (let k in CFG) {
             if (CFG.hasOwnProperty(k)) {
                 ENV_MGR.env.set(k, CFG[k]);

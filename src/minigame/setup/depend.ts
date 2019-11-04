@@ -84,7 +84,7 @@ export class DEPEND_MGR {
      * 注册数据 - 根据文件表初始化依赖表
      * @param data depend 数据
      */
-    public static INIT(data: DEPEND_DATA) {
+    public static init(data: DEPEND_DATA) {
         for (let args of data) {
 
             let fileInfo = new FileInfo(args);
@@ -201,4 +201,12 @@ export class DEPEND_MGR {
             dir = dir.slice(0, j + 1);
         return dir + filePath;
     }
+}
+
+export const getFile  = (file: string) => {
+    return DEPEND_MGR.getFile(file);
+}
+
+export const getDir = (dir: string) => {
+    return DEPEND_MGR.getDir(dir);
 }

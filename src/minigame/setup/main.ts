@@ -1,11 +1,11 @@
 import { ENV_CFG, ENV_MGR } from "./env";
 import { DEPEND_DATA, DEPEND_MGR, FileInfo } from "./depend";
 
-import { init as logInit } from "../../pi_sys/feature/log";
+import { init as logInit } from "../feature/log";
 import { init as codeInit, CodeLoad } from '../load/code';
 import { init as objInit } from '../load/object';
 import { init as binLoadInit } from '../load/bin';
-import { setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_sys/load/app';
+import { setCodeObjSuffix, setCfgHandler, setResLru } from '../load/app';
 import { Bar } from '../device/progressbar';
 import { LoadMgr } from "../load/mgr";
 
@@ -21,8 +21,8 @@ import { LoadMgr } from "../load/mgr";
  */
 
 export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
-    ENV_MGR.INIT(cfg);
-    DEPEND_MGR.INIT(depend);
+    ENV_MGR.init(cfg);
+    DEPEND_MGR.init(depend);
 
     logInit(cfg.log);
     codeInit(cfg.domains, cfg.root_path);
@@ -163,14 +163,15 @@ const loadExec = (next: string = '') => {
         load.start().then(() => {
             bar.clear();
     
-            if (!next) {
-                loadExec("next_");
-            }
+            // if (!next) {
+            //     loadExec("next_");
+            // }
     
             let exec = ENV_MGR.getENV(`${next}exec`);
-            exec[0] && import(exec[0]).then((mod) => {
-                mod[exec[1]](exec.slice(2));
-            });
+            const mode = (<any>window)._$pi.require(exec[0]);
+
+            mode && mode[exec[1]](exec.slice(2));
         });
     }
 };
+
