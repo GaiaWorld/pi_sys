@@ -1,5 +1,5 @@
 /*
- * 应用加载模块
+ * xiaoyouxi 应用加载模块
  * 根据使用的不同将文件分为4类。 
  *  代码code, 配置(必须同步使用)cfg, 对象资源(异步使用，对象形式)obj, 资源(异步使用，二进制数据形式)res
  * 可以设置代码加载器。 比如web版的release版将代码设置为配置，使用配置处理函数来加载代码。而微信小游戏，可能是分包下载。
@@ -9,7 +9,8 @@
  */
 // ============================== 导入
 import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
-import { FileInfo, fileSuffix, DirInfo, getDir, getFile } from "../setup/depend";
+import { IFileDependInfo } from "../device/base";
+import { DEPEND_MGR, DirInfo } from "../setup/depend";
 import { cc, log, pattern } from "../feature/log";
 import { CodeLoad } from './code';
 import { ObjLoad } from './object';
@@ -41,7 +42,7 @@ export let setCfgHandler = (
     if (!handler)
         return;
     for (let [k, v] of cfgTempMap) {
-        let s = fileSuffix(k);
+        let s = DEPEND_MGR.fileSuffix(k);
         if (s !== suffix)
             continue;
         cfgFinish(k, v, handler);
@@ -116,9 +117,9 @@ export class BatchLoad extends FileLoad {
         let arr = [];
         for (let s of this.dirOrFiles) {
             if (s.charAt(s.length - 1) === '/') {
-                this.loadDir(s, getDir(s), onlyDown, binload, download, codeload, objload, arr);
+                this.loadDir(s, DEPEND_MGR.getDir(s), onlyDown, binload, download, codeload, objload, arr);
             } else {
-                let info = getFile(s);
+                let info = DEPEND_MGR.getFile(s);
                 if (info)
                     this.loadFile(info, onlyDown, binload, download, codeload, objload, arr);
                 else
@@ -186,7 +187,7 @@ export class BatchLoad extends FileLoad {
         }
     }
     loadFile(
-        file: FileInfo,
+        file: IFileDependInfo,
         onlyDown: boolean,
         binload: LocalLoad,
         download: Download,
@@ -196,7 +197,7 @@ export class BatchLoad extends FileLoad {
         // 文件长度为0，跳过
         if (!file.size)
             return;
-        let suffix = fileSuffix(file.path);
+        let suffix = DEPEND_MGR.fileSuffix(file.path);
         let st = suffixMap.get(suffix);
         if (!st) {
             return cc.warn() && log("batch load, invalid suffix, file:" + file.path);
@@ -235,7 +236,7 @@ export class BatchLoad extends FileLoad {
     }
     // 下载或加载
     downOrload(
-        file: FileInfo,
+        file: IFileDependInfo,
         onlyDown: boolean,
         binload: LocalLoad,
         download: Download,
@@ -249,7 +250,7 @@ export class BatchLoad extends FileLoad {
         }
     }
     // 检查是否正在加载
-    checkLoad(file: FileInfo, set: Set<FileLoad>, result: Promise<any>[]) {
+    checkLoad(file: IFileDependInfo, set: Set<FileLoad>, result: Promise<any>[]) {
         for (let load of set) {
             if (load.files.has(file.path)) { // 文件正在加载
                 if (!this.loads.has(load)) {
@@ -280,7 +281,7 @@ export class BatchLoad extends FileLoad {
         }
         this.onProcess(url, type, this.total, this.loaded);
         if (type === "fileLocalLoad") { // 提前解析配置
-            let suffix = fileSuffix(url);
+            let suffix = DEPEND_MGR.fileSuffix(url);
             let st = suffixMap.get(suffix);
             if (st === SuffixType.CFG)
                 handleCfg(url, data, suffix)
@@ -292,8 +293,8 @@ export class BatchLoad extends FileLoad {
  * @description 单资源或资源对象的加载, 没有进度通知。 如果是单资源下载，会进行下载合并.
  * @example
  */
-export const loadRes = (file: FileInfo) => {
-    let suffix = fileSuffix(file.path);
+export const loadRes = (file: IFileDependInfo) => {
+    let suffix = DEPEND_MGR.fileSuffix(file.path);
     let st = suffixMap.get(suffix);
     if (!st) {
         cc.warn() && log("load, invalid suffix, file:" + file);
@@ -470,6 +471,7 @@ const filter = (path: string, within: RegExp[], without: RegExp[]) => {
     }
     return true
 }
+
 // 等待加载
 const waitLoad = (load: FileLoad, set: Set<any>, p: Promise<any>) => {
     set.add(load);
@@ -481,8 +483,9 @@ const waitLoad = (load: FileLoad, set: Set<any>, p: Promise<any>) => {
         return set.delete(load)
     });
 }
+
 // 检查等待加载
-const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
+const checkWaitLoad = (file: IFileDependInfo, set: Set<FileLoad>) => {
     for (let load of set) {
         if (load.files.has(file.path)) { // 文件正在加载
             return new Promise((resolve, reject) => {
@@ -498,7 +501,7 @@ const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
 const handleBinMap = (map: Map<string, Uint8Array>) => {
     let arr = [];
     for (let [k, v] of map) {
-        let suffix = fileSuffix(k);
+        let suffix = DEPEND_MGR.fileSuffix(k);
         let st = suffixMap.get(suffix);
         if (st === SuffixType.CFG) {
             arr.push(handleCfg(k, v, suffix));

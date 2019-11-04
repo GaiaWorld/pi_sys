@@ -4,10 +4,11 @@
  */
 
 // ============================== 导入
-import { ResultFunc } from './bin';
+import { ResultFunc, FileLoad } from './bin';
 import { ProcessFunc } from '../feature/http';
+import { FileInfo } from '../setup/depend';
+import { wx } from '../device/wx';
 
-declare var wx: any;
 // ============================== 导出
 /**
  * 初始化参数
@@ -19,9 +20,9 @@ export const init = (domainUrls: string[], downloadPath:string) => {
 }
 
 // 小游戏分包加载只需要分包名称即可，无需其他信息，故不能直接继承 FileLoad
-export class CodeLoad {
+export class CodeLoad extends FileLoad {
     // 多个加载文件
-    files: Set<string> = new Set();
+    public files: Map<string, FileInfo> = new Map();
     // 加载进度的回调函数
     process: ProcessFunc[];
     // 结果的回调函数
@@ -34,8 +35,8 @@ export class CodeLoad {
      * @description 添加下载文件
      * @example
      */
-    public add(pkgName: string) {
-        this.files.add(pkgName);
+    public add(pkgName: FileInfo) {
+        this.files.set(pkgName.path, pkgName);
         this.total += 1;
     }
     /**
@@ -43,9 +44,9 @@ export class CodeLoad {
      * @example
      */
     public onProcess(url:string, type: string, total:number, loaded: number, data?: any) {
-        if(!this.process)
+        if (!this.process)
             return
-        for(let p of this.process)
+        for (let p of this.process)
             p(url, type, total, loaded, data)
     }
     /**
@@ -53,7 +54,7 @@ export class CodeLoad {
      * @example
      */
     public addProcess(p: ProcessFunc) {
-        if(!this.process)
+        if (!this.process)
             this.process = [];
         this.process.push(p)
     }
@@ -62,17 +63,17 @@ export class CodeLoad {
      * @example
      */
     public onResult(val: any, err?: any) {
-        if(!this.result)
-            return
-        for(let r of this.result)
-            r(val, err)
+        if (!this.result)
+            return;
+        for (let r of this.result)
+            r(val, err);
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addResult(r: ResultFunc) {
-        if(!this.result)
+        if (!this.result)
             this.result = [];
         this.result.push(r)
     }
@@ -84,7 +85,7 @@ export class CodeLoad {
         const arr = [];
         for (let pkgName of this.files.values()) {
             arr.push(new Promise((resolve, reject) => {
-                loadSubPkg(this, pkgName, resolve, reject);
+                loadSubPkg(this, pkgName.path, resolve, reject);
             }));
         }
         return Promise.all(arr);
@@ -108,16 +109,26 @@ const loadSubPkg = (
             load.loaded += 1;
             callback();
         },
-        fail: (err: any) => {
+        fail: (err: { errMsg: string }) => {
             loadSubPkg(
                 load, pkgName, callback, errorCallback,
                 err.errMsg, i === undefined ? 0 : i + 1
             );
+        },
+        complete: () => {
+            
         }
     });
 
     // 分包加载进度
-    task.onProgressUpdate((res: any) => {
+    task.onProgressUpdate((res: {
+        /** 分包下载进度百分比*/
+        progress: number
+        /** 已经下载的数据长度，单位 Bytes	*/
+        totalBytesWritten: number
+        /** 预期需要下载的数据总长度，单位 Bytes*/
+        totalBytesExpectedToWrite: number
+    }) => {
         const p = res.totalBytesWritten / res.totalBytesExpectedToWrite;
         load.onProcess(pkgName, "codeLoad", load.total, load.loaded + p);
     });

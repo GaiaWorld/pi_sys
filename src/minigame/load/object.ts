@@ -5,11 +5,13 @@
  */
 // ============================== 导入
 import { FileLoad } from './bin';
-import { fileSuffix, fileBasename, FileInfo } from '../setup/depend';
-import { download } from '../device/download';
+import { DEPEND_MGR, FileInfo } from '../setup/depend';
+import { wx } from '../device/wx';
+import { FileSys } from '../device/filesys';
+import { LoadMgr } from './mgr';
 
-declare var wx: any;
 // ============================== 导出
+type ObjElement = WXFontFace | wx.Image | wx.InnerAudioContext | WXVideo;
 /**
  * 初始化参数
  */
@@ -18,29 +20,38 @@ export const init = (domainUrls: string[], downloadPath:string) => {
     downPath = downloadPath;
 }
 
-class FontFace {
+class WXFontFace {
     public name: string;
     public family: string;
     public localPath: string;
-    private url: string;
+    public src: string;
 
-    constructor(name: string, url: string) {
+    constructor(name: string, src: string) {
         this.name = name;
-        this.url = url;
+        this.src = src;
     }
 
     load(): Promise<any> {
-        const p = download(this.url).then((localPath) => {
-            const family = wx.loadFont(localPath);
-            if (family === null) {
-                throw new Error("wx load font failed");
-            }
-            this.family = family;
-            this.localPath = localPath;
-            return localPath;
-        });
+        const p = FileSys.download(this.src)
+                    .then((localPath) => {
+                        const family = wx.loadFont(localPath);
+                        if (family === null) {
+                            throw new Error("wx load font failed");
+                        }
+                        this.family = family;
+                        this.localPath = localPath;
+                        return localPath;
+                    });
 
         return p;
+    }
+}
+
+class WXVideo {
+    public src: string;
+    private video: wx.Video;
+    constructor(src) {
+        this.src = src;
     }
 }
 
@@ -53,28 +64,35 @@ export class ObjLoad extends FileLoad {
     public start() {
         let map = new Map;
         let arr = [];
+
         for(let info of this.files.values()) {
             arr.push(new Promise((resolve, reject)=>{
-                let suffix = fileSuffix(info.path);
+                let suffix = DEPEND_MGR.fileSuffix(info.path);
                 let type = Suffixs[suffix];
-                if(type) {
+
+                if (type) {
                     loadObj(this, info, type, map, resolve, reject)
-                }else if(FontSuffixs.has(suffix)) {
+                } else if (FontSuffixs.has(suffix)) {
                     loadFont(this, info, map, resolve, reject)
                 }
+
                 // TODO: store 需要实现文件拷贝队列，写队列与拷贝队列协同工作，方便空间分配
             }));
         }
+
         const p = Promise.all(arr).then(() => map);
+
         return p;
     }
 }
+
 // 字体比较特别，需要单独处理
-const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, FontFace>, callback: (f: FontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }
-    const font = new FontFace(fileBasename(file.path), `${urls[i || 0]}${downPath}${file.path}?${file.sign}`);
+    
+    const font = new WXFontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}${file.path}?${file.sign}`);
     // 添加到全局的 FontFaceSet 中，小游戏中直接用 Set 模拟
     (document as any).fonts = new Set();
     (document as any).fonts.add(font);
@@ -95,45 +113,106 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, FontFace>, cal
 };
 
 // TODO: video 在兼容层没做兼容，需要兼容，但优先级不高
-const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", map: Map<string, Element>, callback: (e:Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+
+    const status = LoadMgr.wxdepend.checkMain(file);
+
+    switch (status) {
+        case (1): {
+            FileSys.deleteFile(LoadMgr.formatMainPath(file.path))
+                .then(() => {
+                    LoadMgr.wxdepend.updateMainSize(-file.size);
+                    LoadMgr.wxdepend.deleteMain(file.path);
+                });
+
+            // temp 目录
+            loadObjCall(load, file, false, eleType, map, callback, errorCallback);
+        }
+        case (2): {
+            // 主目录
+            loadObjCall(
+                load, file, true, eleType, map, 
+                (e) => {
+                    LoadMgr.wxdepend.updateMainSize(file.size);
+                    LoadMgr.wxdepend.addMain(file); 
+                    callback(e);
+                },
+                errorCallback
+            );
+        }
+        case (3): {
+            // 主目录
+            loadObjCall(load, file, true, eleType, map, 
+                (e) => { 
+                    const old = LoadMgr.wxdepend.readMain(file.path);
+                    if (old) {
+                        LoadMgr.wxdepend.updateMainSize(-old.size);
+                    }
+                    LoadMgr.wxdepend.deleteMain(file.path);
+
+                    LoadMgr.wxdepend.updateMainSize(file.size);
+                    LoadMgr.wxdepend.addMain(file);
+                    
+                    callback(e); 
+                }, 
+                errorCallback
+            );
+        }
+        default: {
+            // 主目录
+            createObj(load, file, FileSys.fullLocalPath(LoadMgr.formatMainPath(file.path)), eleType, map, callback, errorCallback);
+        }
+    }
+
+}
+
+const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }
-    download(`${urls[i || 0]}${downPath}${file.path}?${file.sign}`).then((localTmpPath) => {
-        let n: any;
-        switch (eleType) {
-            case "img":
-                n = new Image();
-                break;
-            case "audio":
-                n = new Audio();
-                break;
-            case "video":
-                n = wx.createVideo();
-                break;
+
+    FileSys.download(`${urls[i || 0]}${downPath}${file.path}?${file.sign}`, asMain ? LoadMgr.formatMainPath(file.path) : undefined)
+        .then((localTmpPath) => {
+            createObj(load, file, localTmpPath, eleType, map, callback, errorCallback);
+        }).catch((err) => {
+            loadObj(load, file, eleType, map, callback, errorCallback, err.errMsg, i === undefined ? 0 : i + 1);
+        });
+}
+
+const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
+    switch (eleType) {
+        case "img": {
+            let n = new Image();
+            n.src = localTmpPath;
+            n.onload = () => {
+                map.set(file.path, n);
+                load.loaded += file.size;
+                load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+                callback && callback(n);
+            }
+            break;
         }
-        n.src = localTmpPath;
-        map.set(file.path, n);
-        load.loaded += file.size;
-        load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
-        callback && callback(n);
-    }).catch((err) => {
-        loadObj(load, file, eleType, map, callback, errorCallback, err.errMsg, i === undefined ? 0 : i + 1);
-    });
-    let n = document.createElement(eleType);
-    n.onerror = () => {
-        n.onload = n.onerror = undefined;
-        loadObj(load, file, eleType, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
-    };
-    n.onload = () => {
-        n.onload = n.onerror = undefined;
-        map.set(file.path, n);
-        load.loaded+=file.size;
-        load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
-        callback && callback(n);
-    };
-    n.crossOrigin = "anonymous";
-    n.src = urls[i || 0] + downPath + file.path+"?"+file.sign;
+        case "audio": {
+            let n = wx.createInnerAudioContext();
+            n.src = localTmpPath;
+            map.set(file.path, n);
+            load.loaded += file.size;
+            load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+            callback && callback(n);
+            break;
+        }
+        case "video": {
+            let n = new WXVideo(localTmpPath);
+            map.set(file.path, n);
+            load.loaded += file.size;
+            load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+            callback && callback(n);
+            break;
+        }
+        default: {
+            errorCallback(`no such fileType ${eleType}`);
+        }
+    }
 }
 
 // ============================== 本地

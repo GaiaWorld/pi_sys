@@ -19,10 +19,10 @@
 */
 
 // ============================== 导入
-import {FileInfo, DirInfo, getFile, initDir} from "../setup/depend";
-import {Store} from "../feature/store";
-import {get as assetGet, read} from "./asset";
-import {AjaxDownload, ProcessFunc} from "../feature/http";
+import { FileInfo, DirInfo, DEPEND_MGR } from "../setup/depend";
+import { Store } from "../feature/store";
+import { get as assetGet, read } from "../../pi_sys/load/asset";
+import { AjaxDownload, ProcessFunc } from "../feature/http";
 import { utf8Decode } from "../feature/string";
 
 // ============================== 导出
@@ -43,7 +43,7 @@ export const getStore = () => {
  */
 export const deleteStore = () => {
     if (localStore) {
-        return Store.delete(localStore.dbName);
+        return Store.delete(localStore.projectName);
     }else{
         return Promise.resolve()
     }
@@ -52,31 +52,32 @@ export const deleteStore = () => {
 /**
  * 初始化存储, 及默认参数。 limitLength 限制url的长度， sizeLimit 一次请求的byte限制
  */
-export const init = (storeName: string, domainUrls: string[], downloadPath:string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) => {
-    urls = domainUrls;
-    batchPath = downloadPath;
+export const init = (store: Store, domainUrls: string[], downloadPath:string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) => {
+    urls        = domainUrls;
+    batchPath   = downloadPath;
     limitLength = urllimitLength;
-    sizeLimit = reqSizeLimit;
+    sizeLimit   = reqSizeLimit;
+
     if (localSign) {
         return Promise.resolve();
     }
-    return Store.create(storeName).then(store => {
-        return store.read("").then(value => {
-            if (value) {
-                localInitCheck(store, value, false);
-            } else {
-                // 初始化的时候要先读取资源信息数组
-                value = {};
-                return assetGet().then((arr: any[]) => {
-                    localStore = store;
-                    for (let info of arr) {
-                        value[info[0]] = "-" + info[3];
-                    }
+
+    return store.read("")
+            .then(value => {
+                if (value) {
                     localInitCheck(store, value, false);
-                });
-            }
-        });
-    });
+                } else {
+                    // 初始化的时候要先读取资源信息数组
+                    value = {};
+                    return assetGet().then((arr: any[]) => {
+                        localStore = store;
+                        for (let info of arr) {
+                            value[info[0]] = "-" + info[3];
+                        }
+                        localInitCheck(store, value, false);
+                    });
+                }
+            });
 }
 
 /**
@@ -91,13 +92,13 @@ export const getSign = (path:string) => {
  * @example
  */
 export const isLocal = (filePath:string) => {
-    let info = getFile(filePath);
+    let info = DEPEND_MGR.getFile(filePath);
     return (info) ? info.sign === getSign(filePath) : undefined;
 };
 
 export class FileLoad {
     // 多个加载文件
-    files: Map<string, FileInfo> = new Map;
+    public files: Map<string, FileInfo> = new Map;
     // 加载进度的回调函数
     process: ProcessFunc[];
     // 结果的回调函数
@@ -173,6 +174,7 @@ export class LocalLoad extends FileLoad {
             let path = info.path;
             let size = info.size;
             let p: Promise<any>;
+
             if(isAsset(localSign[path])) {
                 p = read(info.path);
             }else{
@@ -184,12 +186,13 @@ export class LocalLoad extends FileLoad {
                 this.onProcess(path, "fileLocalLoad", this.total, this.loaded, value);
             }));
         }
-        return Promise.all(arr).then(_v => {
-            this.onResult(map);
-            return map;
-        }).catch( reason => {
-            this.onResult(null, reason)
-        });
+        return Promise.all(arr)
+            .then(_v => {
+                this.onResult(map);
+                return map;
+            }).catch( reason => {
+                this.onResult(null, reason)
+            });
     }
 }
 
@@ -217,32 +220,46 @@ export class Download extends FileLoad {
         let localSignWait: Promise<void>[] = [];
         this.downloadMap = new Map;
         let map: Map<string, DirInfo> = new Map;
+
         // 先构建一个目录树，目录内再构建一个后缀表
         for(let info of this.files.values()) {
-            initDir(info, map, true);
+            DEPEND_MGR.initDir(info, map, true);
         }
+
         let fileDirTree = map.get("");
+
         // 加载文件的数据
         let fileMap: Map<string, Uint8Array> = new Map;
         let result = new Result;
+
         while (true) {
             let count = result.files.length;
+
             // 检查url长度, 限制长度1k，超过1k，需要分多次下载
             stringify(fileDirTree, limitLength, result);
-            if (result.files.length > count)
+
+            if (result.files.length > count) {
                 result.f = result.url;
+            }
+
             downWait.push(this.startURL(result.d, result.f, result.files, localSignWait, fileMap));
-            if (!result.next)
+
+            if (!result.next) {
                 break;
+            }
+
             result = new Result;
         }
-        return Promise.all(downWait).then(_v => {
-            this.onResult(map);
-            Promise.all(localSignWait).then(() => localStore.write("", localSign));
-            return fileMap;
-        }).catch( reason => {
-            this.onResult(null, reason)
-        });
+
+        return Promise.all(downWait)
+            .then(_v => {
+                this.onResult(map);
+                Promise.all(localSignWait).then(() => localStore.write("", localSign));
+                return fileMap;
+            })
+            .catch((reason) => {
+                this.onResult(null, reason);
+            });
     }
     /**
      * @description 停止
@@ -255,19 +272,25 @@ export class Download extends FileLoad {
             v.abort();
         }
     }
+
     // 指定目录和文件的一次下载
-    startURL(durl: string, furl: string, files:FileInfo[], localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
-        let len = files.length, size = 0, h = 0; // hash值
-        if (len === 0)
+    public startURL(durl: string, furl: string, files: FileInfo[], localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
+        let fileCount = files.length, size = 0, h = 0; // hash值
+        if (fileCount === 0) {
             return;
-        for (let i = 0; i < len; i++) {
+        }
+
+        for (let i = 0; i < fileCount; i++) {
             let info = files[i];
             size += info.size;
             // TODO 改成字符串的异或运算， h = butil.hash(info.sign, h);
         }
+
         let path = batchPath + "s=" + size + (durl ? "&d=" + durl : "") + (furl ? "&f=" + furl : "") + "&h=" + h;
         let down = new AjaxDownload(urls, path, this.timeout, this.total);
+
         this.downloadMap.set(path, down);
+
         down.onprocess = () => {
             this.loaded = 0;
             for(let v of this.downloadMap.values()) {
@@ -275,18 +298,21 @@ export class Download extends FileLoad {
             }
             this.onProcess(path, 'fileDownload', this.total, this.loaded);
         };
+
         return down.start().then(value => {
             this.save((value as ArrayBuffer), localSignWait, fileMap);
         });
     }
-    save(buff: ArrayBuffer, localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
+
+    public save(buff: ArrayBuffer, localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
         let view = new DataView(buff);
         let offset = 0;
+
         while(offset < buff.byteLength) {
             let len = view.getInt16(offset, true);
             offset+=2;
             let path = utf8Decode(new Uint8Array(buff, offset, len));
-            let info = getFile(path);
+            let info = DEPEND_MGR.getFile(path);
             offset+=len;
             let datalen = view.getInt32(offset, true);
             offset+=4;
@@ -310,6 +336,7 @@ export const setLocalSign = (files: FileInfo[]) => {
     }
     return localStore.write("", localSign)
 }
+
 // ============================== 本地
 // 下载的多域名
 let urls: string[] = [];
@@ -341,10 +368,12 @@ const formatSign = (sign:string) => {
         return sign.slice(1);
     return sign;
 }
+
 // 判断是否为本地文件， "-"开头表示本地文件
 const isAsset = (sign:string) => {
     return (sign.charCodeAt(0) === 45)
 }
+
 // 本地加载检查
 const localInitCheck = (store: Store, signs:any, save:boolean) => {
     localStore = store;
@@ -353,7 +382,7 @@ const localInitCheck = (store: Store, signs:any, save:boolean) => {
     for (let k in signs) {
         if (!signs.hasOwnProperty(k))
             continue;
-        let info = getFile(k);
+        let info = DEPEND_MGR.getFile(k);
         if (info && getSign(k) === info.sign)
             continue;
         store.delete(k);
