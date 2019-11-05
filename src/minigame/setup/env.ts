@@ -1,15 +1,22 @@
+/**
+ * 
+ */
 
-export const init = (json: any) => {
-    for(let k in json) {
-        if(json.hasOwnProperty(k))
-            map.set(k, json[k])
+export type ENV_CFG = any;
+
+export class ENV_MGR {
+    private static env: Map<string, any> = new Map();
+    public static init(CFG: ENV_CFG) {
+        for (let k in CFG) {
+            if (CFG.hasOwnProperty(k)) {
+                ENV_MGR.env.set(k, CFG[k]);
+            }
+        }
+    }
+    public static getENV(key: string) {
+        return ENV_MGR.env.get(key);
+    }
+    public static setENV(key: string, value: any) {
+        ENV_MGR.env.set(key, value);
     }
 }
-export const get = (key: string) => {
-    return map.get(key)
-}
-export const set = (key: string, val: any) => {
-    return map.set(key, val)
-}
-// ============================== 本地
-const map: Map<string, any> = new Map;
