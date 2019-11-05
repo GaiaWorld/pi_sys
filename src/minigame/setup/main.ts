@@ -3,11 +3,12 @@ import { DEPEND_DATA, DEPEND_MGR, FileInfo } from "./depend";
 
 import { init as logInit } from "../feature/log";
 import { init as codeInit, CodeLoad } from '../load/code';
-import { init as objInit } from '../load/object';
-import { init as binLoadInit } from '../load/bin';
 import { setCodeObjSuffix, setCfgHandler, setResLru } from '../load/app';
 import { Bar } from '../device/progressbar';
 import { LoadMgr } from "../load/mgr";
+import { initImageLoad } from "../device/image";
+import { initFileLoad } from "../device/file";
+import { initAudioLoad } from "../device/audio";
 
 /**
  * 项目初始化入口
@@ -25,8 +26,6 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     DEPEND_MGR.init(depend);
 
     logInit(cfg.log);
-    codeInit(cfg.domains, cfg.root_path);
-    objInit(cfg.domains, cfg.root_path);
     LoadMgr.init(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
     
     // binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
@@ -46,6 +45,10 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     //     window.addEventListener('unhandledrejection', onReject);
     //     (<any>window).onerror = onError;
     // }
+
+    initImageLoad();
+    initFileLoad();
+    initAudioLoad();
 };
 
 /**

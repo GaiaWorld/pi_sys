@@ -111,28 +111,18 @@ export class Store {
                     return resolve([key, this.fileBufferMap.get(key)]);
                 }
 
+                const status = this.wxdepend.checkMain(fileInfo);
+
                 let wxpath;
 
-                const mainInfo = this.wxdepend.readMain(key);
-                const tempInfo = this.wxdepend.readTemp(key);
-
-                if (mainInfo) {
-                    wxpath = this.formatStorePath(key);
-                } else if (tempInfo) {
-                    wxpath = tempInfo.path;
-                }
-
-                if (wxpath) {
-                    FileSys.readFile(wxpath)
-                        .then((value) => {
-                            resolve([key, value]);
-                        })
-                        .catch((err) => {
-                            reject(err)
-                        });
-                } else {
-                    resolve(null)
-                }
+                wxpath = this.formatStorePath(key);
+                FileSys.readFile(wxpath)
+                    .then((value) => {
+                        resolve([key, value]);
+                    })
+                    .catch((err) => {
+                        reject(err)
+                    });
             });
         }
     }

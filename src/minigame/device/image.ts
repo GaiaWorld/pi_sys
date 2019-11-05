@@ -33,4 +33,8 @@ const destroy = (_image: HTMLImageElement) => {
 const ImageType = "image";
 
 // 往Res中注册Image对象
-register(ImageType, load, destroy);
+// register(ImageType, load, destroy);
+
+export const initImageLoad = () => {
+    register(ImageType, load, destroy);
+}

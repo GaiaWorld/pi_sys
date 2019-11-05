@@ -71,7 +71,7 @@ export const init = (store: Store, domainUrls: string[], downloadPath:string, ur
                     return assetGet().then((arr: any[]) => {
                         localStore = store;
                         for (let info of arr) {
-                            value[info[0]] = "-" + info[3];
+                            value[info[0]] = info[3];
                         }
                         localInitCheck(store, value, false);
                     });
@@ -83,8 +83,10 @@ export const init = (store: Store, domainUrls: string[], downloadPath:string, ur
  * @description 获得路径签名
  * @example
  */
-export const getSign = (path:string) => {
-    return formatSign(localSign[path]);
+export const getSign = (path: string) => {
+    const info = localStore.wxdepend.readMain(path);
+
+    return info ? info.sign : undefined;
 }
 /**
  * @description 检查文件是否会从本地加载, 返回 true | false | undefined
@@ -92,7 +94,9 @@ export const getSign = (path:string) => {
  */
 export const isLocal = (filePath:string) => {
     let info = DEPEND_MGR.getFile(filePath);
-    return (info) ? info.sign === getSign(filePath) : undefined;
+    let old = localStore.wxdepend.readMain(filePath);
+    
+    return (info) ? info.sign === old.sign : undefined;
 };
 
 export class FileLoad {
@@ -320,7 +324,7 @@ export class Download extends FileLoad {
             offset+=datalen;
             fileMap.set(path, data);
             this.onProcess(path, "downFile", 0, 0, data);
-            localSignWait.push(savefile(path, data, info?info.sign:""));
+            localSignWait.push(savefile(path, data, info ? info.sign : ""));
         }
     };
 }
@@ -330,10 +334,13 @@ export class Download extends FileLoad {
  * @example
  */
 export const setLocalSign = (files: FileInfo[]) => {
-    for(let f of files) {
-        localSign[f.path] = f.sign;
+    for (let f of files) {
+        // localSign[f.path] = f.sign;
+        localStore.wxdepend.addMain(f);
     }
-    return localStore.write("", localSign)
+
+    localStore.wxdepend.writeDepend();
+    // return localStore.write("", localSign)
 }
 
 // ============================== 本地
@@ -360,36 +367,62 @@ class Result {
 };
 
 // 格式化签名， "-"开头表示本地文件
-const formatSign = (sign:string) => {
-    if (!sign)
-        return sign;
-    if (isAsset(sign))
-        return sign.slice(1);
-    return sign;
+const formatSign = (path: string) => {
+    if (!path)
+        return path;
+
+    if (isAsset(path)) {
+        return localStore.wxdepend.readMain(path).sign;
+    }
 }
 
 // 判断是否为本地文件， "-"开头表示本地文件
-const isAsset = (sign:string) => {
-    return (sign.charCodeAt(0) === 45)
+const isAsset = (path: string) => {
+    const info = localStore.wxdepend.readMain(path);
+    return !!info;
 }
 
 // 本地加载检查
-const localInitCheck = (store: Store, signs:any, save:boolean) => {
+const localInitCheck = (store: Store, signs: any, save:boolean) => {
     localStore = store;
     localSign = signs;
+
     // 删除不存在或签名不正确的文件
     for (let k in signs) {
+        // if (!signs.hasOwnProperty(k))
+        //     continue;
+
+        // let info = DEPEND_MGR.getFile(k);
+        // if (info && getSign(k) === info.sign)
+        //     continue;
+
+        // store.delete(k);
+        // delete signs[k];
+        // save = true;
+
         if (!signs.hasOwnProperty(k))
             continue;
-        let info = DEPEND_MGR.getFile(k);
-        if (info && getSign(k) === info.sign)
-            continue;
-        store.delete(k);
-        delete signs[k];
-        save = true;
+
+        let curr = DEPEND_MGR.getFile(k);
+        let old  = localStore.wxdepend.readMain(k);
+        if (curr) {
+            if (!old || old.sign !== curr.sign) {
+                localStore.wxdepend.addMain(curr);
+                store.delete(k);
+                save = true;
+            }
+        } else {
+            if (old) {
+                localStore.wxdepend.deleteMain(k);
+                store.delete(k);
+                save = true;
+            }
+        }
     }
-    if (save)
+
+    if (save) {
         store.write("", signs);
+    }
 };
 
 // 获取文件的去掉第一个后缀的文件名
