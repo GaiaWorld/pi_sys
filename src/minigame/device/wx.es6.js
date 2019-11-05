@@ -1,4 +1,4 @@
-_$pi.define("pi_sys/device/wx", function (_$require, _$exports, _$module){
+
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -2146,5 +2146,3 @@ _$pi.define("pi_sys/device/wx", function (_$require, _$exports, _$module){
 
 /***/ })
 /******/ ]);
-_$module.exports = { wx: wx };
-});

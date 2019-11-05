@@ -1,4 +1,3 @@
-import { type } from "os";
 
 /**
  * 取消一个先前通过调用 requestAnimationFrame 方法添加到计划中的动画帧请求
@@ -2079,6 +2078,8 @@ export declare namespace wx {
     */
     function createWorker(scriptPath: string): Worker;
 }
+
+exports.wx = wx;
 
 // /**
 //  * 基础库 2.0.0 开始支持，低版本需做兼容处理。

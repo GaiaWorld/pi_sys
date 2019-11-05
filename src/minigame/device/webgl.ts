@@ -427,7 +427,9 @@ export class WebGLInstance {
     }
     public delTexture(tex: TextureInstance) {
         this.textureMap.delete(tex.fname);
-        (<WebGLRenderingContext>this.gl).deleteTexture(tex.texture);
+        if (tex.texture) {
+            (<WebGLRenderingContext>this.gl).deleteTexture(tex.texture);
+        }
     }
     public addScene(cfg: Scene) {
         this.sceneMap.set(cfg.sname, cfg);
@@ -438,14 +440,18 @@ export class WebGLInstance {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
     }
     public loop = (timestamp: number) => {
-        this.timestamp = timestamp;
 
-        this.renderLoop(timestamp);
+        if (!this._isDestroy) {
+            this.timestamp = timestamp;
 
-        requestAnimationFrame(this.loop);
+            this.renderLoop(timestamp);
+    
+            requestAnimationFrame(this.loop);
+        }
     }
     public renderLoop(timestamp: number) {}
     public destroy() {
+        console.log('Progress WebGL destroy.')
         this._isDestroy = true;
         this.textureMap.forEach((tex) => {
             this.delTexture(tex);

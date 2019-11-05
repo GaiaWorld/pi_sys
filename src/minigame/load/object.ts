@@ -180,6 +180,8 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", 
 }
 
 const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+    console.warn('loadObjCall');
+    console.warn(`${urls[i || 0]}${downPath}${file.path}?${file.sign}`);
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
     }

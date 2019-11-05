@@ -100,7 +100,7 @@ export class Store {
     public read(key: string): Promise<any> {
         const fileInfo = DEPEND_MGR.getFile(key);
 
-        if (!!fileInfo) {
+        if (!fileInfo) {
             return Promise.reject(`no such file ${key}`);
         } else {
             // 默认一定足够主目录

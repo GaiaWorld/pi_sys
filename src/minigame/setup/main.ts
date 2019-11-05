@@ -161,7 +161,14 @@ const loadExec = (next: string = '') => {
     
         load.addProcess(bar.onProcess.bind(bar));
         load.start().then(() => {
-            bar.clear();
+
+            console.log('bar.clear');
+
+            try {
+                bar.clear();
+            } catch (err) {
+                console.error(err)
+            }
     
             // if (!next) {
             //     loadExec("next_");
@@ -169,6 +176,9 @@ const loadExec = (next: string = '') => {
     
             let exec = ENV_MGR.getENV(`${next}exec`);
             const mode = (<any>window)._$pi.require(exec[0]);
+
+            console.log(exec);
+            console.log(mode);
 
             mode && mode[exec[1]](exec.slice(2));
         });

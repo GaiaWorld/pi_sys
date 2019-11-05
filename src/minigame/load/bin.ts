@@ -62,8 +62,7 @@ export const init = (store: Store, domainUrls: string[], downloadPath:string, ur
         return Promise.resolve();
     }
 
-    return store.read("")
-            .then(value => {
+    return Promise.resolve(null).then(value => {
                 if (value) {
                     localInitCheck(store, value, false);
                 } else {
