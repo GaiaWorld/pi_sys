@@ -7,7 +7,7 @@ declare function cancelAnimationFrame(requestID: number): void;
 /**
  * 在下次进行重绘时执行。
  */
-declare function requestAnimationFrame(callback: () => void): number;
+declare function requestAnimationFrame(callback: Function): number;
 
 /** 输出日志*/
 interface Console {
@@ -44,7 +44,7 @@ declare function clearInterval(intervalID: number): void;
  * @param rest param1, param2, ..., paramN 等附加参数，它们会作为参数传递给回调函数。
  * @returns number定时器的编号。这个值可以传递给 clearTimeout 来取消该定时。
  */
-declare function setTimeout(callback: () => void, delay: number, ...rest): number;
+declare function setTimeout(callback: Function, delay: number, ...rest): number;
 
 /**
  * 设定一个定时器，按照指定的周期（以毫秒计）来执行注册的回调函数
@@ -53,7 +53,7 @@ declare function setTimeout(callback: () => void, delay: number, ...rest): numbe
  * @param rest param1, param2, ..., paramN 等附加参数，它们会作为参数传递给回调函数。
  * @returns number定时器的编号。这个值可以传递给 clearTimeout 来取消该定时。
  */
-declare function setInterval(callback: () => void, delay: number, ...rest): number;
+declare function setInterval(callback: Function, delay: number, ...rest): number;
 
 /**
  * 微信小游戏命名空间
@@ -61,7 +61,7 @@ declare function setInterval(callback: () => void, delay: number, ...rest): numb
 export declare namespace wx {
     type ENV = {
         USER_DATA_PATH: string;
-    }
+    };
 
     var env: ENV;
 
@@ -96,7 +96,7 @@ export declare namespace wx {
         SDKVersion: string;
         /** 性能等级*/
         benchmarkLevel: number;
-    }
+    };
 
     type launchOption = {
         /** 启动小游戏的场景值*/
@@ -107,14 +107,14 @@ export declare namespace wx {
         referrerInfo: ReferrerInfo
         /** shareTicket，详见获取更多转发信息*/
         shareTicket: string;
-    }
+    };
 
     type ReferrerInfo = {
         /** 来源小程序或公众号或App的 appId	*/
         appId: string,
         /**  来源小程序传过来的数据，scene=1037或1038时支持*/
         extraData: any
-    }
+    };
 
     /**
      * UpdateManager 对象，用来管理更新，可通过 wx.getUpdateManager 接口获取实例。
@@ -133,13 +133,13 @@ export declare namespace wx {
          * 监听小程序有版本更新事件。客户端主动触发下载（无需开发者触发），下载成功后回调
          * @param callback 小程序有版本更新事件的回调函数
          */
-        onUpdateReady(callback: () => void): void;
+        onUpdateReady(callback: Function): void;
         /**
          * 监听小程序更新失败事件。小程序有新版本，客户端主动触发下载（无需开发者触发），下载失败（可能是网络原因等）后回调
          * @param callback 小程序更新失败事件的回调函数
          */
-        onUpdateFailed(callback: () => void): void;
-    }
+        onUpdateFailed(callback: Function): void;
+    };
 
     /**
      * 在触控设备上的触摸点。通常是指手指或者触控笔在触屏设备或者触摸板上的操作。
@@ -151,7 +151,7 @@ export declare namespace wx {
         screenX: number
         /** 触点相对于屏幕上边沿的 Y 坐标。*/
         screenY: number
-    }
+    };
 
     /**
      * 性能管理器
@@ -161,7 +161,7 @@ export declare namespace wx {
          * 可以获取当前时间以微秒为单位的时间戳
          */
         now(): number;
-    }
+    };
 
     /**
      * 加载分包任务实例，用于获取分包加载状态
@@ -179,7 +179,7 @@ export declare namespace wx {
             /** 预期需要下载的数据总长度，单位 Bytes*/
             totalBytesExpectedToWrite: number
         }) => void): void
-    }
+    };
 
     /**
      * 通过 Canvas.getContext('2d') 接口可以获取 CanvasRenderingContext2D 对象，实现了 HTML Canvas 2D Context 定义的大部分属性、方法。
@@ -244,7 +244,7 @@ export declare namespace wx {
     /**
      * 退出当前小游戏
      */
-    function exitMiniProgram(object: { success?: () => void, fail?: () => void, complete?: () => void }): void;
+    function exitMiniProgram(object: { success?: Function, fail?: Function, complete?: Function }): void;
 
     /**
     * 返回小程序启动参数
@@ -253,11 +253,11 @@ export declare namespace wx {
     /**
      * 监听小游戏隐藏到后台事件。锁屏、按 HOME 键退到桌面、显示在聊天顶部等操作会触发此事件。
      */
-    function onHide(callback: () => void): void;
+    function onHide(callback: Function): void;
     /**
      * 取消监听小游戏隐藏到后台事件。锁屏、按 HOME 键退到桌面、显示在聊天顶部等操作会触发此事件。
      */
-    function offHide(callback: () => void): void;
+    function offHide(callback: Function): void;
     /**
      * 监听小游戏回到前台的事件
      */
@@ -274,24 +274,24 @@ export declare namespace wx {
     /**
      * 取消监听小游戏回到前台的事件
      */
-    function offShow(callback: () => void): void;
+    function offShow(callback: Function): void;
 
     /**
     * 监听音频中断结束，在收到 onAudioInterruptionBegin 事件之后，小程序内所有音频会暂停，收到此事件之后才可再次播放成功
     */
-    function onAudioInterruptionEnd(callback: () => void): void;
+    function onAudioInterruptionEnd(callback: Function): void;
     /**
      * 取消监听音频中断结束，在收到 onAudioInterruptionBegin 事件之后，小程序内所有音频会暂停，收到此事件之后才可再次播放成功
      */
-    function offAudioInterruptionEnd(callback: () => void): void;
+    function offAudioInterruptionEnd(callback: Function): void;
     /**
      * 监听音频因为受到系统占用而被中断开始，以下场景会触发此事件：闹钟、电话、FaceTime 通话、微信语音聊天、微信视频聊天。此事件触发后，小程序内所有音频会暂停。
      */
-    function onAudioInterruptionBegin(callback: () => void): void;
+    function onAudioInterruptionBegin(callback: Function): void;
     /**
      * 取消监听音频因为受到系统占用而被中断开始，以下场景会触发此事件：闹钟、电话、FaceTime 通话、微信语音聊天、微信视频聊天。此事件触发后，小程序内所有音频会暂停。
      */
-    function offAudioInterruptionBegin(callback: () => void): void;
+    function offAudioInterruptionBegin(callback: Function): void;
     /**
      * 监听全局错误事件
      */
@@ -304,7 +304,7 @@ export declare namespace wx {
     /**
      * 取消监听全局错误事件
      */
-    function offError(callback: () => void): void;
+    function offError(callback: Function): void;
 
     /**
      * 监听开始触摸事件
@@ -320,7 +320,7 @@ export declare namespace wx {
     /**
      * 取消监听开始触摸事件
      */
-    function offTouchStart(callback: () => void): void;
+    function offTouchStart(callback: Function): void;
     /**
      * 监听触点移动事件
      */
@@ -335,7 +335,7 @@ export declare namespace wx {
     /**
      * 取消监听触点移动事件
      */
-    function offTouchMove(callback: () => void): void;
+    function offTouchMove(callback: Function): void;
     /**
      * 监听触摸结束事件
      */
@@ -350,7 +350,7 @@ export declare namespace wx {
     /**
      * 取消监听触摸结束事件
      */
-    function offTouchEnd(callback: () => void): void;
+    function offTouchEnd(callback: Function): void;
     /**
      * 监听触点失效事件
      */
@@ -365,7 +365,7 @@ export declare namespace wx {
     /**
      * 取消监听触点失效事件
      */
-    function offTouchCancel(callback: () => void): void;
+    function offTouchCancel(callback: Function): void;
 
     /**
     * 获取性能管理器
@@ -384,11 +384,11 @@ export declare namespace wx {
         /** 分包的名字，可以填 name 或者 root*/
         name: string,
         /** 分包加载成功回调事件*/
-        success: () => void,
+        success: Function,
         /** 分包加载失败回调事件*/
         fail(err: { errMsg: string }): void,
         /** 分包加载结束回调事件(加载成功、失败都会执行）*/
-        complete: () => void
+        complete: Function
     }): LoadSubpackageTask;
 
     /**
@@ -399,11 +399,11 @@ export declare namespace wx {
         /** 是否打开调试*/
         enableDebug: boolean,
         /** 接口调用成功的回调函数*/
-        success?: () => void,
+        success?: Function,
         /** 接口调用失败的回调函数*/
-        fail?: () => void,
+        fail?: Function,
         /** 接口调用结束的回调函数（调用成功、失败都会执行）*/
-        complete?: () => void
+        complete?: Function
     }): void;
 
     /**
@@ -426,7 +426,6 @@ export declare namespace wx {
      * @returns string 如果加载字体成功，则返回字体 family 值，否则返回 null。
      */
     function loadFont(path: string): string;
-
 
     interface Image {
         /**
@@ -487,15 +486,15 @@ export declare namespace wx {
         /** 监听 banner 广告尺寸变化事件*/
         onResize(callback: (res: { width: number, height: number }) => void): void;
         /** 取消监听 banner 广告尺寸变化事件*/
-        offResize(callback: () => void): void;
+        offResize(callback: Function): void;
         /** 监听 banner 广告加载事件*/
-        onLoad(callback: () => void): void;
+        onLoad(callback: Function): void;
         /** 取消监听 banner 广告加载事件*/
-        offLoad(callback: () => void): void;
+        offLoad(callback: Function): void;
         /** 监听 banner 广告错误事件*/
         onError(callback: (res: { errMsg: string, errCode: 1000 | 1001 | 1002 | 1003 | 1004 | 1005 | 1006 | 1007 | 1008 }) => void): void;
         /** 取消监听 banner 广告错误事件*/
-        offError(callback: () => void): void;
+        offError(callback: Function): void;
     }
 
     /**
@@ -511,19 +510,19 @@ export declare namespace wx {
         /** 监听 banner 广告尺寸变化事件*/
         onResize(callback: (res: { width: number, height: number }) => void): void;
         /** 取消监听 banner 广告尺寸变化事件*/
-        offResize(callback: () => void): void;
+        offResize(callback: Function): void;
         /** 监听激励视频广告加载事件*/
-        onLoad(callback: () => void): void;
+        onLoad(callback: Function): void;
         /** 取消监听激励视频广告加载事件*/
-        offLoad(callback: () => void): void;
+        offLoad(callback: Function): void;
         /** 监听激励视频错误事件*/
         onError(callback: (res: { errMsg: string, errCode: 1000 | 1001 | 1002 | 1003 | 1004 | 1005 | 1006 | 1007 | 1008 }) => void): void;
         /** 取消监听激励视频错误事件*/
-        offError(callback: () => void): void;
+        offError(callback: Function): void;
         /** 监听用户点击 关闭广告 按钮的事件*/
         onClose(callback: (res: { isEnded: boolean }) => void);
         /** 取消监听用户点击 关闭广告 按钮的事件*/
-        offClose(callback: () => void);
+        offClose(callback: Function);
     }
 
     /**
@@ -593,7 +592,7 @@ export declare namespace wx {
     /**
     * 显示键盘
     */
-    function showKeyboard(object: { defaultValue: string, maxLength: number, multiple: boolean, confirmHold: boolean, confirmType: 'done' | 'next' | 'search' | 'go' | 'send', success?: (res?: any) => void, fail?: (res?: any) => void, complete?: (res?: any) => void }): void;
+    function showKeyboard(object: { defaultValue?: string, maxLength?: number, multiple?: boolean, confirmHold?: boolean, confirmType: 'done' | 'next' | 'search' | 'go' | 'send', success?: (res?: any) => void, fail?: (res?: any) => void, complete?: (res?: any) => void }): void;
     /**
      * 监听键盘输入事件
      */
@@ -601,7 +600,7 @@ export declare namespace wx {
     /**
      * 取消监听键盘输入事件
      */
-    function offKeyboardInput(callback: () => void): void;
+    function offKeyboardInput(callback: Function): void;
     /**
      * 监听用户点击键盘 Confirm 按钮时的事件
      */
@@ -609,7 +608,7 @@ export declare namespace wx {
     /**
      * 取消监听用户点击键盘 Confirm 按钮时的事件
      */
-    function offKeyboardConfirm(callback: () => void): void;
+    function offKeyboardConfirm(callback: Function): void;
     /**
      * 监听监听键盘收起的事件
      */
@@ -617,7 +616,7 @@ export declare namespace wx {
     /**
      * 取消监听监听键盘收起的事件
      */
-    function offKeyboardComplete(callback: () => void): void;
+    function offKeyboardComplete(callback: Function): void;
 
     /** 基础库 2.1.0 开始支持，低版本需做兼容处理。获取菜单按钮（右上角胶囊按钮）的布局位置信息。坐标信息以屏幕左上角为原点。*/
     function getMenuButtonBoundingClientRect(): {
@@ -642,14 +641,14 @@ export declare namespace wx {
     /**
      * 取消监听窗口尺寸变化事件
      */
-    function offWindowResize(callback: () => void): void;
+    function offWindowResize(callback: Function): void;
 
     interface RequestTask {
         abort(): void;
         /** 监听 HTTP Response Header 事件。会比请求完成事件更早*/
         onHeadersReceived(callback: (res: { header: Object }) => void): void;
         /** 取消监听 HTTP Response Header 事件*/
-        offHeadersReceived(callback: () => void): void;
+        offHeadersReceived(callback: Function): void;
     }
 
     /**
@@ -671,7 +670,6 @@ export declare namespace wx {
         complete?: (res?: any) => void
     }): RequestTask;
 
-
     interface DownloadTask {
         abort(): void;
 
@@ -683,11 +681,11 @@ export declare namespace wx {
         }) => void): void;
 
         /** 取消监听下载进度变化事件*/
-        offProgressUpdate(callback: () => void): void;
+        offProgressUpdate(callback: Function): void;
         /** 监听 HTTP Response Header 事件。会比请求完成事件更早*/
         onHeadersReceived(callback: (res: { header: Object }) => void): void;
         /** 取消监听 HTTP Response Header 事件*/
-        offHeadersReceived(callback: () => void): void;
+        offHeadersReceived(callback: Function): void;
     }
 
     /**
@@ -715,11 +713,11 @@ export declare namespace wx {
             totalBytesExpectedToSend: number
         }) => void): void;
         /** 取消监听上传进度变化事件*/
-        offProgressUpdate(callback: () => void): void;
+        offProgressUpdate(callback: Function): void;
         /** 监听 HTTP Response Header 事件。会比请求完成事件更早*/
         onHeadersReceived(callback: (res: { header: Object }) => void): void;
         /** 取消监听 HTTP Response Header 事件*/
-        offHeadersReceived(callback: () => void): void;
+        offHeadersReceived(callback: Function): void;
     }
 
     /**
@@ -751,7 +749,7 @@ export declare namespace wx {
         /**
          * 监听WebSocket 连接关闭事件
          */
-        onClose(callback: () => void): void;
+        onClose(callback: Function): void;
         /**
          * 监听WebSocket 错误事件
          */
@@ -786,7 +784,7 @@ export declare namespace wx {
     /**
      * 监听WebSocket 连接关闭事件
      */
-    function onSocketClose(callback: () => void): void;
+    function onSocketClose(callback: Function): void;
     /**
      * 监听WebSocket 接受到服务器的消息事件
      */
@@ -796,9 +794,9 @@ export declare namespace wx {
      */
     function sendSocketMessage(object: { data: string | ArrayBuffer, success?: (res?: any) => void, fail?: (res?: any) => void, complete?: (res?: any) => void }): void;
 
-    /** 
+    /**
      * 更新转发属性
-     * 
+     *
      */
     function updateShareMenu(object: { withShareTicket?: boolean, isUpdatableMessage?: boolean, activityId?: string, templateInfo?: { parameterList: Array<{ name: string, value: string }> }, success?: (res?: any) => void, fail?: (res?: any) => void, complete?: (res?: any) => void }): void;
 
@@ -809,13 +807,13 @@ export declare namespace wx {
 
     /**
      * 隐藏转发按钮
-     * 
+     *
      */
     function hideShareMenu(object: { success?: (res?: any) => void, fail?: (res?: any) => void, complete?: (res?: any) => void }): void;
 
     /**
      * 获取转发详细信息
-     *  
+     *
      */
     function getShareInfo(object: {
         shareTicket: string,
@@ -837,7 +835,7 @@ export declare namespace wx {
     /**
      * 取消监听用户点击右上角菜单的“转发”按钮时触发的事件
      */
-    function offShareAppMessage(callback: () => void): void;
+    function offShareAppMessage(callback: Function): void;
 
     /**
      * 监听用户点击右上角菜单的“转发”按钮时触发的事件
@@ -847,7 +845,6 @@ export declare namespace wx {
         imageUrl: string,
         query: string
     }) => void): void;
-
 
     /**
     * 发起米大师支付
@@ -954,35 +951,35 @@ export declare namespace wx {
         /**
          * 取消监听音频进入可以播放状态的事件
          */
-        offCanplay(callback: () => void): void;
+        offCanplay(callback: Function): void;
         /**
          * 监听音频暂停事件
          */
-        onPause(callback: () => void): void;
+        onPause(callback: Function): void;
         /**
          * 监听音频停止事件
          */
-        onStop(callback: () => void): void;
+        onStop(callback: Function): void;
         /**
          * 取消监听音频停止事件
          */
-        offStop(callback: () => void): void;
+        offStop(callback: Function): void;
         /**
          * 监听音频自然播放至结束的事件
          */
-        onEnded(callback: () => void): void;
+        onEnded(callback: Function): void;
         /**
          * 取消监听音频自然播放至结束的事件
          */
-        offEnded(callback: () => void): void;
+        offEnded(callback: Function): void;
         /**
          * 监听音频播放进度更新事件
          */
-        onTimeUpdate(callback: () => void): void;
+        onTimeUpdate(callback: Function): void;
         /**
          * 监听音频播放事件
          */
-        onPlay(callback: () => void): void;
+        onPlay(callback: Function): void;
         /**
          * 监听音频播放错误事件
          */
@@ -990,47 +987,47 @@ export declare namespace wx {
         /**
          * 取消监听音频暂停事件
          */
-        offPause(callback: () => void): void;
+        offPause(callback: Function): void;
         /**
          * 监听音频加载中事件，当音频因为数据不足，需要停下来加载时会触发
          */
-        onWaiting(callback: () => void): void;
+        onWaiting(callback: Function): void;
         /**
          * 取消监听音频加载中事件，当音频因为数据不足，需要停下来加载时会触发
          */
-        offWaiting(callback: () => void): void;
+        offWaiting(callback: Function): void;
         /**
          * 监听音频进行跳转操作的事件
          */
-        onSeeking(callback: () => void): void;
+        onSeeking(callback: Function): void;
         /**
          * 取消监听音频进行跳转操作的事件
          */
-        offSeeking(callback: () => void): void;
+        offSeeking(callback: Function): void;
         /**
          * 监听音频完成跳转操作的事件
          */
-        onSeeked(callback: () => void): void;
+        onSeeked(callback: Function): void;
         /**
          * 取消监听音频完成跳转操作的事件
          */
-        offSeeked(callback: () => void): void;
+        offSeeked(callback: Function): void;
         /**
          * 取消监听音频播放事件
          */
-        offPlay(callback: () => void): void;
+        offPlay(callback: Function): void;
         /**
          * 取消监听音频播放进度更新事件
          */
-        offTimeUpdate(callback: () => void): void;
+        offTimeUpdate(callback: Function): void;
         /**
          * 监听音频进入可以播放状态的事件
          */
-        onCanplay(callback: () => void): void;
+        onCanplay(callback: Function): void;
         /**
          * 取消监听音频播放错误事件
          */
-        offError(callback: () => void): void;
+        offError(callback: Function): void;
         /**
          * 停止。停止后的音频再播放会从头开始播放。
          */
@@ -1078,7 +1075,7 @@ export declare namespace wx {
         /**
          * 监听录音暂停事件
          */
-        onPause(callback: () => void): void;
+        onPause(callback: Function): void;
         /**
          * 监听录音结束事件
          */
@@ -1094,19 +1091,19 @@ export declare namespace wx {
         /**
          * 监听录音开始事件
          */
-        onStart(callback: () => void): void;
+        onStart(callback: Function): void;
         /**
          * 监听录音因为受到系统占用而被中断开始事件。以下场景会触发此事件：微信语音聊天、微信视频聊天。此事件触发后，录音会被暂停。pause 事件在此事件后触发
          */
-        onInterruptionBegin(callback: () => void): void;
+        onInterruptionBegin(callback: Function): void;
         /**
          * 监听录音中断结束事件。在收到 interruptionBegin 事件之后，小程序内所有录音会暂停，收到此事件之后才可再次录音成功。
          */
-        onInterruptionEnd(callback: () => void): void;
+        onInterruptionEnd(callback: Function): void;
         /**
          * 监听录音继续事件
          */
-        onResume(callback: () => void): void;
+        onResume(callback: Function): void;
         /**
          * 暂停录音
          */
@@ -1166,22 +1163,22 @@ export declare namespace wx {
         showCenterPlayBtn: boolean;
 
         /** 视频开始缓冲时触发的回调函数*/
-        onwaiting: () => void;
+        onwaiting: Function;
 
         /** 视频开始播放时触发的回调函数*/
-        onplay: () => void;
+        onplay: Function;
 
         /** 视频暂停时触发的回调函数*/
-        onpause: () => void;
+        onpause: Function;
 
         /** 视频播放到末尾时触发的回调函数*/
-        onended: () => void;
+        onended: Function;
 
         /** 每当视频播放进度更新时触发的回调函数*/
-        ontimeupdate: () => void;
+        ontimeupdate: Function;
 
         /** 视频发生错误时触发的回调函数*/
-        onerror: () => void;
+        onerror: Function;
 
         /**
          * 视频退出全屏
@@ -1190,15 +1187,15 @@ export declare namespace wx {
         /**
          * 取消监听视频暂停事件
          */
-        offPause(callback: () => void): void;
+        offPause(callback: Function): void;
         /**
          * 监听视频播放到末尾事件
          */
-        onEnded(callback: () => void): void;
+        onEnded(callback: Function): void;
         /**
          * 取消监听视频播放到末尾事件
          */
-        offEnded(callback: () => void): void;
+        offEnded(callback: Function): void;
         /**
          * 监听视频播放进度更新事件
          */
@@ -1206,7 +1203,7 @@ export declare namespace wx {
         /**
          * 取消监听视频播放进度更新事件
          */
-        offTimeUpdate(callback: () => void): void;
+        offTimeUpdate(callback: Function): void;
         /**
          * 监听视频错误事件
          */
@@ -1214,27 +1211,27 @@ export declare namespace wx {
         /**
          * 取消监听视频错误事件
          */
-        offError(callback: () => void): void;
+        offError(callback: Function): void;
         /**
          * 监听视频播放事件
          */
-        onPlay(callback: () => void): void;
+        onPlay(callback: Function): void;
         /**
          * 监听视频暂停事件
          */
-        onPause(callback: () => void): void;
+        onPause(callback: Function): void;
         /**
          * 取消监听视频缓冲事件
          */
-        offWaiting(callback: () => void): void;
+        offWaiting(callback: Function): void;
         /**
          * 监听视频缓冲事件
          */
-        onWaiting(callback: () => void): void;
+        onWaiting(callback: Function): void;
         /**
          * 取消监听视频播放事件
          */
-        offPlay(callback: () => void): void;
+        offPlay(callback: Function): void;
         /**
          * 暂停视频
          */
@@ -1496,7 +1493,7 @@ export declare namespace wx {
         /** 用户所在城市*/
         city: string;
         /** 显示 country，province，city 所用的语言*/
-        language: 'en' | 'zh_CN' | 'zh_TW'
+        language: 'en' | 'zh_CN' | 'zh_TW';
     }
 
     /**
@@ -1535,7 +1532,7 @@ export declare namespace wx {
             textAlign: string,
             fontSize: number,
             lineHeight: number
-        },
+        };
         /** 显示用户信息按钮*/
         show();
 
@@ -1555,7 +1552,7 @@ export declare namespace wx {
         }) => void);
 
         /** 取消监听用户信息按钮的点击事件*/
-        offTap(callback: () => void);
+        offTap(callback: Function);
     }
 
     /** 创建用户信息按钮*/
@@ -1666,7 +1663,7 @@ export declare namespace wx {
     /**
      * 监听主域发送的消息
      */
-    function onMessage(callback: () => void): void;
+    function onMessage(callback: Function): void;
 
     /** 开放数据域对象*/
     interface OpenDataContext {
@@ -1697,8 +1694,8 @@ export declare namespace wx {
     interface FeedbackButton {
         /** 按钮的类型*/
         type: 'text' | 'image';
-        text: string,
-        image: string,
+        text: string;
+        image: string;
         style: {
             left: number,
             top: number,
@@ -1711,7 +1708,7 @@ export declare namespace wx {
             textAlign: 'left' | 'center' | 'right',
             fontSize: number,
             lineHeight: number
-        },
+        };
 
         /** 显示意见反馈按钮*/
         show(): void;
@@ -1723,10 +1720,10 @@ export declare namespace wx {
         destroy(): void;
 
         /** 监听意见反馈按钮的点击事件*/
-        onTap(callback: () => void): void;
+        onTap(callback: Function): void;
 
         /** 取消监听意见反馈按钮的点击事件*/
-        offTap(callback: () => void): void;
+        offTap(callback: Function): void;
     }
     /**
      * 创建打开意见反馈页面的按钮
@@ -1779,8 +1776,8 @@ export declare namespace wx {
      */
     interface OpenSettingButton {
         type: 'text' | 'image';
-        text: string,
-        image: string,
+        text: string;
+        image: string;
         style: {
             left: number,
             top: number,
@@ -1793,7 +1790,7 @@ export declare namespace wx {
             textAlign: 'left' | 'center' | 'right',
             fontSize: number,
             lineHeight: number
-        },
+        };
 
         show(): void;
 
@@ -1801,9 +1798,9 @@ export declare namespace wx {
 
         destroy(): void;
 
-        onTap(callback: () => void): void;
+        onTap(callback: Function): void;
 
-        offTap(callback: () => void): void;
+        offTap(callback: Function): void;
     }
 
     /** 创建打开设置页面的按钮*/
@@ -1830,16 +1827,16 @@ export declare namespace wx {
 
         destroy(): void;
 
-        onTap(callback: () => void): void;
+        onTap(callback: Function): void;
 
-        offTap(callback: () => void): void;
+        offTap(callback: Function): void;
     }): OpenSettingButton;
 
     /** 游戏圈按钮。游戏圈按钮被点击后会跳转到小游戏的游戏圈。更多关于游戏圈的信息见 游戏圈使用指南*/
     interface GameClubButton {
-        type: 'text' | 'image',
-        text?: string,
-        image?: string,
+        type: 'text' | 'image';
+        text?: string;
+        image?: string;
         style: {
             left: number,
             top: number,
@@ -1852,8 +1849,8 @@ export declare namespace wx {
             textAlign: 'left' | 'center' | 'right',
             fontSize: number,
             lineHeight: number
-        },
-        icon: 'green' | 'white' | 'dark' | 'light'
+        };
+        icon: 'green' | 'white' | 'dark' | 'light';
     }
 
     /** 创建游戏圈按钮。游戏圈按钮被点击后会跳转到小游戏的游戏圈。更多关于游戏圈的信息见 游戏圈使用指南*/
@@ -1897,7 +1894,7 @@ export declare namespace wx {
     }): void;
 
     /** 取消监听横竖屏切换事件*/
-    function offDeviceOrientationChange(callback: () => void): void;
+    function offDeviceOrientationChange(callback: Function): void;
 
     /** 监听横竖屏切换事件*/
     function onDeviceOrientationChange(callback: (res: { value: 'portrait' | 'landscape' | 'landscapeReverse' }) => void): void;
@@ -2025,7 +2022,7 @@ export declare namespace wx {
         complete?: (res?: any) => void
     }): void;
 
-    /** 
+    /**
      * 监听内存不足告警事件。
      * 当 iOS/Android 向小程序进程发出内存警告时，触发该事件。触发该事件不意味小程序被杀，大部分情况下仅仅是告警，开发者可在收到通知后回收一些不必要资源避免进一步加剧内存紧张。
      */
@@ -2087,7 +2084,7 @@ exports.wx = wx;
 //  */
 // declare var WebGLRenderingContext: {
 //     /**
-//      * 
+//      *
 //      * @param texture WebGL 的纹理类型枚举值
 //      * @param canvas 需要绑定为 Texture 的 Canvas
 //      */

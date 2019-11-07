@@ -11,20 +11,20 @@ interface IFile {
 }
 
 const loadFile: LoadCall = (tab: ResTab, _type: 'RES_TYPE_FILE', _name: string, ...args: any[]): Promise<IFile> => {
-    return new Promise((resolve, reject) => { 
+    return new Promise((resolve, reject) => {
             const down = new BatchLoad([_name]);
-        
-            down.start().then((res) => {
+
+            down.load(false).then((res) => {
                 getStore().read(_name).then((res) => {
-                    resolve(res[1]);
-                })
+                    resolve(res);
+                });
             });
         });
 
-}
+};
 
 export const initFileLoad = () => {
     register(RES_TYPE_FILE, loadFile, () => {});
-}
+};
 
 // register(RES_TYPE_FILE, loadFile, () => {});

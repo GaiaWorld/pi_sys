@@ -7,15 +7,14 @@ import { init as objInit } from '../load/object';
 import { ENV_MGR } from "../setup/env";
 
 /**
- * 
+ *
  */
 
 export class LoadMgr {
     public static localStore: Store;
     public static wxdepend: WX_DEPEND_MGR;
     public static projectName: string;
-    public static init(projectName: string, domainUrls: string[], downloadPath:string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) {
-        
+    public static init(projectName: string, domainUrls: string[], downloadPath: string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) {
 
         this.projectName    = projectName;
         this.localStore     = Store.create(projectName, '');
@@ -26,7 +25,7 @@ export class LoadMgr {
 
         codeInit(ENV_MGR.getENV('domains'), ENV_MGR.getENV('root_path'));
         objInit(ENV_MGR.getENV('domains'), ENV_MGR.getENV('root_path'), this.wxdepend, this.formatMainPath);
-        
+
         /**
          * 微信本地depend初始化
          * Store 初始化

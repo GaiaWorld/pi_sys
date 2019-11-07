@@ -7,7 +7,6 @@
  5、由调用方来进行查重， 这里就不进行查重处理
  7、 TODO 支持SRI
 
-
  上行消息结构： (后缀1(文件名1:文件名2)后缀2(文件名1:文件名2):目录1()目录2()) (): $作为转义,$转$$ (转$1 )转$2
  上行消息支持路径，如果一个目录下所有文件都需要下载，则仅发送路径
  下行数据结构： [{2字节le的文件名长度, 文件名utf8编码, 4字节le的文件内容长度, 文件内容}, ...]
@@ -27,7 +26,7 @@ import { utf8Decode } from "../feature/string";
 
 // ============================== 导出
 export interface ResultFunc {
-    (val: any, err?: any): void
+    (val: any, err?: any): void;
 }
 
 /**
@@ -44,15 +43,15 @@ export const getStore = () => {
 export const deleteStore = () => {
     if (localStore) {
         return Store.delete(localStore.projectName);
-    }else{
-        return Promise.resolve()
+    }else {
+        return Promise.resolve();
     }
-}
+};
 
 /**
  * 初始化存储, 及默认参数。 limitLength 限制url的长度， sizeLimit 一次请求的byte限制
  */
-export const init = (store: Store, domainUrls: string[], downloadPath:string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) => {
+export const init = (store: Store, domainUrls: string[], downloadPath: string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) => {
     urls        = domainUrls;
     batchPath   = downloadPath;
     limitLength = urllimitLength;
@@ -62,7 +61,7 @@ export const init = (store: Store, domainUrls: string[], downloadPath:string, ur
         return Promise.resolve();
     }
 
-    return Promise.resolve(null).then(value => {
+    return Promise.resolve(null).then((value) => {
                 if (value) {
                     localInitCheck(store, value, false);
                 } else {
@@ -77,7 +76,7 @@ export const init = (store: Store, domainUrls: string[], downloadPath:string, ur
                     });
                 }
             });
-}
+};
 
 /**
  * @description 获得路径签名
@@ -87,21 +86,21 @@ export const getSign = (path: string) => {
     const info = localStore.wxdepend.readMain(path);
 
     return info ? info.sign : undefined;
-}
+};
 /**
  * @description 检查文件是否会从本地加载, 返回 true | false | undefined
  * @example
  */
-export const isLocal = (filePath:string) => {
+export const isLocal = (filePath: string) => {
     let info = DEPEND_MGR.getFile(filePath);
     let old = localStore.wxdepend.readMain(filePath);
-    
+
     return (info) ? info.sign === old.sign : undefined;
 };
 
 export class FileLoad {
     // 多个加载文件
-    public files: Map<string, FileInfo> = new Map;
+    public files: Map<string, FileInfo> = new Map();
     // 加载进度的回调函数
     process: ProcessFunc[];
     // 结果的回调函数
@@ -122,46 +121,52 @@ export class FileLoad {
      * @description 添加下载文件
      * @example
      */
-    public onProcess(url:string, type: string, total:number, loaded: number, data?: any) {
-        if(!this.process)
-            return
-        for(let p of this.process)
-            p(url, type, total, loaded, data)
+    public onProcess(url: string, type: string, total: number, loaded: number, data?: any) {
+        if (!this.process) {
+            return;
+        }
+        for (let p of this.process) {
+            p(url, type, total, loaded, data);
+        }
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addProcess(p: ProcessFunc) {
-        if(!this.process)
+        if (!this.process) {
             this.process = [];
-        this.process.push(p)
+        }
+        this.process.push(p);
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public onResult(val: any, err?: any) {
-        if(!this.result)
-            return
-        for(let r of this.result)
-            r(val, err)
+        if (!this.result) {
+            return;
+        }
+        for (let r of this.result) {
+            r(val, err);
+        }
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addResult(r: ResultFunc) {
-        if(!this.result)
+        if (!this.result) {
             this.result = [];
-        this.result.push(r)
+        }
+        this.result.push(r);
     }
     /**
      * @description 开始
      * @example
      */
     public start(): Promise<any> {
-        return
+        return;
     }
 }
 
@@ -172,29 +177,29 @@ export class LocalLoad extends FileLoad {
      */
     public start() {
         let arr = [];
-        let map: Map<string, Uint8Array> = new Map;
-        for(let info of this.files.values()) {
+        let map: Map<string, Uint8Array> = new Map();
+        for (let info of this.files.values()) {
             let path = info.path;
             let size = info.size;
             let p: Promise<any>;
 
-            if(isAsset(localSign[path])) {
+            if (isAsset(localSign[path])) {
                 p = read(info.path);
-            }else{
+            }else {
                 p = localStore.read(info.path);
             }
-            arr.push(p.then((value: any)=>{
+            arr.push(p.then((value: any) => {
                 map.set(path, value);
-                this.loaded+=size;
+                this.loaded += size;
                 this.onProcess(path, "fileLocalLoad", this.total, this.loaded, value);
             }));
         }
         return Promise.all(arr)
-            .then(_v => {
+            .then((_v) => {
                 this.onResult(map);
                 return map;
-            }).catch( reason => {
-                this.onResult(null, reason)
+            }).catch((reason) => {
+                this.onResult(null, reason);
             });
     }
 }
@@ -221,19 +226,19 @@ export class Download extends FileLoad {
     public start() {
         let downWait: Promise<void>[] = [];
         let localSignWait: Promise<void>[] = [];
-        this.downloadMap = new Map;
-        let map: Map<string, DirInfo> = new Map;
+        this.downloadMap = new Map();
+        let map: Map<string, DirInfo> = new Map();
 
         // 先构建一个目录树，目录内再构建一个后缀表
-        for(let info of this.files.values()) {
+        for (let info of this.files.values()) {
             DEPEND_MGR.initDir(info, map, true);
         }
 
         let fileDirTree = map.get("");
 
         // 加载文件的数据
-        let fileMap: Map<string, Uint8Array> = new Map;
-        let result = new Result;
+        let fileMap: Map<string, Uint8Array> = new Map();
+        let result = new Result();
 
         while (true) {
             let count = result.files.length;
@@ -251,11 +256,11 @@ export class Download extends FileLoad {
                 break;
             }
 
-            result = new Result;
+            result = new Result();
         }
 
         return Promise.all(downWait)
-            .then(_v => {
+            .then((_v) => {
                 this.onResult(map);
                 Promise.all(localSignWait).then(() => localStore.write("", localSign));
                 return fileMap;
@@ -269,15 +274,16 @@ export class Download extends FileLoad {
      * @example
      */
     public abort() {
-        if(!this.downloadMap)
+        if (!this.downloadMap) {
             return;
-        for(let v of this.downloadMap.values()){
+        }
+        for (let v of this.downloadMap.values()) {
             v.abort();
         }
     }
 
     // 指定目录和文件的一次下载
-    public startURL(durl: string, furl: string, files: FileInfo[], localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
+    public startURL(durl: string, furl: string, files: FileInfo[], localSignWait: Promise<void>[], fileMap: Map<string, Uint8Array>) {
         let fileCount = files.length, size = 0, h = 0; // hash值
         if (fileCount === 0) {
             return;
@@ -296,37 +302,37 @@ export class Download extends FileLoad {
 
         down.onprocess = () => {
             this.loaded = 0;
-            for(let v of this.downloadMap.values()) {
+            for (let v of this.downloadMap.values()) {
                 this.loaded += v.loaded;
             }
             this.onProcess(path, 'fileDownload', this.total, this.loaded);
         };
 
-        return down.start().then(value => {
+        return down.start().then((value) => {
             this.save((value as ArrayBuffer), localSignWait, fileMap);
         });
     }
 
-    public save(buff: ArrayBuffer, localSignWait:Promise<void>[], fileMap: Map<string, Uint8Array>) {
+    public save(buff: ArrayBuffer, localSignWait: Promise<void>[], fileMap: Map<string, Uint8Array>) {
         let view = new DataView(buff);
         let offset = 0;
 
-        while(offset < buff.byteLength) {
+        while (offset < buff.byteLength) {
             let len = view.getInt16(offset, true);
-            offset+=2;
+            offset += 2;
             let path = utf8Decode(new Uint8Array(buff, offset, len));
             let info = DEPEND_MGR.getFile(path);
-            offset+=len;
+            offset += len;
             let datalen = view.getInt32(offset, true);
-            offset+=4;
+            offset += 4;
             // 使用视图切分数据，降低内存消耗
             let data = new Uint8Array(buff, offset, datalen);
-            offset+=datalen;
+            offset += datalen;
             fileMap.set(path, data);
             this.onProcess(path, "downFile", 0, 0, data);
             localSignWait.push(savefile(path, data, info ? info.sign : ""));
         }
-    };
+    }
 }
 
 /**
@@ -341,7 +347,7 @@ export const setLocalSign = (files: FileInfo[]) => {
 
     localStore.wxdepend.writeDepend();
     // return localStore.write("", localSign)
-}
+};
 
 // ============================== 本地
 // 下载的多域名
@@ -364,26 +370,27 @@ class Result {
     files: FileInfo[] = [];
     size = 0;
     next = false;
-};
+}
 
 // 格式化签名， "-"开头表示本地文件
 const formatSign = (path: string) => {
-    if (!path)
+    if (!path) {
         return path;
+    }
 
     if (isAsset(path)) {
         return localStore.wxdepend.readMain(path).sign;
     }
-}
+};
 
 // 判断是否为本地文件， "-"开头表示本地文件
 const isAsset = (path: string) => {
     const info = localStore.wxdepend.readMain(path);
     return !!info;
-}
+};
 
 // 本地加载检查
-const localInitCheck = (store: Store, signs: any, save:boolean) => {
+const localInitCheck = (store: Store, signs: any, save: boolean) => {
     localStore = store;
     localSign = signs;
 
@@ -400,8 +407,9 @@ const localInitCheck = (store: Store, signs: any, save:boolean) => {
         // delete signs[k];
         // save = true;
 
-        if (!signs.hasOwnProperty(k))
+        if (!signs.hasOwnProperty(k)) {
             continue;
+        }
 
         let curr = DEPEND_MGR.getFile(k);
         let old  = localStore.wxdepend.readMain(k);
@@ -426,15 +434,15 @@ const localInitCheck = (store: Store, signs: any, save:boolean) => {
 };
 
 // 获取文件的去掉第一个后缀的文件名
-const basename = (file:string) => {
+const basename = (file: string) => {
     let i = file.lastIndexOf('/'),
     j = file.lastIndexOf('.');
     return j > i ? file.slice(i + 1, j) : file.slice(i + 1);
 };
 // 上行消息结构： (后缀1(文件名1:文件名2)后缀2(文件名1:文件名2):目录1()目录2())
-const stringify = (tree:DirInfo, limit:number, result:Result) => {
+const stringify = (tree: DirInfo, limit: number, result: Result) => {
     // 先写入本目录下的文件，按后缀归类
-    if(tree.suffixMap) {
+    if (tree.suffixMap) {
         for (let [k, arr] of tree.suffixMap) {
             let i = arr.length - 1;
             let f = arr[i--];
@@ -467,28 +475,30 @@ const stringify = (tree:DirInfo, limit:number, result:Result) => {
         }
     }
     result.url += ":";
-    if(!tree.children)
-        return
+    if (!tree.children) {
+        return;
+    }
     let dir: DirInfo;
     while (dir = tree.children[tree.children.length - 1]) {
         let i = dir.path.lastIndexOf("/", dir.path.length - 2);
-        let rk = replace(dir.path.slice(i+1, dir.path.length - 1));
+        let rk = replace(dir.path.slice(i + 1, dir.path.length - 1));
         result.url += rk + "(";
         stringify(dir, limit, result);
         result.url += ")";
-        if (result.next)
+        if (result.next) {
             return result;
+        }
         tree.children.length -= 1;
     }
 };
 // 3个分隔符 (): $作为转义, $转$$ (转$1 )转$2
-const replace = (s:string) => {
+const replace = (s: string) => {
     return s.replace(/\(/g, "$1").replace(/\)/g, "$2").replace(/\$/g, "$$");
 };
 
 // 保存文件
-const savefile = (path: string, data:Uint8Array, sign:string) => {
-    return localStore.write(path, data).then(_ => {
+const savefile = (path: string, data: Uint8Array, sign: string) => {
+    return localStore.write(path, data).then((_) => {
         localSign[path] = sign;
     });
 };

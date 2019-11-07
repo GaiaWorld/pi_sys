@@ -20,12 +20,12 @@ let formatMainPath: (path) => string;
 /**
  * 初始化参数
  */
-export const init = (domainUrls: string[], downloadPath:string, _wxdepend: WX_DEPEND_MGR, _formatMainPath: (path) => string) => {
+export const init = (domainUrls: string[], downloadPath: string, _wxdepend: WX_DEPEND_MGR, _formatMainPath: (path) => string) => {
     urls = domainUrls;
     downPath = downloadPath;
     wxdepend = _wxdepend;
     formatMainPath = _formatMainPath;
-}
+};
 
 class WXFontFace {
     public name: string;
@@ -71,18 +71,18 @@ export class ObjLoad extends FileLoad {
      * @example
      */
     public start() {
-        let map = new Map;
+        let map = new Map();
         let arr = [];
 
-        for(let info of this.files.values()) {
-            arr.push(new Promise((resolve, reject)=>{
+        for (let info of this.files.values()) {
+            arr.push(new Promise((resolve, reject) => {
                 let suffix = DEPEND_MGR.fileSuffix(info.path);
                 let type = Suffixs[suffix];
 
                 if (type) {
-                    loadObj(this, info, type, map, resolve, reject)
+                    loadObj(this, info, type, map, resolve, reject);
                 } else if (FontSuffixs.has(suffix)) {
-                    loadFont(this, info, map, resolve, reject)
+                    loadFont(this, info, map, resolve, reject);
                 }
 
                 // TODO: store 需要实现文件拷贝队列，写队列与拷贝队列协同工作，方便空间分配
@@ -98,9 +98,9 @@ export class ObjLoad extends FileLoad {
 // 字体比较特别，需要单独处理
 const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
-        return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
+        return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
-    
+
     const font = new WXFontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
     font.localPath = formatMainPath(file.path);
 
@@ -113,7 +113,7 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, c
      * 后续可以将其放到用户目录里面去并记录下来，方便下次使用
      */
     font.load().then(() => {
-        load.loaded+=file.size;
+        load.loaded += file.size;
         map.set(file.path, font);
         load.onProcess(file.path, "objLoad", load.total, load.loaded);
         callback(font);
@@ -124,7 +124,7 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, c
 };
 
 // TODO: video 在兼容层没做兼容，需要兼容，但优先级不高
-const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
 
     const status = wxdepend.checkMain(file, true);
 
@@ -149,10 +149,10 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", 
         case (2): {
             // 主目录
             loadObjCall(
-                load, file, true, eleType, map, 
+                load, file, true, eleType, map,
                 (e) => {
                     wxdepend.updateMainSize(file.size, true);
-                    wxdepend.addMain(file); 
+                    wxdepend.addMain(file);
                     wxdepend.writeDepend();
                     callback(e);
                 },
@@ -162,8 +162,8 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", 
         }
         case (3): {
             // 主目录
-            loadObjCall(load, file, true, eleType, map, 
-                (e) => { 
+            loadObjCall(load, file, true, eleType, map,
+                (e) => {
                     const old = wxdepend.readMain(file.path);
                     if (old) {
                         wxdepend.updateMainSize(-old.size, true);
@@ -173,9 +173,9 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", 
                     wxdepend.updateMainSize(file.size, true);
                     wxdepend.addMain(file);
                     wxdepend.writeDepend();
-                    
-                    callback(e); 
-                }, 
+
+                    callback(e);
+                },
                 errorCallback
             );
             break;
@@ -186,13 +186,13 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img"|"audio"|"video", 
         }
     }
 
-}
+};
 
-const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     console.warn('loadObjCall');
     console.warn(`${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
     if (i >= urls.length) {
-        return errorCallback && errorCallback(urls[0] + file.path +", "+ errText);
+        return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
 
     FileSys.download(`${urls[i || 0]}${downPath}/${file.path}?${file.sign}`, asMain ? formatMainPath(file.path) : undefined)
@@ -201,9 +201,9 @@ const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "i
         }).catch((err) => {
             loadObj(load, file, eleType, map, callback, errorCallback, err.errMsg, i === undefined ? 0 : i + 1);
         });
-}
+};
 
-const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType: "img"|"audio"|"video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
+const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
     switch (eleType) {
         case "img": {
             let n = new Image();
@@ -213,7 +213,7 @@ const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType:
                 load.loaded += file.size;
                 load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
                 callback && callback(n);
-            }
+            };
             break;
         }
         case "audio": {
@@ -226,7 +226,7 @@ const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType:
                 load.loaded += file.size;
                 load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
                 callback && callback(n);
-            }
+            };
             break;
         }
         case "video": {
@@ -241,7 +241,7 @@ const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType:
             errorCallback(`no such fileType ${eleType}`);
         }
     }
-}
+};
 
 // ============================== 本地
 // 下载的多域名

@@ -13,11 +13,11 @@ import { wx } from '../device/wx';
 /**
  * 初始化参数
  */
-export const init = (domainUrls: string[], downloadPath:string) => {
+export const init = (domainUrls: string[], downloadPath: string) => {
     // 无需做任何操作
     urls = domainUrls;
     downPath = downloadPath;
-}
+};
 
 // 小游戏分包加载只需要分包名称即可，无需其他信息，故不能直接继承 FileLoad
 export class CodeLoad extends FileLoad {
@@ -43,39 +43,45 @@ export class CodeLoad extends FileLoad {
      * @description 添加下载文件
      * @example
      */
-    public onProcess(url:string, type: string, total:number, loaded: number, data?: any) {
-        if (!this.process)
-            return
-        for (let p of this.process)
-            p(url, type, total, loaded, data)
+    public onProcess(url: string, type: string, total: number, loaded: number, data?: any) {
+        if (!this.process) {
+            return;
+        }
+        for (let p of this.process) {
+            p(url, type, total, loaded, data);
+        }
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addProcess(p: ProcessFunc) {
-        if (!this.process)
+        if (!this.process) {
             this.process = [];
-        this.process.push(p)
+        }
+        this.process.push(p);
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public onResult(val: any, err?: any) {
-        if (!this.result)
+        if (!this.result) {
             return;
-        for (let r of this.result)
+        }
+        for (let r of this.result) {
             r(val, err);
+        }
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addResult(r: ResultFunc) {
-        if (!this.result)
+        if (!this.result) {
             this.result = [];
-        this.result.push(r)
+        }
+        this.result.push(r);
     }
     /**
      * @description 开始
@@ -116,7 +122,7 @@ const loadSubPkg = (
             );
         },
         complete: () => {
-            
+
         }
     });
 
@@ -132,7 +138,7 @@ const loadSubPkg = (
         const p = res.totalBytesWritten / res.totalBytesExpectedToWrite;
         load.onProcess(pkgName, "codeLoad", load.total, load.loaded + p);
     });
-}
+};
 
 // ============================== 本地
 // 下载的多域名，在这里用于分包加载的最大次数

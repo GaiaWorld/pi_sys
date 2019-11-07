@@ -15,6 +15,6 @@ export const get = (): Promise<any[]> => {
  * @description 读取资源
  * @example
  */
-export const read = (key:string) : Promise<ArrayBuffer> => {
+export const read = (key: string) : Promise<ArrayBuffer> => {
     return Promise.resolve(null);
 };

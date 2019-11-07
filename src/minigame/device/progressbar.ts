@@ -14,7 +14,7 @@ export class Bar {
     private opacity: number = 0;
     private timeRef: number = 0;
 
-    constructor(cfg: { canvas: HTMLCanvasElement, bg: string }) {
+    constructor(cfg: { canvas: HTMLCanvasElement, bgurl: string }) {
         RenderLauncher.active(cfg.canvas, 'progress', cfg);
     }
     private calc = () => {
@@ -29,7 +29,12 @@ export class Bar {
         this.last = this.loaded;
         RenderLauncher.updateProgress((this.last - this.old) / (this.total - this.old));
     }
-    // 显示文字和进度条， 文字有呼吸灯的效果
+    /**
+     * 显示文字和进度条， 文字有呼吸灯的效果
+     * @param text .
+     * @param total .
+     * @param loaded .
+     */
     public show(text: string, total: number, loaded: number) {
         // this.text.innerHTML = text;
         this.total = total;
@@ -42,7 +47,7 @@ export class Bar {
 
         this.timeRef = <any>setTimeout(this.calc, 100);
     }
-    public onProcess(url: string, type: string, total: number, loaded: number, data?: Uint8Array) {
+    public onProcess = (url: string, type: string, total: number, loaded: number, data?: Uint8Array) => {
         this.loaded = loaded;
     }
     public clear() {
