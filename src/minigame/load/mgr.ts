@@ -18,7 +18,7 @@ export class LoadMgr {
 
         this.projectName    = projectName;
         this.localStore     = Store.create(projectName, '');
-        this.wxdepend       = new WX_DEPEND_MGR(this.formatMainPath('depend'), this.formatMainPath('depend_temp'));
+        this.wxdepend       = new WX_DEPEND_MGR(this.formatMainPath('depend_main'), this.formatMainPath('depend_temp'));
 
         this.localStore.wxdepend = this.wxdepend;
         this.localStore.writeFileQueue = WriteFileQueue.create(this.localStore, this.wxdepend);

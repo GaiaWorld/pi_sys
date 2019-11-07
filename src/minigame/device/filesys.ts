@@ -26,7 +26,6 @@ export class FileSys {
 
         const idx = this.root.indexOf(":");
         this.localFlag = `${this.root.substring(0, idx)}://`;
-
     }
     /**
      * 格式化目录，目标格式为"example/"
@@ -304,7 +303,9 @@ export class FileSys {
                 data,
                 encoding,
                 success: () => resolve(),
-                fail: reject
+                fail: (err) => {
+                    reject(err);
+                }
             });
         });
     }
