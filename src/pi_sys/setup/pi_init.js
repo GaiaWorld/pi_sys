@@ -283,7 +283,8 @@ var _$pi = self._$pi = _$pi || (function () {
      * names: string | string[], 模块名数组
      * 返回：如果 参数是字符串，返回模块导出；如果参数是数组，返回模块导出数组
      */
-    const _import = (names) => {
+    const _import = (names, currName) => {
+
         let isParamString = typeof (names) === typeof ("");
         if (isParamString) {
             names = [names];
@@ -292,6 +293,7 @@ var _$pi = self._$pi = _$pi || (function () {
         let r = [];
 
         for (let name of names) {
+            name = relativePath(name, currName);
             let mod = getModule(name);
             depend(name);
             if (mod.isReadyBuild()) {
@@ -479,7 +481,13 @@ var _$pi = self._$pi = _$pi || (function () {
         let func = mod.buildFunc;
         mod.buildFunc = undefined;
 
-        const reqFunc = (names, f) => require(names, f, name);
+        const reqFunc = (names, f) => {
+            if (f) {
+                require(names, f, name);
+            } else {
+                return _import(names, name);
+            }
+        }
         func(reqFunc, mod.exports, ...mod.children);
         mod.setBuild();
     }
@@ -538,10 +546,12 @@ var _$pi = self._$pi = _$pi || (function () {
 
     return {
         define: define,
-        import: _import,
-
         require(names, func) {
-            require(names, func, "");
+            if (func) {
+                require(names, func, "");
+            } else {
+                return _import(names, "");
+            }
         },
 
         // 以下字段 仅仅 用于控制台查看，方便调试，不能用于写逻辑代码；
