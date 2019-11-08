@@ -44,9 +44,9 @@ class MatrixSystem implements System {
 	}
 
 	// 定义run方法
-	@read([E1, C1], [E1, C2]) // 声明run方法需要读取 Mult<E1, C1>， Mult<E1, C2>数据
-	run(read: [Mult<E1, C1>, Mult<E1, C2>], write: any) {
-		if (read && read.length == 2 && read[0] instanceof Mult && read[1] instanceof Mult && !write) {
+	@read([E1, C1], [E1, C2]) // 声明run方法需要读取 Multi<E1, C1>， Multi<E1, C2>数据
+	run(read: [Multi<E1, C1>, Multi<E1, C2>], write: World) {
+		if (read && read.length == 2 && read[0] instanceof Multi && read[1] instanceof Multi && write instanceof World) {
 			console.log("MatrixSystem run ok");
 		}
 	}
@@ -54,16 +54,16 @@ class MatrixSystem implements System {
 	// 定义监听方法
 	@listenCreate([E1, C1]) // 监听C1类型组件的创建事件
 	@write([E1, C1]) // liten1方法运行时， 需要对Mult<E1, C1>数据进行修改
-	liten1(e: CreateEvent, read: any, write: [Mult<E1, C1>]) {
-		if (!read && write && write.length == 1 && write[0] instanceof Mult) {
+	liten1(e: CreateEvent, read: World, write: [Multi<E1, C1>]) {
+		if (read instanceof World && write && write.length == 1 && write[0] instanceof Multi) {
 			console.log("MatrixSystem liten1 ok");
 		}
 	}
 
 	@listenModify([E1, C2]) // 监听C2类型组件的修改事件
 	@write(S1) // liten2执行时， 需要修改Single<S1>
-	liten2(e: ModifyEvent, read: any, write: [Single<S1>]) {
-		if (!read && write && write.length == 1 && write[0] instanceof Single) {
+	liten2(e: ModifyEvent, read: World, write: [Single<S1>]) {
+		if (read instanceof World && write && write.length == 1 && write[0] instanceof Single) {
 			console.log("MatrixSystem liten2 ok");
 		}
 	}
@@ -101,7 +101,7 @@ let c2 = new C2();
 let e1 = world.createEntity(E1);
 
 //为e1插入一个C2组件， 会发送C2创建事件， 但是没有System监听C2的创建事件， 该事件不会执行任何逻辑
-world.feachComponent(E1, C2).insert(e1, c2);
+world.fetchComponent(E1, C2).insert(e1, c2);
 
 // 发送c2修改事件
 c2.name = "xxx";
@@ -110,11 +110,11 @@ c2.name = "xxx";
 c2.id = 2;
 
 // 删除e1中的C2组件， 将发送c2销毁事件
-world.feachComponent(E1, C2).destroy(e1);
+world.fetchComponent(E1, C2).destroy(e1);
 
 // 为e1插入一个C1组件， 会发送C1创建事件
 let c1 = new C1();
-world.feachComponent(E1, C1).insert(e1, c1);
+world.fetchComponent(E1, C1).insert(e1, c1);
  */
 
 
@@ -240,7 +240,7 @@ export class Notify {
  */
 export class Entitys<E> extends Notify {
 	private data: Map<number, number>;
-	private components: Mult<E, Component>[];
+	private components: Multi<E, Component>[];
 	private curIndex: number;
 
 	constructor () {
@@ -263,7 +263,7 @@ export class Entitys<E> extends Notify {
 	}
 
 	// 注册组件
-	register_component<C>(component: Mult<E, C>) {
+	register_component<C>(component: Multi<E, C>) {
 		this.components.push(component);
 	}
 
@@ -301,7 +301,7 @@ export class Entitys<E> extends Notify {
 /**
  * 组件容器
  */
-export class Mult<_E, C> extends Notify{
+export class Multi<_E, C> extends Notify{
 	private data: Map<number, C>;
 
 	constructor() {
@@ -374,8 +374,8 @@ export class Single<T> extends Notify{
 export class World {
 	private entity_id: number; // 为每实体类型分配一个递增id， 从24位开始， 
 	private component_id: number; //为每组件类型分配一个递增id， 从第0位开始， 最大24位
-	private data: Map<any, Mult<Entity, Component> | Single<any>>; // world中的所有数据管理
-	private key_data: Map<string, Mult<Entity, Component> | Single<any>>; // world中的数据, 以字符串为key
+	private data: Map<any, Multi<Entity, Component> | Single<any>>; // world中的所有数据管理
+	private key_data: Map<string, Multi<Entity, Component> | Single<any>>; // world中的数据, 以字符串为key
 	private entity: Map<any, Entitys<Entity>>;
 	private sys: Map<string, [System, Runner]>; // world中的所有系统管理
 	private dispach: Map<string, Dispatcher>; // world中的派发器管理
@@ -394,7 +394,7 @@ export class World {
 	 * 注册组件类型
 	 * @param eTy 组件对应的实体类型
 	 * @param cTy 组件类型
-	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key feach数据
+	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key fetch数据
 	 */
 	registerComponent(eTy: any, cTy: any, key?: string) {
 		if (!eTy.__world_eid__) {
@@ -406,7 +406,7 @@ export class World {
 			this.component_id += 1<<24;
 		}
 		
-		let mc = new Mult();
+		let mc = new Multi();
 		this.data.set(eTy.__world_eid__ | cTy.__world_cid__, mc);
 		if(key) {
 			this.key_data.set(key, mc);
@@ -421,7 +421,7 @@ export class World {
 	/**
 	 * 注册单例类型
 	 * @param value 单例类型（构造函数）
-	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key feach数据
+	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key fetch数据
 	 */
 	registerSingle(value: any, key?: string) {
 		let s = new Single(value);
@@ -445,18 +445,24 @@ export class World {
 		setupListener(sys, this, "__modify_listeners__");
 		setupListener(sys, this, "__destroy_listeners__");
 
-		// system存在run方法， feach run方法需要的数据， 并生成run闭包
+		// system存在run方法， fetch run方法需要的数据， 并生成run闭包
 		if (sys.run && typeof sys.run == "function") {
-			let data = feachData(sys.run, this);
-			if (data[0] || data[1]) {
-				// 如果使用@read 或@write 装饰器声明run方法需要的数据， 运行run时， 直接将feach到的数据作为参数传给run
-				r[1] = () => {
-					sys.run(data[0], data[1])
-				}
-			} else {
-				// 否则， 将world作为参数传给run， 以便run可以动态feach数据
+			let data = fetchData(sys.run, this);
+			if (!data[0] && !data[1]) {
+				// 否则， 将world作为参数传给run， 以便run可以动态fetch数据
 				r[1] = () => {
 					sys.run(this);
+				}
+			} else {
+				// 未声明读数据或写数据， 直接将world作为该数据传入run函数
+				if (!data[0]) {
+					(<any>data)[0] = this;
+				} else if(!data[0]){
+					(<any>data)[1] = this;
+				}
+				// 如果使用@read 或@write 装饰器声明run方法需要的数据， 运行run时， 直接将fetch到的数据作为参数传给run
+				r[1] = () => {
+					sys.run(data[0], data[1])
 				}
 			}
 		}
@@ -498,11 +504,11 @@ export class World {
 	 * @param ty1 ty1为组件所对应的实体的类型
 	 * @param ty2 ty2为组件类型
 	 */
-	feachComponent(ty1: any, ty2?: any): Mult<Entity, Component> {
+	fetchComponent(ty1: any, ty2?: any): Multi<Entity, Component> {
 		if(typeof ty1 === "string") {
-			return this.key_data.get(ty1) as Mult<Entity, Component>;
+			return this.key_data.get(ty1) as Multi<Entity, Component>;
 		} else {
-			return this.data.get(ty1.__world_eid__ | ty2.__world_cid__) as Mult<Entity, Component>;
+			return this.data.get(ty1.__world_eid__ | ty2.__world_cid__) as Multi<Entity, Component>;
 		}
 	}
 
@@ -510,7 +516,7 @@ export class World {
 	 * 取到指定类型的数据（组件或单例）
 	 * @param ty1 ty1为单例类型或单例的key
 	 */
-	feachSingle(ty1: any): Single<any> {
+	fetchSingle(ty1: any): Single<any> {
 		if(typeof ty1 === "string") {
 			return this.key_data.get(ty1) as Single<any>;
 		} else {
@@ -522,7 +528,7 @@ export class World {
 	 * 取到一个系统的实例
 	 * @param name 系统名称
 	 */
-	feachSys(name: string): System {
+	fetchSys(name: string): System {
 		let r = this.sys.get(name);
 		if (!r) {
 			return null;
@@ -590,7 +596,7 @@ export class World {
 	 * @param ty1 如果是组件， ty1为组件所对应的实体的类型， 如果是单例， ty1为单例类型
 	 * @param ty2 如果是单例， 不需要该参数， 如果是组件， ty2为组件类型
 	 */
-	feachData(ty1: any, ty2?: any): Mult<Entity, Component> | Single<any> {
+	fetchData(ty1: any, ty2?: any): Multi<Entity, Component> | Single<any> {
 		if (ty2) {
 			return this.data.get(ty1.__world_eid__ | ty2.__world_cid__);
 		} else {
@@ -696,7 +702,7 @@ export const listenDestroy = (listen_target: any): Function => {
  *	export class MatrixSystem implements System {
  *
  *		@read([E1, C1], [E1, C2]) // E1为实体类型， C1， C2为组件类型
- *		run(read: [Mult<E1, C1>, Mult<E1, C2>], write: any) {
+ *		run(read: [Multi<E1, C1>, Multi<E1, C2>], write: any) {
  *			console.log("MatrixSystem run ok");
  *		}
  *	}
@@ -716,7 +722,7 @@ export const read = (...list): Function => {
  *	export class MatrixSystem implements System {
  *
  *		@write([E1, C1], [E1, C2]) // E1为实体类型， C1， C2为组件类型
- *		run(read: any, write: [Mult<E1, C1>, Mult<E1, C2>]) {
+ *		run(read: any, write: [Multi<E1, C1>, Multi<E1, C2>]) {
  *			console.log("MatrixSystem run ok");
  *		}
  *	}
@@ -820,53 +826,59 @@ const setupListener = (system: System, world: World, name: string) =>  {
 	for(var i = 0; i < listener.length; i++) {
 		let decs = listener[i];
 
-		let data = feachData(decs.fun, world);
-		let liten: Listener<ModifyEvent | CreateEvent | DestroyEvent>
-		if (data[0] || data[1]) {
-			// 如果使用@read 或@write 装饰器声明监听方法需要的数据， 运行监听方法时， 直接将feach到的数据作为参数传给监听方法
-			liten = (event: ModifyEvent | CreateEvent | DestroyEvent) => {
-				decs.fun.call(system, event, data[0], data[1]);
-			}
-		} else {
-			// 否则， 将world作为参数传给监听方法， 以便监听方法可以动态feach数据
+		let data = fetchData(decs.fun, world);
+		let liten: Listener<ModifyEvent | CreateEvent | DestroyEvent>;
+		if (!data[0] && !data[1]) {
+			// 将world作为参数传给监听方法， 以便监听方法可以动态fetch数据
 			liten = (event: ModifyEvent | CreateEvent | DestroyEvent) => {
 				decs.fun.call(system, event, world);
+			}
+		} else {
+			//wei声明的数据类型用world代替
+			if(!data[0]) {
+				(<any>data)[0] = world;
+			} else if(!data[1]) {
+				(<any>data)[1] = world;
+			}
+			// 否则使用@read 或@write 装饰器声明监听方法需要的数据， 运行监听方法时， 直接将fetch到的数据作为参数传给监听方法
+			liten = (event: ModifyEvent | CreateEvent | DestroyEvent) => {
+				decs.fun.call(system, event, data[0], data[1]);
 			}
 		}
 
 		let p = decs.target;
 		if (Array.isArray(p)) {
-			world.feachData(p[0], p[1])[registerFun](liten);
+			world.fetchData(p[0], p[1])[registerFun](liten);
 		} else {
-			world.feachData(p)[registerFun](liten);
+			world.fetchData(p)[registerFun](liten);
 		}
 	}
 }
 
-const feachData = (fun: any, world: World): [any[], any[]] => {
+const fetchData = (fun: any, world: World): [any[], any[]] => {
 	let read, write;
-	// feach读数据
+	// fetch读数据
 	if (fun.__read__) {
 		read = [];
 		for(var i = 0; i < fun.__read__.length; i++) {
 			let p = fun.__read__[i];
 			if (Array.isArray(p)) {
-				read[i] = world.feachData(p[0], p[1]); // Mult<T> | Single<T>
+				read[i] = world.fetchData(p[0], p[1]); // Multi<T> | Single<T>
 			} else {
-				read[i] = world.feachData(p); // Mult<T> | Single<T>
+				read[i] = world.fetchData(p); // Multi<T> | Single<T>
 			}
 		}
 	}
 
-	// feach写数据
+	// fetch写数据
 	if (fun.__write__) {
 		write = [];
 		for(var i = 0; i < fun.__write__.length; i++) {
 			let p = fun.__write__[i];
 			if (Array.isArray(p)) {
-				write[i] = world.feachData(p[0], p[1]); // Mult<T> | Single<T>
+				write[i] = world.fetchData(p[0], p[1]); // Multi<T> | Single<T>
 			} else {
-				write[i] = world.feachData(p); // Mult<T> | Single<T>
+				write[i] = world.fetchData(p); // Multi<T> | Single<T>
 			}
 		}
 	}
