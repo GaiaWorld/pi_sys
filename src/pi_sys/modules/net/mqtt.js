@@ -87,6 +87,12 @@ _$pi.define("pi_sys/modules/net/mqtt", function (require1, exports1, module1) {
     (function ExportLibrary(root, factory) {
         // 微信小游戏环境下， this 为 undefined
         root = root || window;
+        if (_$pi) {
+            if (typeof root.Paho === 'undefined') {
+                root.Paho = {};
+            }
+            root.Paho.MQTT = factory();
+        } else 
         if (typeof exports === 'object' && typeof module === 'object') {
             module.exports = factory();
         } else if (typeof define === 'function' && define.amd) {

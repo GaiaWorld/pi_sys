@@ -1,5 +1,4 @@
 import { FileSys } from "./filesys";
-import { FileInfo } from "../setup/depend";
 
 /**
  * 主目录
@@ -76,7 +75,7 @@ export class WX_DEPEND_MGR {
     private static MaxMainAllSize: number;
     private static MaxMainAllObjSize: number;
     constructor(mainDependFilePath: string, tempDependFilePath: string) {
-        this.mainDependFilePath = mainDependFilePath
+        this.mainDependFilePath = mainDependFilePath;
         this.tempDependFilePath = tempDependFilePath;
     }
     // private MaxMainAllSize: number;
@@ -88,9 +87,9 @@ export class WX_DEPEND_MGR {
                                 .then(
                                     (data) => {
                                         const json = JSON.parse((data as string));
-    
+
                                         this.initMain(json || {});
-    
+
                                         resolve(null);
                                     }
                                 )
@@ -105,16 +104,16 @@ export class WX_DEPEND_MGR {
                             resolve(null);
                         }
                         });
-                    
+
         const temp = new Promise((resolve, reject) => {
                         if (FileSys.isFileExist(this.tempDependFilePath)) {
                             FileSys.readFile(this.tempDependFilePath, 'utf8')
                                 .then(
                                     (data) => {
                                         const json = JSON.parse((data as string));
-    
+
                                         this.initTemp(json || {});
-    
+
                                         resolve(null);
                                     }
                                 )
@@ -147,7 +146,7 @@ export class WX_DEPEND_MGR {
     public checkMain(info: IFileInfo, asObj?: boolean): EFileStatus {
         const old = this.main[info.path];
         let sizeType, status: EFileStatus = 0;
-        
+
         // switch (info.suffix)  {
         //     case ('scene'):
         //     case ('config'):
@@ -194,12 +193,12 @@ export class WX_DEPEND_MGR {
             if (tempAllSize > WX_DEPEND_MGR.MaxMainAllSize) {
                 //
             } else {
-    
+
                 // this.addMain(info);
-    
+
                 // this[sizeType] += info.size;
                 // this.mainAllSize = tempAllSize;
-    
+
                 status += EFileStatus.NEED_WRITE;
             }
         }
@@ -209,7 +208,7 @@ export class WX_DEPEND_MGR {
     /**
      * 尝试写入一个文件到主目录，返回操作是否可行
      * @param info 文件信息
-     * @returns  0：不需任何处理,文件在本地有效; 1: 本地文件需要删除; 2: 需要下载文件到本地; 3: 需要更新本地文件 
+     * @returns  0：不需任何处理,文件在本地有效; 1: 本地文件需要删除; 2: 需要下载文件到本地; 3: 需要更新本地文件
      */
     public checkTemp(info: IFileInfo): EFileStatus {
         const old = this.temp[info.path];
@@ -227,7 +226,7 @@ export class WX_DEPEND_MGR {
         }
 
         this.addTemp(info);
-        
+
         status += EFileStatus.NEED_WRITE;
 
         return status;
@@ -289,7 +288,7 @@ export class WX_DEPEND_MGR {
     public clearMainSize() {
         this.mainAllSize    = 0;
         this.mainAllObjSize = 0;
-        
+
         localStorage.dbSize     = this.mainAllSize;
         localStorage.dbObjSize  = this.mainAllObjSize;
     }
@@ -340,13 +339,13 @@ export class WX_DEPEND_MGR {
     private writeDependTemp() {
         if (this.tempDependDirty) {
             const jsonTemp = {};
-    
+
             for (const key in this.temp) {
                 if (this.temp[key]) {
                     jsonTemp[key] = this.temp[key];
                 }
             }
-    
+
             FileSys.writeFileSync(this.tempDependFilePath, JSON.stringify(jsonTemp));
         }
         this.tempDependDirty = false;

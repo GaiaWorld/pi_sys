@@ -7,6 +7,8 @@ import { init as objInit } from '../load/object';
 import { init as binLoadInit } from '../load/bin';
 import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_sys/load/app';
 import { Bar } from '../device/processbar';
+import { initFileLoad } from "../device/file";
+import { initImageLoad } from "../device/image";
 
 declare var _$pi: any;
 
@@ -19,15 +21,19 @@ export const main = (cfg: any, depend: any) => {
     binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
     userAgent();
     setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
-    for (let s of cfg.cfg_suffixs)
+    for (let s of cfg.cfg_suffixs) {
         setCfgHandler(s, null);
-    for (let s of cfg.res_suffixs)
+    }
+    for (let s of cfg.res_suffixs) {
         setResLru(s, cfg.res_timeout, cfg.res_cache_size / cfg.res_suffixs.length);
+    }
     // window全局错误捕捉，记录次数后发送到服务器上
     if (cfg.catch) {
         window.addEventListener('unhandledrejection', onReject);
         (<any>window).onerror = onError;
     }
+    initImageLoad();
+    initFileLoad();
 };
 
 // ============================== 本地
@@ -39,24 +45,25 @@ const loadExec = (next: string) => {
     load.addProcess(bar.onProcess.bind(bar));
     load.start().then(() => {
         bar.clear();
-		let exec = get(next + "exec");
+        let exec = get(next + "exec");
 
-		let arr = [];
-		for(let i = 0; i < exec.length; i++) {
-			exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
-				mod[exec[i][1]](exec[i].slice(2));
-				return mod;
-			}));
-		}
-		Promise.all(arr).then(() => {
-			if (!next)
-				loadExec("next_");
-		});
+        let arr = [];
+        for (let i = 0; i < exec.length; i++) {
+            exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
+                mod[exec[i][1]](exec[i].slice(2));
+                return mod;
+            }));
+        }
+        Promise.all(arr).then(() => {
+            if (!next) {
+                loadExec("next_");
+            }
+        });
     });
 };
 
 /**
- * @description 获得浏览器的userAgent. 设置 
+ * @description 获得浏览器的userAgent. 设置
  * @example
  */
 const userAgent = (): any => {
@@ -159,8 +166,8 @@ const count = (e: string) => {
     r.count += 1;
     let c = 1;
     while (true) { // 仅在1,2,4,8...上发送错误信息
-        if (c === r.count) return r.count;
-        if (c > r.count) return 0;
+        if (c === r.count) { return r.count; }
+        if (c > r.count) { return 0; }
         c += c;
     }
 };
@@ -169,15 +176,16 @@ const onReject = (ev: PromiseRejectionEvent) => {
     let e = JSON.stringify(ev.reason.stack);
     let c = count(e);
     c && ((new Image()).src = "errlog?s=" + sid + "&e=" + encodeURIComponent(e) + "&c=" + c + "&r=" + Math.random());
-}
+};
 const onError = (msg: any, uri: string, line: string, column: string, error: any) => {
     let e: any;
     if (msg.stack) {
         e = msg.stack;
     } else if (error && error.stack) {
         e = error.stack;
-    } else
+    } else {
         return;
+ }
     console.warn(e);
     e = JSON.stringify(e) + ", uri:" + uri + ", line:" + line + ", column:" + column;
     let c = count(e);

@@ -1,23 +1,25 @@
-import { ENV_CFG, ENV_MGR } from "./env";
-import { DEPEND_DATA, DEPEND_MGR, FileInfo } from "./depend";
+import { DEPEND_DATA, DEPEND_MGR, FileInfo } from './depend';
+import { ENV_CFG, ENV_MGR } from './env';
 
-import { init as logInit } from "../feature/log";
-import { init as codeInit, CodeLoad } from '../load/code';
-import { init as objInit } from '../load/object';
-import { init as binLoadInit } from '../load/bin';
-import { setCodeObjSuffix, setCfgHandler, setResLru } from '../load/app';
+import { initAudioLoad } from '../device/audio';
+import { initFileLoad } from '../device/file';
+import { initImageLoad } from '../device/image';
 import { Bar } from '../device/progressbar';
-import { LoadMgr } from "../load/mgr";
+import { init as logInit } from '../feature/log';
+import { setCfgHandler, setCodeObjSuffix, setResLru, BatchLoad } from '../load/app';
+import { CodeLoad, init as codeInit } from '../load/code';
+import { LoadMgr } from '../load/mgr';
+import { initKeyBoard } from '../device/keyboard';
 
 /**
  * 项目初始化入口
- * 
+ *
  */
 
 /**
- * 
- * @param cfg 
- * @param depend 
+ *
+ * @param cfg
+ * @param depend
  */
 
 export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
@@ -25,19 +27,17 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     DEPEND_MGR.init(depend);
 
     logInit(cfg.log);
-    codeInit(cfg.domains, cfg.root_path);
-    objInit(cfg.domains, cfg.root_path);
-    LoadMgr.init(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
-    
+    LoadMgr.init(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(''));
+
     // binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
     userAgent();
     setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
 
-    for (let s of cfg.cfg_suffixs) {
+    for (const s of cfg.cfg_suffixs) {
         setCfgHandler(s, null);
     }
 
-    for (let s of cfg.res_suffixs) {
+    for (const s of cfg.res_suffixs) {
         setResLru(s, cfg.res_timeout, cfg.res_cache_size / cfg.res_suffixs.length);
     }
 
@@ -46,12 +46,18 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     //     window.addEventListener('unhandledrejection', onReject);
     //     (<any>window).onerror = onError;
     // }
+
+    initImageLoad();
+    initFileLoad();
+    initAudioLoad();
+    initKeyBoard();
 };
 
 /**
- * @description 获得浏览器的userAgent. 设置 
+ * @description 获得浏览器的userAgent. 设置
  * @example
  */
+// tslint:disable-next-line:cyclomatic-complexity
 const userAgent = (): any => {
     const ua = navigator.userAgent.toLowerCase();
     const nameVersion = (obj, name, rxp) => {
@@ -74,8 +80,8 @@ const userAgent = (): any => {
         ucbrowser: null
     };
 
-    let browser: any = { name: 'unknown', version: '0.0' };
-    ENV_MGR.setENV("browser", browser);
+    const browser: any = { name: 'unknown', version: '0.0' };
+    ENV_MGR.setENV('browser', browser);
 
     if (ua.indexOf('safari') > -1) {
         if (ua.indexOf('mobile') > -1) {
@@ -104,8 +110,8 @@ const userAgent = (): any => {
     }
 
     // 解析ua中的engine信息
-    let engine = { name: 'chromium', version: '0.0' };
-    ENV_MGR.setENV("engine", engine);
+    const engine = { name: 'chromium', version: '0.0' };
+    ENV_MGR.setENV('engine', engine);
 
     if (ua.indexOf('trident') > -1) {
         nameVersion(engine, 'ie', /trident\/([\d.]+)/);
@@ -116,8 +122,8 @@ const userAgent = (): any => {
     }
 
     // 解析ua中的os信息
-    let os = { name: 'unknown', version: '0.0' };
-    ENV_MGR.setENV("os", os);
+    const os = { name: 'unknown', version: '0.0' };
+    ENV_MGR.setENV('os', os);
 
     if (ua.indexOf('windows nt') > -1) {
         nameVersion(os, 'windows', /windows nt ([\d.]+)/);
@@ -136,52 +142,122 @@ const userAgent = (): any => {
     }
 
     // 通用
-    let h = screen.height > screen.width ? screen.height : screen.width;
-    let w = screen.height > screen.width ? screen.width : screen.height;
+    const h = screen.height > screen.width ? screen.height : screen.width;
+    const w = screen.height > screen.width ? screen.width : screen.height;
 
-    ENV_MGR.setENV("device", { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
-    ENV_MGR.setENV("language", navigator.language);
-    ENV_MGR.setENV("timezone_offset", new Date().getTimezoneOffset());
+    ENV_MGR.setENV('device', { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
+    ENV_MGR.setENV('language', navigator.language);
+    ENV_MGR.setENV('timezone_offset', new Date().getTimezoneOffset());
 };
 
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
 const loadExec = (next: string = '') => {
-    let load = new CodeLoad();
 
     const pakageList = ENV_MGR.getENV(`${next}load`);
 
+    const dirList = [];
+    const dirCfg = [];
+    pakageList.forEach((key) => {
+        dirList.push(`${key}/`);
+        dirCfg.push(`${key}/combine.dcss`);
+        dirCfg.push(`${key}/combine.scfg`);
+        dirCfg.push(`${key}/combine.widcfg`);
+        dirCfg.push(`${key}/combine.kcss`);
+        dirCfg.push(`${key}/png.imgcfg`);
+        dirCfg.push(`${key}/jpg.imgcfg`);
+    });
+
     if (pakageList) {
-        pakageList.forEach(pkName => {
+
+        const bar = new Bar(ENV_MGR.getENV(`${next}load_bar`));
+
+        const load = new CodeLoad();
+
+        pakageList.forEach((pkName) => {
             load.add(new FileInfo([pkName, 0, '0']));
         });
-    
-        let bar = new Bar(ENV_MGR.getENV(`${next}load_bar`));
-    
+        load.addProcess(bar.onProcess);
+
+        // const batchLoad = new BatchLoad(dirList);
+        // batchLoad.addFilter('*/**/*.widcfg');
+        // batchLoad.addFilter('*/**/*.dcss');
+        // batchLoad.addFilter('*/**/*.kcss');
+        // batchLoad.addFilter('*/**/*.xcfg');
+        // batchLoad.addFilter('*/**/*.json');
+        // batchLoad.addFilter('*/**/*.imgcfg');
+
+        const batchLoad = new BatchLoad(dirCfg);
+        // batchLoad.addProcess(bar.onProcess);
+
         bar.show(ENV_MGR.getENV(`${next}load_text`), load.total, load.loaded);
-    
-        load.addProcess(bar.onProcess.bind(bar));
-        load.start().then(() => {
 
-            console.log('bar.clear');
+        const promiseCode = load.start();
+        // const promiseCfg  = batchLoad.load(false);
 
-            try {
-                bar.clear();
-            } catch (err) {
-                console.error(err)
-            }
-    
-            // if (!next) {
-            //     loadExec("next_");
-            // }
-    
-            let exec = ENV_MGR.getENV(`${next}exec`);
-            const mode = (<any>window)._$pi.require(exec[0]);
+        promiseCode.then(() => {
+            console.log('Code.OK');
+            bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
 
-            console.log(exec);
-            console.log(mode);
+            const promiseCfg  = batchLoad.load(false);
+            batchLoad.addProcess(bar.onProcess);
+            bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
+            promiseCfg.then(() => {
+                console.log('bar.clear');
 
-            mode && mode[exec[1]](exec.slice(2));
+                try {
+                    bar.clear();
+                } catch (err) {
+                    console.error(err);
+                }
+
+                const execArr = ENV_MGR.getENV(`${next}exec`);
+
+                const arr = [];
+                for (let i = 0; i < execArr.length; i++) {
+
+                    const mode = (<any>window)._$pi.require(execArr[i][0]);
+                    mode && mode[execArr[i][1]](execArr[i].slice(2));
+
+                    // execArr[i][0] && arr.push(import(execArr[i][0]).then((mod) => {
+                    //     mod[execArr[i][1]](execArr[i].slice(2));
+
+                    //     return mod;
+                    // }));
+                }
+
+                if (!next) {
+                    loadExec('next_');
+                }
+            });
         });
+
+        // Promise.all([promiseCode, promiseCfg]).then(() => {
+        //     console.log('bar.clear');
+
+        //     try {
+        //         bar.clear();
+        //     } catch (err) {
+        //         console.error(err);
+        //     }
+
+        //     const execArr = ENV_MGR.getENV(`${next}exec`);
+
+        //     const arr = [];
+        //     for (let i = 0; i < execArr.length; i++) {
+
+        //         const mode = (<any>window)._$pi.require(execArr[i][0]);
+        //         mode && mode[execArr[i][1]](execArr[i].slice(2));
+
+        //         // execArr[i][0] && arr.push(import(execArr[i][0]).then((mod) => {
+        //         //     mod[execArr[i][1]](execArr[i].slice(2));
+
+        //         //     return mod;
+        //         // }));
+        //     }
+
+        //     if (!next) {
+        //         loadExec('next_');
+        //     }
+        // });
     }
 };
-

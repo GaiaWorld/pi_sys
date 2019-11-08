@@ -1,7 +1,7 @@
 import { IFileDependInfo, IFileInfo } from "../device/base";
 
 /**
- * 
+ *
  */
 
 export class FileInfo implements IFileDependInfo {
@@ -35,7 +35,7 @@ export class DirInfo {
 
         if (isSuffix) {
             if (!this.suffixMap) {
-                this.suffixMap = new Map;
+                this.suffixMap = new Map();
             }
 
             fileInfoList = this.suffixMap.get(info.suffix);
@@ -54,7 +54,7 @@ export class DirInfo {
 
         fileInfoList.push(info);
 
-        let parent: DirInfo = this;
+        let parent: DirInfo = <any>this;
 
         while (parent) {
             parent.count +=  1;
@@ -66,7 +66,7 @@ export class DirInfo {
 }
 
 /**
- * 
+ *
  */
 
 export type DEPEND_DATA = IFileInfo[];
@@ -110,11 +110,11 @@ export class DEPEND_MGR {
             info = new DirInfo(dir);
             map.set(dir, info);
             let sub = info;
-            while(true) {
+            while (true) {
                 j = dir.lastIndexOf("/", j - 1);
-                if(j <= 0) {
+                if (j <= 0) {
                     let root = map.get("");
-                    if(!root) {
+                    if (!root) {
                         root = new DirInfo("");
                         root.children = [];
                         map.set("", root);
@@ -125,10 +125,10 @@ export class DEPEND_MGR {
                 }
                 dir = dir.slice(0, j + 1);
                 let parent = map.get(dir);
-                if(parent){
-                    if(parent.children){
+                if (parent) {
+                    if (parent.children) {
                         parent.children.push(sub);
-                    }else{
+                    }else {
                         parent.children = [sub];
                     }
                     sub.parent = parent;
@@ -155,10 +155,12 @@ export class DEPEND_MGR {
     public static fileDot(file: string) {
         for (let i = file.length - 1; i >= 0; i--) {
             let c = file.charCodeAt(i);
-            if (c === 47)
+            if (c === 47) {
                 return -1;
-            if (c === 46)
+            }
+            if (c === 46) {
                 return i;
+            }
         }
         return -1;
     }
@@ -171,9 +173,10 @@ export class DEPEND_MGR {
         let dot = DEPEND_MGR.fileDot(file);
         return (i > dot) ? file.slice(i + 1, dot) : file.slice(i + 1);
     }
-    public static relativePath(filePath:string, dir:string) {
-        if (filePath.charCodeAt(0) !== 46)
+    public static relativePath(filePath: string, dir: string) {
+        if (filePath.charCodeAt(0) !== 46) {
             return filePath;
+        }
         let i = 0;
         let len = filePath.length;
         let j = dir.length - 1;
@@ -181,32 +184,37 @@ export class DEPEND_MGR {
             j = dir.lastIndexOf("/");
         }
         while (i < len) {
-            if (filePath.charCodeAt(i) !== 46)
+            if (filePath.charCodeAt(i) !== 46) {
                 break;
+            }
             if (filePath.charCodeAt(i + 1) === 47) { // ./的情况
                 i += 2;
                 break;
             }
-            if (filePath.charCodeAt(i + 1) !== 46 || filePath.charCodeAt(i + 2) !== 47)
+            if (filePath.charCodeAt(i + 1) !== 46 || filePath.charCodeAt(i + 2) !== 47) {
                 break;
+            }
             // ../的情况
             i += 3;
             j = dir.lastIndexOf("/", j - 1);
         }
-        if (i > 0)
+        if (i > 0) {
             filePath = filePath.slice(i);
-        if (j < 0)
+        }
+        if (j < 0) {
             return filePath;
-        if (j < dir.length - 1)
+        }
+        if (j < dir.length - 1) {
             dir = dir.slice(0, j + 1);
+        }
         return dir + filePath;
     }
 }
 
-export const getFile  = (file: string) => {
-    return DEPEND_MGR.getFile(file);
-}
+export const getFile  = DEPEND_MGR.getFile;
 
-export const getDir = (dir: string) => {
-    return DEPEND_MGR.getDir(dir);
-}
+export const getDir = DEPEND_MGR.getDir;
+
+export const fileSuffix = DEPEND_MGR.fileSuffix;
+
+export const relativePath = DEPEND_MGR.relativePath;

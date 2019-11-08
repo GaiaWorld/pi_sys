@@ -74,7 +74,7 @@ export class Store {
         //         .catch(reject);
         // });
     }
-    
+
     constructor(projectName: string, childDirName: string) {
         this.projectName = projectName;
         this.childDirName = childDirName;
@@ -84,7 +84,7 @@ export class Store {
 
     /**
      * 获得主目录文件保存路径
-     * @param path 
+     * @param path
      */
     public formatStorePath(path: string) {
         if (this.childDirName) {
@@ -108,31 +108,21 @@ export class Store {
 
             return new Promise((resolve, reject) => {
                 if (this.fileBufferMap.has(key)) {
-                    return resolve([key, this.fileBufferMap.get(key)]);
+                    return resolve(this.fileBufferMap.get(key));
                 }
+
+                const status = this.wxdepend.checkMain(fileInfo);
 
                 let wxpath;
 
-                const mainInfo = this.wxdepend.readMain(key);
-                const tempInfo = this.wxdepend.readTemp(key);
-
-                if (mainInfo) {
-                    wxpath = this.formatStorePath(key);
-                } else if (tempInfo) {
-                    wxpath = tempInfo.path;
-                }
-
-                if (wxpath) {
-                    FileSys.readFile(wxpath)
-                        .then((value) => {
-                            resolve([key, value]);
-                        })
-                        .catch((err) => {
-                            reject(err)
-                        });
-                } else {
-                    resolve(null)
-                }
+                wxpath = this.formatStorePath(key);
+                FileSys.readFile(wxpath)
+                    .then((value) => {
+                        resolve(value);
+                    })
+                    .catch((err) => {
+                        reject(err);
+                    });
             });
         }
     }
@@ -163,7 +153,7 @@ export class Store {
      */
     public delete(key: string): Promise<any> {
         const fileInfo = DEPEND_MGR.getFile(key);
-        
+
         if (!!fileInfo) {
             return Promise.reject(`no such file ${key}`);
         } else {
@@ -177,7 +167,7 @@ export class Store {
 
                 const mainInfo = this.wxdepend.readMain(key);
                 const tempInfo = this.wxdepend.readTemp(key);
-                
+
                 this.fileBufferMap.has(key) && this.fileBufferMap.delete(key);
 
                 if (mainInfo) {
@@ -212,7 +202,7 @@ export class Store {
     public clear(): Promise<any> {
         return new Promise((resolve, reject) => {
             this.fileBufferMap.clear();
-            
+
             FileSys.clearDir(this.formatStorePath(''))
                 .then(() => {
                     resolve();
@@ -227,7 +217,7 @@ export class Store {
     /**
      * 迭代, callback返回false表示停止迭代
      */
-    public iterate(callback: (result:{key:any, value:any}) => boolean, errorCallback: (err: Event) => void) {
+    public iterate(callback: (result: {key: any, value: any}) => boolean, errorCallback: (err: Event) => void) {
         setTimeout(() => {
             for (const [key, value] of this.fileBufferMap) {
                 if (callback({key, value}) === false) {
@@ -272,5 +262,5 @@ export class Store {
                 needSkip || callback(null);
             });
         }, 0);
-    };
+    }
 }

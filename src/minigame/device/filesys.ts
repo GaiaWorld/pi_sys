@@ -1,10 +1,9 @@
 import { wx } from "./wx";
 
-
 interface UserFileList {
-    dir: string[],
-    file: string[],
-    err?: any
+    dir: string[];
+    file: string[];
+    err?: any;
 }
 
 enum Status {
@@ -24,10 +23,9 @@ export class FileSys {
     public static fs: wx.FileSystemManager;
     public static init() {
         this.fs = wx.getFileSystemManager();
-        
+
         const idx = this.root.indexOf(":");
         this.localFlag = `${this.root.substring(0, idx)}://`;
-        
     }
     /**
      * 格式化目录，目标格式为"example/"
@@ -103,7 +101,7 @@ export class FileSys {
         }
 
     }
-    
+
     /**
      * 递归删除指定目录及该目录下的所有文件
      * @param dir 要删除的目录，如不指定，则默认删除根目录下的所有文件及文件夹
@@ -117,7 +115,7 @@ export class FileSys {
                     recursive: true,
                     success: () => resolve(),
                     fail: reject
-                })
+                });
             });
         }
         return new Promise((resolve, reject) => {
@@ -125,7 +123,7 @@ export class FileSys {
                 dirPath: dir,
                 success: ({files}) => resolve(files),
                 fail: reject
-            })
+            });
         }).then((files: string[]) => {
             const pArr = [];
             files.forEach((file) => {
@@ -223,7 +221,7 @@ export class FileSys {
     public static readFileSync(path: string, encoding?: string) {
         path = FileSys.fullLocalPath(path);
         try {
-            const data: string|ArrayBuffer = FileSys.fs.readFileSync(path, encoding);
+            const data: string | ArrayBuffer = FileSys.fs.readFileSync(path, encoding);
             return {
                 data,
                 status: Status.OK
@@ -240,7 +238,7 @@ export class FileSys {
      * @param path 文件路径
      * @param encoding 编码方式，如果不传该参数，则读取的数据是 ArrayBuffer
      */
-    public static readFile(path: string, encoding?: string): Promise<string|ArrayBuffer> {
+    public static readFile(path: string, encoding?: string): Promise<string | ArrayBuffer> {
         return new Promise((resolve, reject) => {
             path = FileSys.fullLocalPath(path);
             FileSys.fs.readFile({
@@ -269,22 +267,22 @@ export class FileSys {
                     resolve({ path, stats });
                 },
                 fail(err: any) {
-                    err.path = path
+                    err.path = path;
                     reject(err);
                 }
             });
-        })
+        });
     }
     /**
      * 获取文件信息(同步)
      * @param path 文件路径
      */
     public static getFileInfoSync(path: string): wx.Stats {
-        path = FileSys.fullLocalPath(path)
+        path = FileSys.fullLocalPath(path);
         try {
-            return FileSys.fs.statSync(path)
+            return FileSys.fs.statSync(path);
         } catch (e) {
-            return e
+            return e;
         }
     }
     /**
@@ -295,25 +293,27 @@ export class FileSys {
      */
     public static writeFile(
         filePath: string,
-        data: string|ArrayBuffer,
-        encoding?:string
+        data: string | ArrayBuffer,
+        encoding?: string
     ): Promise<undefined> {
         return new Promise((resolve, reject) => {
-            FileSys.prepareDir(filePath)
+            FileSys.prepareDir(filePath);
             FileSys.fs.writeFile({
                 filePath: FileSys.fullLocalPath(filePath),
                 data,
                 encoding,
                 success: () => resolve(),
-                fail: reject
+                fail: (err) => {
+                    reject(err);
+                }
             });
         });
     }
-    
+
     // 同步写文件
-    public static writeFileSync = (filePath: string, data: string|ArrayBuffer) => {
-        FileSys.prepareDir(filePath)
-        FileSys.fs.writeFileSync(FileSys.fullLocalPath(filePath), data)
+    public static writeFileSync = (filePath: string, data: string | ArrayBuffer) => {
+        FileSys.prepareDir(filePath);
+        FileSys.fs.writeFileSync(FileSys.fullLocalPath(filePath), data);
     }
 
     // 删除文件
@@ -325,12 +325,12 @@ export class FileSys {
                 fail: reject
             });
         })
-    );
+    )
 
     // 同步删除文件
-    public static deleteFileSync = (filePath: string)=> {
-        FileSys.fs.unlinkSync(FileSys.fullLocalPath(filePath))
-    };
+    public static deleteFileSync = (filePath: string) => {
+        FileSys.fs.unlinkSync(FileSys.fullLocalPath(filePath));
+    }
     /**
      * 小游戏原生下载接口封装
      * @param   url         资源url

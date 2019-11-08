@@ -87,7 +87,7 @@ export class RenderLauncher {
         meshBG.translate[1] = 0.0;
         meshBG.scale[0] = 1;
         meshBG.scale[1] = 1;
-        meshBG.texture = webgldemo.createTexture(args.bg);
+        meshBG.texture = webgldemo.createTexture(args.bgurl);
         scene.addMesh(meshBG);
 
         const meshProgress = new Mesh('meshProgress', dataBuffer03, shader06);

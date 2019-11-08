@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 
 export type ENV_CFG = any;
@@ -7,7 +7,7 @@ export type ENV_CFG = any;
 export class ENV_MGR {
     private static env: Map<string, any> = new Map();
     public static init(CFG: ENV_CFG) {
-        for (let k in CFG) {
+        for (const k in CFG) {
             if (CFG.hasOwnProperty(k)) {
                 ENV_MGR.env.set(k, CFG[k]);
             }
@@ -20,3 +20,7 @@ export class ENV_MGR {
         ENV_MGR.env.set(key, value);
     }
 }
+
+export const get = (key: string) => {
+    return ENV_MGR.getENV(key);
+};
