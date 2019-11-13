@@ -814,7 +814,7 @@ const listen = (name: string, listen_target: any): Function =>  {
 
 const setupListener = (system: System, world: World, name: string) =>  {
 	let listener = system[name];
-	if (listener.length === 0) {
+	if (!listener) {
 		return;
 	}
 	let registerFun;
