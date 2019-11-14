@@ -239,13 +239,13 @@ export class Notify {
  * 实体容器
  */
 export class Entitys<E> extends Notify {
-	private data: Map<number, number>;
+	private data: Set<number>;
 	private components: Multi<E, Component>[];
 	private curIndex: number;
 
 	constructor () {
 		super();
-		this.data = new Map;
+		this.data = new Set;
 		this.components = [];
 		this.curIndex = 0;
 	}
@@ -274,7 +274,7 @@ export class Entitys<E> extends Notify {
 	create(): number {
 		this.curIndex = loopAdd(this.curIndex);
 		let curIndex = this.curIndex;
-		this.data.set(curIndex, 0);
+		this.data.add(curIndex);
 		this.createEvent(curIndex);
 		return curIndex;
 	}
@@ -284,17 +284,18 @@ export class Entitys<E> extends Notify {
 	 * @param id 实体id
 	 */
 	destroy(id: number) {
-		let mark = this.data.get(id);
+		// let mark = this.data.get(id);
 		this.data.delete(id);
 		this.modifyEvent(id, "");
-        if (mark === 0) {
-            return;
-		}
-		
+
 		for (let c of this.components) {
 			c.destroy(id);
 		}
 		this.destroyEvent(id);
+	}
+
+	iter(): Iterable<number> {
+		return this.data;
 	}
 }
 
@@ -348,6 +349,10 @@ export class Multi<_E, C> extends Notify{
 		this.data.delete(id);
 		(<any>r).__notify__ = undefined;
 		return r;
+	}
+
+	iter(): Iterable<[number, C]> {
+		return this.data;
 	}
 }
 
@@ -525,6 +530,14 @@ export class World {
 	}
 
 	/**
+	 * 取到指定类型的数据（组件或单例）
+	 * @param ty1 ty1为单例类型或单例的key
+	 */
+	fetchEntity(ty1: any): Entitys<Entity> {
+		return this.entity.get(ty1);
+	}
+
+	/**
 	 * 取到一个系统的实例
 	 * @param name 系统名称
 	 */
@@ -596,11 +609,16 @@ export class World {
 	 * @param ty1 如果是组件， ty1为组件所对应的实体的类型， 如果是单例， ty1为单例类型
 	 * @param ty2 如果是单例， 不需要该参数， 如果是组件， ty2为组件类型
 	 */
-	fetchData(ty1: any, ty2?: any): Multi<Entity, Component> | Single<any> {
+	fetchData(ty1: any, ty2?: any): Multi<Entity, Component> | Single<any> | Entitys<Entity> {
 		if (ty2) {
 			return this.data.get(ty1.__world_eid__ | ty2.__world_cid__);
 		} else {
-			return this.data.get(ty1);
+			let s = this.data.get(ty1);
+			if (s) {
+				return s;
+			} else {
+				return this.entity.get(ty1);
+			}
 		}
 	}
 }
@@ -814,6 +832,9 @@ const listen = (name: string, listen_target: any): Function =>  {
 
 const setupListener = (system: System, world: World, name: string) =>  {
 	let listener = system[name];
+	if (!listener) {
+		return;
+	}
 	let registerFun;
 	if (name === "__create_listeners__") {
 		registerFun = "addCreateListener";
