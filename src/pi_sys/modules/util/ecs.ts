@@ -316,7 +316,7 @@ export class Multi<_E, C> extends Notify{
 	 * @return 组件实例
 	 */
 	get(id: number): C {
-		return this.data[id - 1];
+		return this.data.get(id);
 	}
 
 	/**
@@ -336,7 +336,6 @@ export class Multi<_E, C> extends Notify{
 		} else {
 			this.createEvent(id);
 		}
-		return this.data[id - 1];
 	}
 	
 	/**
@@ -509,31 +508,39 @@ export class World {
 	 * @param ty1 ty1为组件所对应的实体的类型
 	 * @param ty2 ty2为组件类型
 	 */
-	fetchComponent(ty1: any, ty2?: any): Multi<Entity, Component> {
-		if(typeof ty1 === "string") {
-			return this.key_data.get(ty1) as Multi<Entity, Component>;
-		} else {
-			return this.data.get(ty1.__world_eid__ | ty2.__world_cid__) as Multi<Entity, Component>;
-		}
+	fetchComponent<E extends Entity , C extends Component>(ty1: E, ty2: C): Multi<E, C> {
+		return this.data.get((<any>ty1).__world_eid__ | (<any>ty2).__world_cid__) as Multi<E, C>;
+	}
+
+	/**
+	 * 取到指定key的组件数据（组件或单例）
+	 * @param key
+	 */
+	fetchComponentByKey(key: string): Multi<Entity, Component> {
+		return this.key_data.get(key) as Multi<Entity, Component>;
 	}
 
 	/**
 	 * 取到指定类型的数据（组件或单例）
 	 * @param ty1 ty1为单例类型或单例的key
 	 */
-	fetchSingle(ty1: any): Single<any> {
-		if(typeof ty1 === "string") {
-			return this.key_data.get(ty1) as Single<any>;
-		} else {
-			return this.data.get(ty1) as Single<any>;
-		}
+	fetchSingle<S>(ty1: S): Single<S> {
+		return this.data.get(ty1) as Single<S>;
 	}
 
 	/**
-	 * 取到指定类型的数据（组件或单例）
-	 * @param ty1 ty1为单例类型或单例的key
+	 * 取到指定key的单例数据
+	 * @param key
 	 */
-	fetchEntity(ty1: any): Entitys<Entity> {
+	fetchSingleByKey(key: string): Single<any> {
+		return this.key_data.get(key) as Single<any>;
+	}
+
+	/**
+	 * 取到指定类型的数据（组件或单例）E
+	 * @param ty1 ty1为单例类型或单例的keyE
+	 */
+	fetchEntity<E extends Entity>(ty1: E): Entitys<E> {
 		return this.entity.get(ty1);
 	}
 
