@@ -15,7 +15,6 @@
  *      console.log("取不到模块");
  *   }
  */
-
 var self;
 
 try {
@@ -25,12 +24,14 @@ try {
 
 }
 
-try {
-    self = global;
-    global.self = self;
-    global.window = self;
-} catch (e) {
+if (!self) {
+    try {
+        self = global;
+        global.self = self;
+        global.window = self;
+    } catch (e) {
 
+    }
 }
 
 var _$pi = self._$pi = _$pi || (function () {
