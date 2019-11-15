@@ -401,11 +401,11 @@ export class World {
 	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key fetch数据
 	 */
 	registerComponent(eTy: any, cTy: any, key?: string) {
-		if (!eTy.__world_eid__) {
+		if (!eTy.hasOwnProperty("__world_eid__")) {
 			eTy.__world_eid__ = this.entity_id++;
 		}
 
-		if (!cTy.__world_cid__) {
+		if (!cTy.hasOwnProperty("__world_cid__")) {
 			cTy.__world_cid__ = this.component_id;
 			this.component_id += 1<<24;
 		}
