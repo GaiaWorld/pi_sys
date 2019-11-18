@@ -400,7 +400,7 @@ export class World {
 	 * @param cTy 组件类型
 	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key fetch数据
 	 */
-	registerComponent<E extends Entity, C extends Component>(eTy: new() => E, cTy: new() => C, key?: string) {
+	registerComponent<E extends Entity, C extends Component>(eTy: new(...list) => E, cTy: new(...list) => C, key?: string) {
 		if (!eTy.hasOwnProperty("__world_eid__")) {
 			(<any>eTy).__world_eid__ = this.entity_id++;
 		}
@@ -482,7 +482,7 @@ export class World {
 	 * @param eTy 实体类型
 	 * @return 实体id
 	 */
-	createEntity<E extends Entity>(eTy: new() => E): number {
+	createEntity<E extends Entity>(eTy: new(...list) => E): number {
 		let entitys = this.entity.get(eTy);
 		if (!entitys) {
 			throw new Error("createEntity fail, Entity is not exsit: " + eTy);
@@ -495,7 +495,7 @@ export class World {
 	 * @param eTy 实体的类型
 	 * @param id 实体的id
 	 */
-	destroyEntity<E extends Entity>(eTy: new() => E, id: number) {
+	destroyEntity<E extends Entity>(eTy: new(...list) => E, id: number) {
 		let entitys = this.entity.get(eTy);
 		if (!entitys) {
 			throw new Error("destroyEntity fail, Entity is not exsit: " + eTy);
@@ -508,7 +508,7 @@ export class World {
 	 * @param ty1 ty1为组件所对应的实体的类型
 	 * @param ty2 ty2为组件类型
 	 */
-	fetchComponent<E extends Entity, C extends Component>(ty1: new() => E, ty2: new() => C): Multi<E, C> {
+	fetchComponent<E extends Entity, C extends Component>(ty1: new(...list) => E, ty2: new(...list) => C): Multi<E, C> {
 		return this.data.get((<any>ty1).__world_eid__ | (<any>ty2).__world_cid__) as Multi<E, C>;
 	}
 
@@ -524,7 +524,7 @@ export class World {
 	 * 取到指定类型的数据（组件或单例）
 	 * @param ty1 ty1为单例类型或单例的key
 	 */
-	fetchSingle<S>(ty1: new() => S): Single<S> {
+	fetchSingle<S>(ty1: new(...list) => S): Single<S> {
 		return this.data.get(ty1) as Single<S>;
 	}
 
@@ -540,7 +540,7 @@ export class World {
 	 * 取到指定类型的数据（组件或单例）E
 	 * @param ty1 ty1为单例类型或单例的keyE
 	 */
-	fetchEntity<E extends Entity>(ty1: new() => E): Entitys<E> {
+	fetchEntity<E extends Entity>(ty1: new(...list) => E): Entitys<E> {
 		return this.entity.get(ty1);
 	}
 
