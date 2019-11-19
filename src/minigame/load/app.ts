@@ -312,7 +312,7 @@ export class BatchLoad extends FileLoad {
  * @description 单资源或资源对象的加载, 没有进度通知。 如果是单资源下载，会进行下载合并.
  * @example
  */
-export const loadRes = (file: IFileDependInfo) => {
+export const loadRes = (file: IFileDependInfo, objInstance?: any) => {
     let suffix = fileSuffix(file.path);
     let st = suffixMap.get(suffix);
     if (!st) {
@@ -363,7 +363,7 @@ export const loadRes = (file: IFileDependInfo) => {
             return pr;
         }
         let load = new ObjLoad();
-        load.add(file);
+        load.add({...file, obj: objInstance});
         let p = load.start();
         return waitLoad(load, objLoad, p).then((map: Map<string, any>) => map.values().next().value);
     }
