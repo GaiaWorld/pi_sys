@@ -50,7 +50,7 @@ const loadExec = (next: string) => {
         let arr = [];
         for (let i = 0; i < exec.length; i++) {
             exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
-                mod[exec[i][1]](exec[i].slice(2));
+                mod[exec[i][1]](...(exec[i].slice(2)));
                 return mod;
             }));
         }
@@ -146,8 +146,10 @@ const userAgent = (): any => {
     }
 
     // 通用
-    let h = screen.height > screen.width ? screen.height : screen.width;
-    let w = screen.height > screen.width ? screen.width : screen.height;
+    // let h = screen.height > screen.width ? screen.height : screen.width;
+	// let w = screen.height > screen.width ? screen.width : screen.height;
+	let h = screen.height;
+    let w = screen.width;
     set("device", { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
     set("language", navigator.language);
     set("timezone_offset", new Date().getTimezoneOffset());
