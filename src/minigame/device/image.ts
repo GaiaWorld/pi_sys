@@ -9,7 +9,7 @@ import { DEPEND_MGR } from '../setup/depend';
  * 导出成为资源
  */
 export const loadImageRes = (resTab: ResTab, path: string, args?: any[]) => {
-    return resTab.load(ImageType, path, args);
+    return resTab.load(ImageType, path, args || []);
 };
 
 // ======================= 立即执行
