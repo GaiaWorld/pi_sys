@@ -131,12 +131,12 @@ export interface System {
 /**
  * 组件
  */
-export interface Component {}
+export class Component {}
 
 /**
  * 实体
  */
-export interface Entity {}
+export class Entity {}
 
 /**
  * 创建事件
@@ -316,7 +316,7 @@ export class Multi<_E, C> extends Notify{
 	 * @return 组件实例
 	 */
 	get(id: number): C {
-		return this.data[id - 1];
+		return this.data.get(id);
 	}
 
 	/**
@@ -336,7 +336,6 @@ export class Multi<_E, C> extends Notify{
 		} else {
 			this.createEvent(id);
 		}
-		return this.data[id - 1];
 	}
 	
 	/**
@@ -401,18 +400,18 @@ export class World {
 	 * @param cTy 组件类型
 	 * @param key 可选， 可以为组件类型定义一个key， 后续能用该key fetch数据
 	 */
-	registerComponent(eTy: any, cTy: any, key?: string) {
-		if (!eTy.__world_eid__) {
-			eTy.__world_eid__ = this.entity_id++;
+	registerComponent<E extends Entity, C extends Component>(eTy: new(...list) => E, cTy: new(...list) => C, key?: string) {
+		if (!eTy.hasOwnProperty("__world_eid__")) {
+			(<any>eTy).__world_eid__ = this.entity_id++;
 		}
 
-		if (!cTy.__world_cid__) {
-			cTy.__world_cid__ = this.component_id;
+		if (!cTy.hasOwnProperty("__world_cid__")) {
+			(<any>cTy).__world_cid__ = this.component_id;
 			this.component_id += 1<<24;
 		}
 		
 		let mc = new Multi();
-		this.data.set(eTy.__world_eid__ | cTy.__world_cid__, mc);
+		this.data.set((<any>eTy).__world_eid__ | (<any>cTy).__world_cid__, mc);
 		if(key) {
 			this.key_data.set(key, mc);
 		}
@@ -483,7 +482,7 @@ export class World {
 	 * @param eTy 实体类型
 	 * @return 实体id
 	 */
-	createEntity(eTy: any): number {
+	createEntity<E extends Entity>(eTy: new(...list) => E): number {
 		let entitys = this.entity.get(eTy);
 		if (!entitys) {
 			throw new Error("createEntity fail, Entity is not exsit: " + eTy);
@@ -496,7 +495,7 @@ export class World {
 	 * @param eTy 实体的类型
 	 * @param id 实体的id
 	 */
-	destroyEntity(eTy: any, id: number) {
+	destroyEntity<E extends Entity>(eTy: new(...list) => E, id: number) {
 		let entitys = this.entity.get(eTy);
 		if (!entitys) {
 			throw new Error("destroyEntity fail, Entity is not exsit: " + eTy);
@@ -509,31 +508,39 @@ export class World {
 	 * @param ty1 ty1为组件所对应的实体的类型
 	 * @param ty2 ty2为组件类型
 	 */
-	fetchComponent(ty1: any, ty2?: any): Multi<Entity, Component> {
-		if(typeof ty1 === "string") {
-			return this.key_data.get(ty1) as Multi<Entity, Component>;
-		} else {
-			return this.data.get(ty1.__world_eid__ | ty2.__world_cid__) as Multi<Entity, Component>;
-		}
+	fetchComponent<E extends Entity, C extends Component>(ty1: new(...list) => E, ty2: new(...list) => C): Multi<E, C> {
+		return this.data.get((<any>ty1).__world_eid__ | (<any>ty2).__world_cid__) as Multi<E, C>;
+	}
+
+	/**
+	 * 取到指定key的组件数据（组件或单例）
+	 * @param key
+	 */
+	fetchComponentByKey<E extends Entity, C extends Component>(key: string): Multi<E, C> {
+		return this.key_data.get(key) as Multi<E, C>;
 	}
 
 	/**
 	 * 取到指定类型的数据（组件或单例）
 	 * @param ty1 ty1为单例类型或单例的key
 	 */
-	fetchSingle(ty1: any): Single<any> {
-		if(typeof ty1 === "string") {
-			return this.key_data.get(ty1) as Single<any>;
-		} else {
-			return this.data.get(ty1) as Single<any>;
-		}
+	fetchSingle<S>(ty1: new(...list) => S): Single<S> {
+		return this.data.get(ty1) as Single<S>;
 	}
 
 	/**
-	 * 取到指定类型的数据（组件或单例）
-	 * @param ty1 ty1为单例类型或单例的key
+	 * 取到指定key的单例数据
+	 * @param keyS
 	 */
-	fetchEntity(ty1: any): Entitys<Entity> {
+	fetchSingleByKey<S>(key: string): Single<S> {
+		return this.key_data.get(key) as Single<S>;
+	}
+
+	/**
+	 * 取到指定类型的数据（组件或单例）E
+	 * @param ty1 ty1为单例类型或单例的keyE
+	 */
+	fetchEntity<E extends Entity>(ty1: new(...list) => E): Entitys<E> {
 		return this.entity.get(ty1);
 	}
 

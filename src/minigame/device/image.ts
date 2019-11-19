@@ -8,19 +8,25 @@ import { DEPEND_MGR } from '../setup/depend';
 /**
  * 导出成为资源
  */
-export const loadImageRes = (resTab: ResTab, path: string) => {
-    return resTab.load(ImageType, path, [path]);
+export const loadImageRes = (resTab: ResTab, path: string, args?: any[]) => {
+    return resTab.load(ImageType, path, args || []);
 };
 
 // ======================= 立即执行
 
-const load = (_tab: ResTab, _type: string, _name: string, path: string) => {
-    let info = DEPEND_MGR.getFile(path);
+const load = (_tab: ResTab, _type: string, _name: string, args?: any[]) => {
+    let info = DEPEND_MGR.getFile(_name);
+    let objInstance;
+
     if (!info) {
-        return Promise.reject("loadImage failed, info not found, path = " + path);
+        return Promise.reject("loadImage failed, info not found, path = " + _name);
     }
 
-    return loadRes(info).then((image) => {
+    if (args && args.length > 0) {
+        objInstance = args[0];
+    }
+
+    return loadRes(info, objInstance).then((image) => {
         cc.info() && log("Res load image ok !!!");
         return image;
     });

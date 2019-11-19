@@ -64,7 +64,23 @@ class WXVideo {
     }
 }
 
+interface ObjFileInfo extends FileInfo {
+    obj?: ObjElement;
+}
+
 export class ObjLoad extends FileLoad {
+
+    // 多个加载文件
+    public files: Map<string, ObjFileInfo> = new Map();
+
+    /**
+     * @description 添加下载文件
+     * @example
+     */
+    public add(info: ObjFileInfo) {
+        this.files.set(info.path, info);
+        this.total += info.size;
+    }
 
     /**
      * @description 开始
@@ -96,7 +112,7 @@ export class ObjLoad extends FileLoad {
 }
 
 // 字体比较特别，需要单独处理
-const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
@@ -124,7 +140,7 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, WXFontFace>, c
 };
 
 // TODO: video 在兼容层没做兼容，需要兼容，但优先级不高
-const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObj = (load: ObjLoad, file: ObjFileInfo, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
 
     const status = wxdepend.checkMain(file, true);
 
@@ -188,7 +204,7 @@ const loadObj = (load: ObjLoad, file: FileInfo, eleType: "img" | "audio" | "vide
 
 };
 
-const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObjCall = (load: ObjLoad, file: ObjFileInfo, asMain: boolean, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     console.log(`loadObjCall : ${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
@@ -202,29 +218,46 @@ const loadObjCall = (load: ObjLoad, file: FileInfo, asMain: boolean, eleType: "i
         });
 };
 
-const createObj = (load: ObjLoad, file: FileInfo, localTmpPath: string, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
+const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
     switch (eleType) {
         case "img": {
-            let n = new Image();
+            let n: HTMLImageElement, oldOnLoad: Function;
+            if (file.obj) {
+                n = <HTMLImageElement>file.obj;
+                oldOnLoad = n.onload;
+            } else {
+                n = new Image();
+            }
+
             n.src = localTmpPath;
             n.onload = () => {
                 map.set(file.path, n);
                 load.loaded += file.size;
                 load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
                 callback && callback(n);
+                oldOnLoad && oldOnLoad();
             };
             break;
         }
         case "audio": {
+            let n: HTMLAudioElement, oldOnLoad: Function;
+            if (file.obj) {
+                n = <HTMLAudioElement>file.obj;
+                oldOnLoad = n.onload;
+            } else {
+                n = new Audio();
+            }
+
             /**
              * 小游戏适配层封装的 Audio
              */
-            let n = new Audio(localTmpPath);
+            n.src = localTmpPath;
             n.oncanplay = () => {
                 map.set(file.path, n);
                 load.loaded += file.size;
                 load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
                 callback && callback(n);
+                oldOnLoad && oldOnLoad();
             };
             break;
         }

@@ -10,42 +10,59 @@ import { FileLoad } from './bin';
 import { fileSuffix, fileBasename, FileInfo } from '../../pi_sys/setup/depend';
 
 // ============================== 导出
+
+interface ObjFileInfo extends FileInfo {
+    obj?: HTMLImageElement | HTMLAudioElement | HTMLFontElement | HTMLVideoElement;
+}
+
 /**
  * 初始化参数
  */
 export const init = (domainUrls: string[], downloadPath: string) => {
     urls = domainUrls;
     downPath = downloadPath;
-}
+};
 
 export class ObjLoad extends FileLoad {
+
+    // 多个加载文件
+    public files: Map<string, ObjFileInfo> = new Map();
+
+    /**
+     * @description 添加下载文件
+     * @example
+     */
+    public add(info: ObjFileInfo) {
+        this.files.set(info.path, info);
+        this.total += info.size;
+    }
 
     /**
      * @description 开始
      * @example
      */
     public start() {
-        let map = new Map;
-		let arr = [];
+        let map = new Map();
+        let arr = [];
         for (let info of this.files.values()) {
             arr.push(new Promise((resolve, reject) => {
                 let suffix = fileSuffix(info.path);
                 let type = Suffixs[suffix];
                 if (type == "img") {
-                    loadObj(this, info, map, resolve, reject)
+                    loadObj(this, info, map, resolve, reject);
                 }else if (type) {
-					loadMedia(this, info, type, map, resolve, reject)
-				} else if (FontSuffixs.has(suffix)) {
-                    loadFont(this, info, map, resolve, reject)
+                    loadMedia(this, info, type, map, resolve, reject);
+                } else if (FontSuffixs.has(suffix)) {
+                    loadFont(this, info, map, resolve, reject);
                 }
             }));
         }
-        return Promise.all(arr).then(() => { return map });
+        return Promise.all(arr).then(() => { return map; });
     }
 
 }
 // 字体比较特别，需要单独处理
-const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, callback: (f: FontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, Element>, callback: (f: FontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
@@ -56,17 +73,26 @@ const loadFont = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, call
         load.loaded += file.size;
         map.set(file.path, font as any as Element);
         load.onProcess(file.path, "objLoad", load.total, load.loaded);
-		callback(font);
+        callback(font);
     }).catch((errText) => {
         (document as any).fonts.remove(font);
         loadFont(load, file, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
     });
-}
-const loadObj = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+};
+
+const loadObj = (load: ObjLoad, file: ObjFileInfo, map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
-    let n = document.createElement('img');
+
+    let n: HTMLImageElement, oldOnLoad: Function;
+    if (file.obj) {
+        n = <HTMLImageElement>file.obj;
+        oldOnLoad = n.onload;
+    } else {
+        n = new Image();
+    }
+
     n.onerror = () => {
         n.onload = n.onerror = undefined;
         loadObj(load, file, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
@@ -75,19 +101,38 @@ const loadObj = (load: ObjLoad, file: FileInfo, map: Map<string, Element>, callb
         n.onload = n.onerror = undefined;
         map.set(file.path, n);
         load.loaded += file.size;
-		load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+        load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
         callback && callback(n);
+        oldOnLoad && oldOnLoad();
     };
     n.crossOrigin = "anonymous";
     n.src = urls[i || 0] + downPath + file.path + "?" + file.sign;
-}
+};
 
-const loadMedia = (load: ObjLoad, file: FileInfo, eleType: "audio" | "video", map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadMedia = (load: ObjLoad, file: ObjFileInfo, eleType: "audio" | "video", map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
-	let n = document.createElement(eleType);
-	n.preload = "load";
+
+    let n: HTMLAudioElement | HTMLVideoElement, oldOnLoad: Function;
+
+    if (eleType === 'audio') {
+        if (file.obj) {
+            n = <HTMLAudioElement>file.obj;
+            oldOnLoad = n.onloadstart;
+        } else {
+            n = new Audio();
+        }
+    } else {
+        if (file.obj) {
+            n = <HTMLVideoElement>file.obj;
+            oldOnLoad = n.onloadstart;
+        } else {
+            n = document.createElement(`video`);
+        }
+    }
+
+    n.preload = "load";
     n.onerror = () => {
         n.onload = n.onerror = undefined;
         loadMedia(load, file, eleType, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
@@ -96,12 +141,13 @@ const loadMedia = (load: ObjLoad, file: FileInfo, eleType: "audio" | "video", ma
         n.onload = n.onerror = undefined;
         map.set(file.path, n);
         load.loaded += file.size;
-		load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+        load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
         callback && callback(n);
+        oldOnLoad && oldOnLoad();
     };
     n.crossOrigin = "anonymous";
     n.src = urls[i || 0] + downPath + file.path + "?" + file.sign;
-}
+};
 
 // ============================== 本地
 // 下载的多域名
@@ -115,7 +161,6 @@ let Suffixs = {
     webm: "video", mp4: "video", ogg: "video", m3u8: "video",
 };
 
-let FontSuffixs = new Set(["ttf", "otf", "woff", "woff2",]);
+let FontSuffixs = new Set(["ttf", "otf", "woff", "woff2", ]);
 
 // ============================== 立即执行
-
