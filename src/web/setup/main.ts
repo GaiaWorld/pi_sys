@@ -47,7 +47,6 @@ const loadExec = (next: string, tasks?:[Promise<any>, any][]) => {
 
 	let start = load.start().then(() => {
 		bar.clear();
-		console.log("1111111111111111");
 		if (!next) {
 			loadExec("next_", tasks);
 		}
@@ -69,7 +68,6 @@ const execMfa = (index: number, tasks:[Promise<any>, any][]) => {
 		if (exec) {
 			for (let i = 0; i < exec.length; i++) {
 				exec[i][0] && import(exec[i][0]).then((mod) => {
-					console.log("2222222222222222");
 					let r = mod[exec[i][1]](...(exec[i].slice(2)));
 					if (r && r instanceof Promise) {
 						arr.push(r);
