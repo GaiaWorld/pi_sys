@@ -48,9 +48,9 @@ const loadExec = (next: string) => {
         let exec = get(next + "exec");
 
         let arr = [];
-        for (let i = 0; i < exec.length; i++) {
-            exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
-                mod[exec[i][1]](...(exec[i].slice(2)));
+        for (let execi in exec) {
+            execi[0] && arr.push(import(execi[0]).then((mod) => {
+                mod[execi[1]](...(execi.slice(2)));
                 return mod;
             }));
         }
