@@ -1,6 +1,10 @@
 {
     "compilerOptions": {
-		"target": "es2015"
-		"experimentalDecorators":true,
+		"target": "es2015",
+		"module": "esNext",
+        "moduleResolution": "node",
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "experimentalDecorators": true
     }
 }
