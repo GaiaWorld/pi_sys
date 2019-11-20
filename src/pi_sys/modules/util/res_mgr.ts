@@ -133,52 +133,13 @@ export class ResTab {
     // 超时时间
     public timeout: number = 0;
 
-    /**
-     * @description 获取当前资源的数量
-     * @example
-     */
-    public size(): number {
-        return this.tab ? this.tab.size : -1;
-    }
-
-    /**
-     * @description 是否已释放
-     */
-    public isReleased(): boolean {
-        return !this.tab;
-    }
-
-    /**
-     * @description 获取资源
-     * @example
-     */
-    public get(key: string, hasTabRes: boolean): Res {
-        const tab = this.tab;
-        if (!tab) {
-            return;
-        }
-        let r = tab.get(key);
-        if (r) {
-            return r;
-        }
-        r = resMap.get(key);
-        if (!r) {
-            return;
-        }
-
-        if (hasTabRes) {
-            this.addRes(key, r);
-        }
-        return r;
-    }
-
     /** 
      * 加载资源
      * loadArgs 加载函数的参数，调用的时候会展开
      * hasTabRes 该Res是否需要放到tab中，默认true；但是如果是注册一种资源的时候，需要加载的中间资源，可以是false
      *    比如：注册加载纹理的load函数，使用的图片，就是中间资源，可以不放在res中，填false
      */
-    load(type: string, name: string, loadArgs: any[], hasTabRes = true): Promise<Res> {
+    public load(type: string, name: string, loadArgs: any[], hasTabRes = true): Promise<Res> {
 
         let key = genKey(type, name);
 
@@ -305,6 +266,30 @@ export class ResTab {
         return r;
     }
 
+
+    /**
+     * @description 获取资源
+     * @example
+     */
+    private get(key: string, hasTabRes: boolean): Res {
+        const tab = this.tab;
+        if (!tab) {
+            return;
+        }
+        let r = tab.get(key);
+        if (r) {
+            return r;
+        }
+        r = resMap.get(key);
+        if (!r) {
+            return;
+        }
+
+        if (hasTabRes) {
+            this.addRes(key, r);
+        }
+        return r;
+    }
 }
 
 /** 
