@@ -35,18 +35,29 @@ export const setCodeObjSuffix = (code: string[], obj: string[]) => {
 // 设置配置的后缀类型及处理函数， 如果处理函数为null, 表示将配置的二进制数据临时存放。 如果已经有临时存放的配置，则会立即进行处理
 export let setCfgHandler = (
     suffix: string,
-    handler: (file: string, data: Uint8Array) => Promise<void>) => {
+    handler: (file: string, data: Uint8Array) => Promise<void>): Promise<any> => {
     suffixMap.set(suffix, SuffixType.CFG);
     handlerMap.set(suffix, handler);
     if (!handler)
-        return;
+		return Promise.resolve();
+	let arr = [];
     for (let [k, v] of cfgTempMap) {
-        let s = fileSuffix(k);
-        if (s !== suffix)
-            continue;
-        cfgFinish(k, v, handler);
+		let f = k;
+		let s: string;
+		while(true){
+			s = fileSuffix(f);
+			if (s == suffix || !s) {
+				break;
+			}
+			f = f.slice(0, f.length - s.length);
+		}
+		if (!s) {
+			continue;
+		}
+        arr.push(cfgFinish(k, v, handler));
         cfgTempMap.delete(k);
-    }
+	}
+	return Promise.all(arr);
 }
 // 设置的后缀类型及缓存时间和大小
 export const setResLru = (suffix: string, timeout: number, cacheSize: number) => {
@@ -530,8 +541,8 @@ const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
         });
     });
 }
-const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<void>) => {
-    h(file, data).then(() => {
+const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<void>): Promise<void> => {
+    return h(file, data).then(() => {
         let arr = cfgMap.get(file);
         if (!arr)
             return;

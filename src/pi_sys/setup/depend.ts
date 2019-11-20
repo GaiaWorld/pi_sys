@@ -129,6 +129,13 @@ export const fileSuffix = (file: string) => {
 	let dot = fileDot(file);
 	return (dot >= 0) ? file.slice(dot + 1) : "";
 }
+
+// // 伪后缀
+// export const filePseudoSuffix = (file: string, count: number): string => {
+// 	let dot = fileDot(file);
+// 	return (dot >= 0) ? file.slice(dot + 1) : "";
+// }
+
 export const fileBasename = (file: string) => {
 	let i = file.lastIndexOf("/");
 	let dot = fileDot(file);

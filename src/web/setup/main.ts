@@ -10,8 +10,6 @@ import { Bar } from '../device/processbar';
 import { initFileLoad } from "../device/file";
 import { initImageLoad } from "../device/image";
 
-declare var _$pi: any;
-
 export const main = (cfg: any, depend: any) => {
     envInit(cfg);
     dependInit(depend);
@@ -38,29 +36,57 @@ export const main = (cfg: any, depend: any) => {
 
 // ============================== 本地
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
-const loadExec = (next: string) => {
+const loadExec = (next: string, tasks?:[Promise<any>, any][]) => {
     let load = new BatchLoad(get(next + "load"));
     let bar = new Bar(get(next + "load_bar"));
     bar.show(get(next + "load_text"), load.total, load.loaded);
-    load.addProcess(bar.onProcess.bind(bar));
-    load.start().then(() => {
-        bar.clear();
-        let exec = get(next + "exec");
+	load.addProcess(bar.onProcess.bind(bar));
+	if(!tasks) {
+		tasks = [];
+	}
 
-        let arr = [];
-        for (let i = 0; i < exec.length; i++) {
-            exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
-                mod[exec[i][1]](...(exec[i].slice(2)));
-                return mod;
-            }));
-        }
-        Promise.all(arr).then(() => {
-            if (!next) {
-                loadExec("next_");
-            }
-        });
-    });
+	let start = load.start().then(() => {
+		bar.clear();
+		console.log("1111111111111111");
+		if (!next) {
+			loadExec("next_", tasks);
+		}
+	});
+
+	tasks.push([start, get(next + "exec")]);
+	if (!next) {
+		execMfa(0, tasks);
+	}
 };
+
+// 执行mfa， 保证执行顺序
+const execMfa = (index: number, tasks:[Promise<any>, any][]) => {
+	let t = tasks[index];
+	t[0].then(() => {
+		let arr = [];
+		let execCount = 0;
+		let exec = t[1];
+		if (exec) {
+			for (let i = 0; i < exec.length; i++) {
+				exec[i][0] && import(exec[i][0]).then((mod) => {
+					console.log("2222222222222222");
+					let r = mod[exec[i][1]](...(exec[i].slice(2)));
+					if (r && r instanceof Promise) {
+						arr.push(r);
+					}
+					execCount += 1;
+
+					if (execCount === exec.length && index < tasks.length - 1) {
+						Promise.all(arr).then(() => {
+							execMfa(index + 1, tasks);
+						});
+					}
+					return mod;
+				});
+			}
+		}
+	});
+}
 
 /**
  * @description 获得浏览器的userAgent. 设置
