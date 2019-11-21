@@ -92,8 +92,8 @@ export class Cfg{
 export const cfgMgr = new Cfg();
 
 const SCFG_SUFFIX = "scfg";
-export const sCfgHandle = () => {
-	setCfgHandler(SCFG_SUFFIX, (file: string, data: Uint8Array) => {
+export const sCfgHandle = (): Promise<any> => {
+	return setCfgHandler(SCFG_SUFFIX, (file: string, data: Uint8Array): Promise<any> => {
 		return new Promise((resolve, reject) => {
 			try {
 				const cfgs = JSON.parse(utf8Decode(data));

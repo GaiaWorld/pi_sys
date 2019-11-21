@@ -10,11 +10,9 @@ import { Bar } from '../device/processbar';
 import { initFileLoad } from "../device/file";
 import { initImageLoad } from "../device/image";
 import { initAudioLoad } from "../device/audio";
+import { initFontLoad } from "../device/font";
 import { initBlobLoad } from "../device/bloburl";
 import { initSoundLoad } from "../device/sound";
-import { initFontLoad } from "../device/font";
-
-declare var _$pi: any;
 
 export const main = (cfg: any, depend: any) => {
     envInit(cfg);
@@ -46,31 +44,79 @@ export const main = (cfg: any, depend: any) => {
 
 // ============================== 本地
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
-const loadExec = (next: string) => {
+const loadExec = (next: string): Promise<any> => {
     let load = new BatchLoad(get(next + "load"));
-    load.addFilter(`!**/scene_res/**/*.jpg`);
-    load.addFilter(`!**/scene_res/**/*.png`);
     let bar = new Bar(get(next + "load_bar"));
     bar.show(get(next + "load_text"), load.total, load.loaded);
     load.addProcess(bar.onProcess.bind(bar));
-    load.load().then(() => {
-        bar.clear();
-        let exec = get(next + "exec");
 
-        let arr = [];
-        for (let i = 0; i < exec.length; i++) {
-            exec[i][0] && arr.push(import(exec[i][0]).then((mod) => {
-                mod[exec[i][1]](exec[i].slice(2));
-                return mod;
-            }));
+    return load.start().then(() => {
+        bar.clear();
+        if (!next) {
+            let arr = [];
+            arr.push(loadExec("next_"));
+            arr.push(execMfa(get("exec")));
+            // 第二次mfa执行需要等待第二次加载和第一次mfa执行结束
+            Promise.all(arr).then(() => {
+                execMfa(get("next_exec"));
+            });
         }
-        Promise.all(arr).then(() => {
-            if (!next) {
-                loadExec("next_");
-            }
-        });
     });
 };
+
+const execMfa = (exec: any): Promise<any> => {
+    return new Promise((resolve, _reject) => {
+        if (!exec || exec.length === 0) {
+            return resolve();
+        }
+        let arr = [];
+        let execCount = 0;
+        for (let execi of exec) {
+            import(execi[0]).then((mod) => {
+                let r = mod[execi[1]](...(execi.slice(2)));
+                if (r && r instanceof Promise) {
+                    arr.push(r);
+                }
+                execCount += 1;
+                if (execCount === exec.length) {
+                    Promise.all(arr).then(() => {
+                        resolve(null);
+                    });
+                }
+                return mod;
+            });
+        }
+    });
+
+};
+
+// // 执行mfa， 保证执行顺序
+// const execMfa = (index: number, tasks:[Promise<any>, any][]) => {
+// 	let t = tasks[index];
+// 	t[0].then(() => {
+// 		let arr = [];
+// 		let execCount = 0;
+// 		let exec = t[1];
+// 		if (exec) {
+// 			for (let i = 0; i < exec.length; i++) {
+// 				exec[i][0] && import(exec[i][0]).then((mod) => {
+// 					let r = mod[exec[i][1]](...(exec[i].slice(2)));
+// 					if (r && r instanceof Promise) {
+// 						arr.push(r);
+// 					}
+// 					execCount += 1;
+
+// 					if (execCount === exec.length && index < tasks.length - 1) {
+// 						Promise.all(arr).then(() => {
+// 							execMfa(index + 1, tasks);
+// 						});
+// 					}
+// 					return mod;
+// 				});
+// 			}
+// 		}
+// 	});
+// }
 
 /**
  * @description 获得浏览器的userAgent. 设置
@@ -156,8 +202,10 @@ const userAgent = (): any => {
     }
 
     // 通用
-    let h = screen.height > screen.width ? screen.height : screen.width;
-    let w = screen.height > screen.width ? screen.width : screen.height;
+    // let h = screen.height > screen.width ? screen.height : screen.width;
+    // let w = screen.height > screen.width ? screen.width : screen.height;
+    let h = screen.height;
+    let w = screen.width;
     set("device", { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
     set("language", navigator.language);
     set("timezone_offset", new Date().getTimezoneOffset());

@@ -1,6 +1,6 @@
 /*
  * 应用加载模块
- * 根据使用的不同将文件分为4类。
+ * 根据使用的不同将文件分为4类。 
  *  代码code, 配置(必须同步使用)cfg, 对象资源(异步使用，对象形式)obj, 资源(异步使用，二进制数据形式)res
  * 可以设置代码加载器。 比如web版的release版将代码设置为配置，使用配置处理函数来加载代码。而微信小游戏，可能是分包下载。
  * 可以设置对象资源加载器。比如web版没有对象类型。而微信小游戏，使用download将对象资源下载到临时目录，并维护对应的depend。
@@ -30,29 +30,40 @@ export const setCodeObjSuffix = (code: string[], obj: string[]) => {
     for (let s of obj) {
         suffixMap.set(s, SuffixType.OBJ);
     }
-};
+}
 
 // 设置配置的后缀类型及处理函数， 如果处理函数为null, 表示将配置的二进制数据临时存放。 如果已经有临时存放的配置，则会立即进行处理
 export let setCfgHandler = (
     suffix: string,
-    handler: (file: string, data: Uint8Array) => Promise<void>) => {
+    handler: (file: string, data: Uint8Array) => Promise<void>): Promise<any> => {
     suffixMap.set(suffix, SuffixType.CFG);
     handlerMap.set(suffix, handler);
     if (!handler)
-        return;
+		return Promise.resolve();
+	let arr = [];
     for (let [k, v] of cfgTempMap) {
-        let s = fileSuffix(k);
-        if (s !== suffix)
-            continue;
-        cfgFinish(k, v, handler);
+		let f = k;
+		let s: string;
+		while(true){
+			s = fileSuffix(f);
+			if (s == suffix || !s) {
+				break;
+			}
+			f = f.slice(0, f.length - s.length);
+		}
+		if (!s) {
+			continue;
+		}
+        arr.push(cfgFinish(k, v, handler));
         cfgTempMap.delete(k);
-    }
-};
+	}
+	return Promise.all(arr);
+}
 // 设置的后缀类型及缓存时间和大小
 export const setResLru = (suffix: string, timeout: number, cacheSize: number) => {
     suffixMap.set(suffix, SuffixType.RES);
     resMap.set(suffix, new Lru(timeout, cacheSize));
-};
+}
 
 // 整理资源
 export const collect = (time: number) => {
@@ -62,8 +73,8 @@ export const collect = (time: number) => {
         v.collect_size();
         exit = exit && v.size === 0;
     }
-    return exit;
-};
+    return exit
+}
 
 /**
  * @description 加载指定文件或目录(以/结尾)及子目录下的所有代码、配置、资源和对象。
@@ -75,7 +86,7 @@ export class BatchLoad extends FileLoad {
     dirOrFiles: string[];
     fileFilters: RegExp[][] = [[], []]; // 第0位为匹配路径， 第1位为排除匹配
     dirFilters: RegExp[][] = [[], []]; // 第0位为匹配路径， 第1位为排除匹配
-    loads: Set<FileLoad> = new Set();
+    loads: Set<FileLoad> = new Set;
 
     /**
      * @description 加载指定文件或目录(以/结尾)及子目录下的所有代码、配置、资源和对象
@@ -134,7 +145,7 @@ export class BatchLoad extends FileLoad {
             let p = download.start();
             arr.push(waitLoad(download, downLoad, p.then(handleBinMap)));
             this.addLoad(download);
-        }
+		}
         if (codeload.files.size) {
             let p = codeload.start();
             arr.push(waitLoad(codeload, codeLoad, p));
@@ -206,7 +217,7 @@ export class BatchLoad extends FileLoad {
             let lru = resMap.get(suffix);
             if (lru.map.get(file.path))
                 return;
-            this.downOrload(file, onlyDown, binload, download, result);
+            this.downOrload(file, onlyDown, binload, download, result)
         } else if (st === SuffixType.OBJ) {
             if ((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result))
                 objload.add(file);
@@ -216,18 +227,18 @@ export class BatchLoad extends FileLoad {
             if (rr) {
                 result.push(new Promise((resolve, reject) => {
                     rr.push((val: any, err?: any) => {
-                        err ? reject(err) : resolve(val);
+                        err ? reject(err) : resolve(val)
                     });
                 }));
-                return;
+                return
             } else if (rr === null) {// 忽略已经处理过的配置
-                return;
-            }
+                return
+			};
             // 是否在cfgTempMap
             let rd = cfgTempMap.get(file.path);
             if (rd)
                 return;
-            this.downOrload(file, false, binload, download, result);
+            this.downOrload(file, false, binload, download, result)
         } else {
             if (this.checkLoad(file, codeLoad, result))
                 codeload.add(file);
@@ -255,7 +266,7 @@ export class BatchLoad extends FileLoad {
                 if (!this.loads.has(load)) {
                     result.push(new Promise((resolve, reject) => {
                         load.addResult((val: any, err?: any) => {
-                            err ? reject(err) : resolve(val);
+                            err ? reject(err) : resolve(val)
                         });
                     }));
                     this.addLoad(load);
@@ -263,11 +274,11 @@ export class BatchLoad extends FileLoad {
                 return false;
             }
         }
-        return true;
+        return true
     }
     // 在下载器上添加进度通知
     addLoad(load: FileLoad) {
-        load.addProcess(this.processValue.bind(this));
+        load.addProcess(this.processValue.bind(this))
         this.loads.add(load);
         this.total += load.total;
         this.loaded += load.loaded;
@@ -283,7 +294,7 @@ export class BatchLoad extends FileLoad {
             let suffix = fileSuffix(url);
             let st = suffixMap.get(suffix);
             if (st === SuffixType.CFG)
-                handleCfg(url, data, suffix);
+                handleCfg(url, data, suffix)
         }
     }
 }
@@ -330,7 +341,7 @@ export const loadRes = (file: FileInfo) => {
             }
             return new Promise((resolve, reject) => {
                 downWait.addResult((map: Map<string, Uint8Array>, err?: any) => {
-                    err ? reject(err) : resolve(map.get(file.path));
+                    err ? reject(err) : resolve(map.get(file.path))
                 });
             });
         }
@@ -343,35 +354,35 @@ export const loadRes = (file: FileInfo) => {
         let p = load.start();
         return waitLoad(load, objLoad, p).then((map: Map<string, any>) => map.values().next().value);
     }
-};
+}
 
 /**
  * @description 获得正在下载的数量
  * @example
  */
 export const downingCount = () => {
-    return downLoad.size;
+    return downLoad.size
 };
 /**
  * @description 获得正在加载的数量
  * @example
  */
 export const loadingCount = () => {
-    return localLoad.size;
+    return localLoad.size
 };
 /**
  * @description 获得正在加载的代码数量
  * @example
  */
 export const codeingCount = () => {
-    return codeLoad.size;
+    return codeLoad.size
 };
 /**
  * @description 获得正在加载的对象数量
  * @example
  */
 export const objingCount = () => {
-    return objLoad.size;
+    return objLoad.size
 };
 
 // ============================== 本地
@@ -422,12 +433,12 @@ class Lru {
         if (!r)
             return;
         this.size -= r.data.byteLength;
-        return r.data;
+        return r.data
     }
     collect_time(time: number) {
         for (let [k, v] of this.map) {
             if (v.time < time)
-                break;
+                break
             this.map.delete(k);
             this.size -= v.data.byteLength;
         }
@@ -449,14 +460,14 @@ const startCollectTimer = () => {
         return;
     timerStart = true;
     collectTimer();
-};
+}
 // 启动整理定时器
 const collectTimer = () => {
     if (collect(Date.now()))
         timerStart = false;
     else
         setTimeout(collectTimer, 100);
-};
+}
 
 // 判断文件是否匹配
 const filter = (path: string, within: RegExp[], without: RegExp[]) => {
@@ -468,31 +479,31 @@ const filter = (path: string, within: RegExp[], without: RegExp[]) => {
         if (r.test(path))
             return false;
     }
-    return true;
-};
+    return true
+}
 // 等待加载
 const waitLoad = (load: FileLoad, set: Set<any>, p: Promise<any>) => {
     set.add(load);
     //p.finally(()=>set.delete(load))
-    return p.then((r) => {
+    return p.then(r => {
         set.delete(load);
         return r;
-    }).catch((e) => {
-        return set.delete(load);
+    }).catch(e => {
+        return set.delete(load)
     });
-};
+}
 // 检查等待加载
 const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
     for (let load of set) {
         if (load.files.has(file.path)) { // 文件正在加载
             return new Promise((resolve, reject) => {
                 load.addResult((val: any, err?: any) => {
-                    err ? reject(err) : resolve(val.values().next().value);
+                    err ? reject(err) : resolve(val.values().next().value)
                 });
             });
         }
     }
-};
+}
 
 // 二进制文件表的后处理
 const handleBinMap = (map: Map<string, Uint8Array>) => {
@@ -508,7 +519,7 @@ const handleBinMap = (map: Map<string, Uint8Array>) => {
         }
     }
     return Promise.all(arr);
-};
+}
 // 二进制文件的后处理
 const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
     let arr = cfgMap.get(file);
@@ -526,19 +537,19 @@ const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
     }
     return new Promise((resolve, reject) => {
         arr.push((val: any, err?: any) => {
-            err ? reject(err) : resolve();
+            err ? reject(err) : resolve()
         });
     });
-};
-const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<void>) => {
-    h(file, data).then(() => {
+}
+const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<void>): Promise<void> => {
+    return h(file, data).then(() => {
         let arr = cfgMap.get(file);
         if (!arr)
             return;
         cfgMap.set(file, null);
         for (let f of arr) {
-            f(null);
+            f(null)
         }
     });
-};
+}
 // ============================== 立即执行

@@ -177,7 +177,7 @@ export class LocalLoad extends FileLoad {
             if (isAsset(localSign[path])) {
                 p = read(info.path);
             }else {
-                p = localStore.read(info.sign);
+                p = localStore.read(path);
             }
             arr.push(p.then((value: any) => {
                 map.set(path, value);
@@ -370,7 +370,7 @@ const localInitCheck = (store: Store, signs: any, save: boolean) => {
         let info = getFile(k);
         if (info && getSign(k) === info.sign)
             continue;
-        store.delete(signs[k]);
+        store.delete(k);
         delete signs[k];
         save = true;
     }
@@ -449,7 +449,7 @@ const savefile = (path: string, data: Uint8Array, sign: string) => {
     // }
     // (<any>window).ttt[path][0]++;
     // (<any>window).ttt[path][1].push(data.length);
-    return localStore.write(sign, new Uint8Array(data.slice().buffer)).then((_) => {
+    return localStore.write(path, new Uint8Array(data.slice().buffer)).then((_) => {
         localSign[path] = sign;
         localTempSign[path] = sign;
      });
