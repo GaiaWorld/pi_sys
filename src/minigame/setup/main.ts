@@ -10,6 +10,7 @@ import { setCfgHandler, setCodeObjSuffix, setResLru, BatchLoad } from '../load/a
 import { CodeLoad, init as codeInit } from '../load/code';
 import { LoadMgr } from '../load/mgr';
 import { initKeyBoard } from '../device/keyboard';
+import { initSoundLoad } from '../device/sound';
 
 /**
  * 项目初始化入口
@@ -51,6 +52,7 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     initFileLoad();
     initAudioLoad();
     initKeyBoard();
+    initSoundLoad(cfg.domains, cfg.batch_path);
 };
 
 /**

@@ -11,7 +11,7 @@ import { FileSys } from '../device/filesys';
 import { WX_DEPEND_MGR } from '../device/wxdepend';
 
 // ============================== 导出
-type ObjElement = WXFontFace | HTMLImageElement | HTMLAudioElement | WXVideo;
+type ObjElement = FontFace | HTMLImageElement | HTMLAudioElement | WXVideo;
 
 let wxdepend: WX_DEPEND_MGR;
 
@@ -27,7 +27,7 @@ export const init = (domainUrls: string[], downloadPath: string, _wxdepend: WX_D
     formatMainPath = _formatMainPath;
 };
 
-class WXFontFace {
+class FontFace {
     public name: string;
     public family: string;
     public localPath: string;
@@ -112,12 +112,12 @@ export class ObjLoad extends FileLoad {
 }
 
 // 字体比较特别，需要单独处理
-const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, FontFace>, callback: (f: FontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
 
-    const font = new WXFontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
+    const font = new FontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
     font.localPath = formatMainPath(file.path);
 
     // 添加到全局的 FontFaceSet 中，小游戏中直接用 Set 模拟
@@ -240,10 +240,11 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
             break;
         }
         case "audio": {
-            let n: HTMLAudioElement, oldOnLoad: Function;
+            let n: HTMLAudioElement, oldOnLoad: Function, oldCanplay: Function;
             if (file.obj) {
                 n = <HTMLAudioElement>file.obj;
                 oldOnLoad = n.onload;
+                oldCanplay = n.oncanplay;
             } else {
                 n = new Audio();
             }
@@ -257,7 +258,7 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
                 load.loaded += file.size;
                 load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
                 callback && callback(n);
-                oldOnLoad && oldOnLoad();
+                oldCanplay && oldCanplay();
             };
             break;
         }

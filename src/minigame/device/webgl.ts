@@ -445,13 +445,13 @@ export class WebGLInstance {
             this.timestamp = timestamp;
 
             this.renderLoop(timestamp);
-    
+
             requestAnimationFrame(this.loop);
         }
     }
     public renderLoop(timestamp: number) {}
     public destroy() {
-        console.log('Progress WebGL destroy.')
+        console.log('Progress WebGL destroy.');
         this._isDestroy = true;
         this.textureMap.forEach((tex) => {
             this.delTexture(tex);

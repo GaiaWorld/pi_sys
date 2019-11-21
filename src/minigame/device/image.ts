@@ -14,7 +14,7 @@ export const loadImageRes = (resTab: ResTab, path: string, args?: any[]) => {
 
 // ======================= 立即执行
 
-const load = (_tab: ResTab, _type: string, _name: string, args?: any[]) => {
+const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]) => {
     let info = DEPEND_MGR.getFile(_name);
     let objInstance;
 

@@ -9,6 +9,10 @@ import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_
 import { Bar } from '../device/processbar';
 import { initFileLoad } from "../device/file";
 import { initImageLoad } from "../device/image";
+import { initAudioLoad } from "../device/audio";
+import { initBlobLoad } from "../device/bloburl";
+import { initSoundLoad } from "../device/sound";
+import { initFontLoad } from "../device/font";
 
 declare var _$pi: any;
 
@@ -34,16 +38,22 @@ export const main = (cfg: any, depend: any) => {
     }
     initImageLoad();
     initFileLoad();
+    initAudioLoad();
+    initFontLoad();
+    initBlobLoad(cfg.domains, cfg.root_path);
+    initSoundLoad(cfg.domains, cfg.root_path);
 };
 
 // ============================== 本地
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
 const loadExec = (next: string) => {
     let load = new BatchLoad(get(next + "load"));
+    load.addFilter(`!**/scene_res/**/*.jpg`);
+    load.addFilter(`!**/scene_res/**/*.png`);
     let bar = new Bar(get(next + "load_bar"));
     bar.show(get(next + "load_text"), load.total, load.loaded);
     load.addProcess(bar.onProcess.bind(bar));
-    load.start().then(() => {
+    load.load().then(() => {
         bar.clear();
         let exec = get(next + "exec");
 
