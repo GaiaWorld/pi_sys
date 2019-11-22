@@ -8,16 +8,20 @@ interface FontArg {
     fontFamily: string;
 }
 
+let globalFontResTab: ResTab;
+
+export const FontType = `FONT_RES`;
+
 /**
  * 导出成为资源
  */
-export const loadFontRes = (resTab: ResTab, path: string, arg?: FontArg) => {
-    return resTab.load(FontType, path, [arg]);
+export const loadFontRes = (path: string, arg?: FontArg) => {
+    return globalFontResTab.load(FontType, path, [arg]);
 };
 
 // ======================= 立即执行
 
-const load = (_tab: ResTab, _type: string, _name: string, args: any[]) => {
+const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]) => {
     let info = getFile(_name);
 
     if (!info) {
@@ -34,9 +38,8 @@ const destroy = (_font: HTMLFontElement) => {
     cc.info() && log("Res release image !!!");
 };
 
-export const FontType = `FONT_RES`;
-
 // 往Res中注册Image对象
 export const initImageLoad = () => {
     register(FontType, load, destroy);
+    globalFontResTab = new ResTab();
 };

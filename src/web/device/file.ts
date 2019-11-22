@@ -1,5 +1,4 @@
 import { ResTab, register } from "../../pi_sys/modules/util/res_mgr";
-import { BatchLoad } from "../../pi_sys/load/app";
 import { getStore } from "../load/bin";
 import { getFile } from "../../pi_sys/setup/depend";
 
@@ -15,7 +14,7 @@ const loadFile: LoadCall = (tab: ResTab, _type: 'RES_TYPE_FILE', _name: string, 
     return new Promise((resolve, reject) => {
             const info = getFile(_name);
             if (info) {
-                getStore().read(info.sign).then((res) => {
+                getStore().read(info.path).then((res) => {
                     if (ArrayBuffer.isView(res)) {
                         res = (<Uint8Array>res).slice().buffer;
                     }

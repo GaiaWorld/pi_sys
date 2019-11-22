@@ -76,16 +76,16 @@ export const set = (p: string, level: LogLevel) =>{
 	}
 }
 export const debug = (mod?: string) =>{
-	return check(LogLevel.debug);
+	return check(LogLevel.debug, mod);
 }
 export const info = (mod?: string) =>{
-	return check(LogLevel.info);
+	return check(LogLevel.info, mod);
 }
 export const warn = (mod?: string) =>{
-	return check(LogLevel.warn);
+	return check(LogLevel.warn, mod);
 }
 export const error = (mod?: string) =>{
-	return check(LogLevel.error);
+	return check(LogLevel.error, mod);
 }
 export const cc = {
 	debug: debug,

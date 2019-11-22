@@ -9,9 +9,10 @@ import { DEPEND_MGR, FileInfo } from '../setup/depend';
 import { wx } from '../device/wx';
 import { FileSys } from '../device/filesys';
 import { WX_DEPEND_MGR } from '../device/wxdepend';
+import { WXFontFace } from '../device/font';
 
 // ============================== 导出
-type ObjElement = FontFace | HTMLImageElement | HTMLAudioElement | WXVideo;
+type ObjElement = WXFontFace | HTMLImageElement | HTMLAudioElement | WXVideo;
 
 let wxdepend: WX_DEPEND_MGR;
 
@@ -26,35 +27,6 @@ export const init = (domainUrls: string[], downloadPath: string, _wxdepend: WX_D
     wxdepend = _wxdepend;
     formatMainPath = _formatMainPath;
 };
-
-class FontFace {
-    public name: string;
-    public family: string;
-    public localPath: string;
-    public src: string;
-
-    constructor(name: string, src: string) {
-        this.name = name;
-        this.src = src;
-    }
-
-    public load(): Promise<any> {
-        const p = FileSys.download(this.src, this.localPath)
-                    .then((localPath) => {
-                        const family = wx.loadFont(localPath);
-                        if (family === null) {
-                            this.family = family;
-                            this.localPath = localPath;
-                        } else {
-                            this.family = family;
-                            this.localPath = localPath;
-                        }
-                        return localPath;
-                    });
-
-        return p;
-    }
-}
 
 class WXVideo {
     public src: string;
@@ -112,12 +84,12 @@ export class ObjLoad extends FileLoad {
 }
 
 // 字体比较特别，需要单独处理
-const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, FontFace>, callback: (f: FontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
 
-    const font = new FontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
+    const font = new WXFontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
     font.localPath = formatMainPath(file.path);
 
     // 添加到全局的 FontFaceSet 中，小游戏中直接用 Set 模拟
@@ -290,6 +262,6 @@ const Suffixs = {
 };
 
 // 小游戏只支持 ttf 格式的字体
-const FontSuffixs = new Set(["ttf"]);
+const FontSuffixs = new Set(["ttf", "TTF"]);
 
 // ============================== 立即执行
