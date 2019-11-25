@@ -5,6 +5,7 @@
 // ============================== 导入
 import { FileLoad } from './bin';
 import { FileInfo } from '../../pi_sys/setup/depend';
+import { createURL } from '../device/bloburl';
 
 // ============================== 导出
 /**
@@ -33,6 +34,36 @@ export class CodeLoad extends FileLoad {
         return Promise.all(arr);
     }
 }
+
+export const loadJSFromAB = (data: ArrayBuffer) => {
+    return new Promise((resolve, reject) => {
+        if (ArrayBuffer.isView(data)) {
+            data = (<Uint8Array>data).slice().buffer;
+        }
+        const url = createURL(data, '');
+
+        let head = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+        let n = document.createElement('script');
+        n.charset = 'utf8';
+        n.onerror = (err) => {
+            n.onload = n.onerror = undefined;
+            head.removeChild(n);
+            // loadJS(load, file, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
+            reject(err);
+        };
+        n.onload = () => {
+            n.onload = n.onerror = undefined;
+            head.removeChild(n);
+            // load.loaded += file.size;
+            // load.onProcess(file.path, "codeLoad", load.total, load.loaded);
+            resolve(n);
+        };
+        n.async = true;
+        n.crossOrigin = "anonymous";
+        n.src = url;
+        head.appendChild(n);
+    });
+};
 
 const loadJS = (load: CodeLoad, file: FileInfo, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {

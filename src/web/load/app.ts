@@ -11,7 +11,7 @@
 import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
 import { FileInfo, fileSuffix, DirInfo, getDir, getFile } from "../../pi_sys/setup/depend";
 import { cc, log, pattern } from "../../pi_sys/feature/log";
-import { CodeLoad } from './code';
+import { CodeLoad, loadJSFromAB } from './code';
 import { ObjLoad } from './object';
 
 // ============================== 导出
@@ -208,8 +208,11 @@ export class BatchLoad extends FileLoad {
                 return;
             this.downOrload(file, onlyDown, binload, download, result);
         } else if (st === SuffixType.OBJ) {
-            if ((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result))
-                objload.add(file);
+            // if ((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result))
+                this.downOrload(file, onlyDown, binload, download, result);
+
+            // if ((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result))
+            //     objload.add(file);
         } else if (st === SuffixType.CFG) {
             // 先检查是否在cfgMap
             let rr = cfgMap.get(file.path);
@@ -231,6 +234,8 @@ export class BatchLoad extends FileLoad {
         } else {
             if (this.checkLoad(file, codeLoad, result))
                 codeload.add(file);
+
+            // this.downOrload(file, onlyDown, binload, download, result);
         }
     }
     // 下载或加载
@@ -282,8 +287,11 @@ export class BatchLoad extends FileLoad {
         if (type === "fileLocalLoad") { // 提前解析配置
             let suffix = fileSuffix(url);
             let st = suffixMap.get(suffix);
-            if (st === SuffixType.CFG)
+            if (st === SuffixType.CFG) {
                 handleCfg(url, data, suffix);
+            } else if (st === SuffixType.CODE) {
+                // loadJSFromAB(data);
+            }
         }
     }
 }
@@ -292,19 +300,21 @@ export class BatchLoad extends FileLoad {
  * @description 单资源或资源对象的加载, 没有进度通知。 如果是单资源下载，会进行下载合并.
  * @example
  */
-export const loadRes = (file: FileInfo, objInstance?: any) => {
+export const loadRes = (file: FileInfo, arg?: any) => {
     let suffix = fileSuffix(file.path);
     let st = suffixMap.get(suffix);
     if (!st) {
         cc.warn() && log("load, invalid suffix, file:" + file);
         return Promise.reject("load, invalid suffix, file:" + file);
     }
-    if (st === SuffixType.RES) {
+    // if (st === SuffixType.RES) {
         // 如果Lru中有，则从lru中删除，然后直接返回
         let lru = resMap.get(suffix);
-        let r = lru.remove(file.path);
-        if (r)
-            return Promise.resolve(r);
+        if (lru) {
+            let r = lru.remove(file.path);
+            if (r)
+                return Promise.resolve(r);
+        }
         if (file.sign === getSign(file.path)) {// 如果是本地加载
             let pr = checkWaitLoad(file, localLoad);
             if (pr)
@@ -312,7 +322,13 @@ export const loadRes = (file: FileInfo, objInstance?: any) => {
             let load = new LocalLoad();
             load.add(file);
             let p = load.start();
-            return waitLoad(load, localLoad, p).then((map: Map<string, any>) => map.values().next().value);
+            return waitLoad(load, localLoad, p).then((map: Map<string, any>) => {
+                const data = map.values().next().value;
+                if (!data) {
+                    console.log(`err`);
+                }
+                return data;
+            });
         } else {
             let pr = checkWaitLoad(file, downLoad);
             if (pr)
@@ -330,19 +346,28 @@ export const loadRes = (file: FileInfo, objInstance?: any) => {
             }
             return new Promise((resolve, reject) => {
                 downWait.addResult((map: Map<string, Uint8Array>, err?: any) => {
-                    err ? reject(err) : resolve(map.get(file.path));
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const data = map.get(file.path);
+                        if (!data) {
+                            console.log('err');
+                        }
+                        resolve(map.get(file.path));
+                    }
+                    // err ? reject(err) : resolve(map.get(file.path));
                 });
             });
         }
-    } else if (st === SuffixType.OBJ) {
-        let pr = checkWaitLoad(file, objLoad);
-        if (pr)
-            return pr;
-        let load = new ObjLoad();
-        load.add({...file, obj: objInstance});
-        let p = load.start();
-        return waitLoad(load, objLoad, p).then((map: Map<string, any>) => map.values().next().value);
-    }
+    // } else if (st === SuffixType.OBJ) {
+    //     let pr = checkWaitLoad(file, objLoad);
+    //     if (pr)
+    //         return pr;
+    //     let load = new ObjLoad();
+    //     load.add({...file, arg});
+    //     let p = load.start();
+    //     return waitLoad(load, objLoad, p).then((map: Map<string, any>) => map.values().next().value);
+    // }
 };
 
 /**
@@ -505,6 +530,8 @@ const handleBinMap = (map: Map<string, Uint8Array>) => {
         } else if (st === SuffixType.RES) {
             let lru = resMap.get(suffix);
             lru.add(k, v);
+        } else if (st === SuffixType.CODE) {
+            // arr.push(loadJSFromAB(v));
         }
     }
     return Promise.all(arr);

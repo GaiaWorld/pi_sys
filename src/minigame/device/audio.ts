@@ -13,16 +13,20 @@ const loadAudio: LoadCall = (tab: ResTab, _type: 'RES_TYPE_AUDIO', _name: string
         return Promise.reject("loadImage failed, info not found, path = " + _name);
     }
 
-    return loadRes(info).then((audio) => {
+    return loadRes(info, args[0]).then((audio) => {
         cc.info() && log("Res load image ok !!!");
         return audio;
     });
 };
 
-export const loadAudioRes = (tab: ResTab, path: string) => {
-    return tab.load(RES_TYPE_AUDIO, path, [path]);
+const destroy = (audio: HTMLAudioElement) => {
+    (<any>audio).destroy && (<any>audio).destroy();
+};
+
+export const loadAudioRes = (tab: ResTab, path: string, arg?: HTMLAudioElement) => {
+    return tab.load(RES_TYPE_AUDIO, path, [arg]);
 };
 
 export const initAudioLoad = () => {
-    register(RES_TYPE_AUDIO, loadAudio, () => {});
+    register(RES_TYPE_AUDIO, loadAudio, destroy);
 };

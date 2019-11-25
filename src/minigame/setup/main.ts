@@ -10,6 +10,8 @@ import { setCfgHandler, setCodeObjSuffix, setResLru, BatchLoad } from '../load/a
 import { CodeLoad, init as codeInit } from '../load/code';
 import { LoadMgr } from '../load/mgr';
 import { initKeyBoard } from '../device/keyboard';
+import { initSoundLoad } from '../device/sound';
+import { initFontLaod } from '../device/font';
 
 /**
  * 项目初始化入口
@@ -51,6 +53,8 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     initFileLoad();
     initAudioLoad();
     initKeyBoard();
+    initSoundLoad(cfg.domains, cfg.batch_path);
+    initFontLaod();
 };
 
 /**
@@ -142,8 +146,8 @@ const userAgent = (): any => {
     }
 
     // 通用
-    const h = screen.height > screen.width ? screen.height : screen.width;
-    const w = screen.height > screen.width ? screen.width : screen.height;
+    const h = (<any>document.documentElement).screen.availHeight;
+    const w = (<any>document.documentElement).screen.availWidth;
 
     ENV_MGR.setENV('device', { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
     ENV_MGR.setENV('language', navigator.language);
@@ -152,112 +156,167 @@ const userAgent = (): any => {
 
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
 const loadExec = (next: string = '') => {
+    return new Promise((resolve, reject) => {
+        const pakageList = ENV_MGR.getENV(`${next}load`);
 
-    const pakageList = ENV_MGR.getENV(`${next}load`);
+        const dirList = [];
+        const dirCfg = [];
+        pakageList.forEach((key) => {
+            dirList.push(`${key}/`);
+            dirCfg.push(`${key}/combine.dcss`);
+            dirCfg.push(`${key}/combine.scfg`);
+            dirCfg.push(`${key}/combine.widcfg`);
+            dirCfg.push(`${key}/combine.kcss`);
+            dirCfg.push(`${key}/png.imgcfg`);
+            dirCfg.push(`${key}/jpg.imgcfg`);
+        });
 
-    const dirList = [];
-    const dirCfg = [];
-    pakageList.forEach((key) => {
-        dirList.push(`${key}/`);
-        dirCfg.push(`${key}/combine.dcss`);
-        dirCfg.push(`${key}/combine.scfg`);
-        dirCfg.push(`${key}/combine.widcfg`);
-        dirCfg.push(`${key}/combine.kcss`);
-        dirCfg.push(`${key}/png.imgcfg`);
-        dirCfg.push(`${key}/jpg.imgcfg`);
+        if (pakageList) {
+
+            const bar = new Bar(ENV_MGR.getENV(`${next}load_bar`));
+
+            const load = new CodeLoad();
+
+            pakageList.forEach((pkName) => {
+                load.add(new FileInfo([pkName, 0, '0']));
+            });
+            load.addProcess(bar.onProcess);
+
+            // const batchLoad = new BatchLoad(dirList);
+            // batchLoad.addFilter('*/**/*.widcfg');
+            // batchLoad.addFilter('*/**/*.dcss');
+            // batchLoad.addFilter('*/**/*.kcss');
+            // batchLoad.addFilter('*/**/*.xcfg');
+            // batchLoad.addFilter('*/**/*.json');
+            // batchLoad.addFilter('*/**/*.imgcfg');
+
+            const batchLoad = new BatchLoad(dirCfg);
+            // batchLoad.addProcess(bar.onProcess);
+
+            bar.show(ENV_MGR.getENV(`${next}load_text`), load.total, load.loaded);
+
+            const promiseCode = load.start();
+            // const promiseCfg  = batchLoad.load(false);
+
+            promiseCode.then(() => {
+                console.log('Code.OK');
+                bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
+
+                const promiseCfg  = batchLoad.load(false);
+                batchLoad.addProcess(bar.onProcess);
+                bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
+                promiseCfg.then(() => {
+                    console.log('bar.clear');
+
+                    try {
+                        bar.clear();
+                    } catch (err) {
+                        console.error(err);
+                    }
+
+                    // const execArr = ENV_MGR.getENV(`${next}exec`);
+
+                    // const arr = [];
+                    // for (let i = 0; i < execArr.length; i++) {
+
+                    //     const mode = (<any>window)._$pi.require(execArr[i][0]);
+                    //     mode && mode[execArr[i][1]](execArr[i].slice(2));
+
+                    //     // execArr[i][0] && arr.push(import(execArr[i][0]).then((mod) => {
+                    //     //     mod[execArr[i][1]](execArr[i].slice(2));
+
+                    //     //     return mod;
+                    //     // }));
+                    // }
+
+                    resolve(null);
+
+                    if (!next) {
+                        Promise.all([execMfa(ENV_MGR.getENV("exec")), loadExec('next_')]).then(() => {
+                            execMfa(ENV_MGR.getENV("next_exec"));
+                        });
+                    }
+
+                });
+            });
+
+            // Promise.all([promiseCode, promiseCfg]).then(() => {
+            //     console.log('bar.clear');
+
+            //     try {
+            //         bar.clear();
+            //     } catch (err) {
+            //         console.error(err);
+            //     }
+
+            //     const execArr = ENV_MGR.getENV(`${next}exec`);
+
+            //     const arr = [];
+            //     for (let i = 0; i < execArr.length; i++) {
+
+            //         const mode = (<any>window)._$pi.require(execArr[i][0]);
+            //         mode && mode[execArr[i][1]](execArr[i].slice(2));
+
+            //         // execArr[i][0] && arr.push(import(execArr[i][0]).then((mod) => {
+            //         //     mod[execArr[i][1]](execArr[i].slice(2));
+
+            //         //     return mod;
+            //         // }));
+            //     }
+
+            //     if (!next) {
+            //         loadExec('next_');
+            //     }
+            // });
+        }
+
+    });
+};
+
+// ============================== 本地
+// // 显示加载进度条， 开始加载load， 加载完毕后执行exec
+// const loadExec = (next: string): Promise<any> => {
+//     let load = new BatchLoad(ENV_MGR.getENV(next + "load"));
+//     let bar = new Bar(ENV_MGR.getENV(next + "load_bar"));
+//     bar.show(ENV_MGR.getENV(next + "load_text"), load.total, load.loaded);
+//     load.addProcess(bar.onProcess.bind(bar));
+
+//     return load.start().then(() => {
+//         bar.clear();
+//         if (!next) {
+//             let arr = [];
+//             arr.push(loadExec("next_"));
+//             arr.push(execMfa(ENV_MGR.getENV("exec")));
+//             // 第二次mfa执行需要等待第二次加载和第一次mfa执行结束
+//             Promise.all(arr).then(() => {
+//                 execMfa(ENV_MGR.getENV("next_exec"));
+//             });
+//         }
+//     });
+// };
+
+const execMfa = (exec: any): Promise<any> => {
+    return new Promise((resolve, _reject) => {
+        if (!exec || exec.length === 0) {
+            return resolve();
+        }
+        let arr = [];
+        let execCount = 0;
+        for (let execi of exec) {
+            import(execi[0]).then((mod) => {
+                let r = mod[execi[1]](...(execi.slice(2)));
+                if (r && r instanceof Promise) {
+                    arr.push(r);
+                }
+                execCount += 1;
+                if (execCount === exec.length) {
+                    Promise.all(arr).then(() => {
+                        resolve(null);
+                    });
+                }
+                return mod;
+            });
+        }
     });
 
-    if (pakageList) {
-
-        const bar = new Bar(ENV_MGR.getENV(`${next}load_bar`));
-
-        const load = new CodeLoad();
-
-        pakageList.forEach((pkName) => {
-            load.add(new FileInfo([pkName, 0, '0']));
-        });
-        load.addProcess(bar.onProcess);
-
-        // const batchLoad = new BatchLoad(dirList);
-        // batchLoad.addFilter('*/**/*.widcfg');
-        // batchLoad.addFilter('*/**/*.dcss');
-        // batchLoad.addFilter('*/**/*.kcss');
-        // batchLoad.addFilter('*/**/*.xcfg');
-        // batchLoad.addFilter('*/**/*.json');
-        // batchLoad.addFilter('*/**/*.imgcfg');
-
-        const batchLoad = new BatchLoad(dirCfg);
-        // batchLoad.addProcess(bar.onProcess);
-
-        bar.show(ENV_MGR.getENV(`${next}load_text`), load.total, load.loaded);
-
-        const promiseCode = load.start();
-        // const promiseCfg  = batchLoad.load(false);
-
-        promiseCode.then(() => {
-            console.log('Code.OK');
-            bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
-
-            const promiseCfg  = batchLoad.load(false);
-            batchLoad.addProcess(bar.onProcess);
-            bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
-            promiseCfg.then(() => {
-                console.log('bar.clear');
-
-                try {
-                    bar.clear();
-                } catch (err) {
-                    console.error(err);
-                }
-
-                const execArr = ENV_MGR.getENV(`${next}exec`);
-
-                const arr = [];
-                for (let i = 0; i < execArr.length; i++) {
-
-                    const mode = (<any>window)._$pi.require(execArr[i][0]);
-                    mode && mode[execArr[i][1]](execArr[i].slice(2));
-
-                    // execArr[i][0] && arr.push(import(execArr[i][0]).then((mod) => {
-                    //     mod[execArr[i][1]](execArr[i].slice(2));
-
-                    //     return mod;
-                    // }));
-                }
-
-                if (!next) {
-                    loadExec('next_');
-                }
-            });
-        });
-
-        // Promise.all([promiseCode, promiseCfg]).then(() => {
-        //     console.log('bar.clear');
-
-        //     try {
-        //         bar.clear();
-        //     } catch (err) {
-        //         console.error(err);
-        //     }
-
-        //     const execArr = ENV_MGR.getENV(`${next}exec`);
-
-        //     const arr = [];
-        //     for (let i = 0; i < execArr.length; i++) {
-
-        //         const mode = (<any>window)._$pi.require(execArr[i][0]);
-        //         mode && mode[execArr[i][1]](execArr[i].slice(2));
-
-        //         // execArr[i][0] && arr.push(import(execArr[i][0]).then((mod) => {
-        //         //     mod[execArr[i][1]](execArr[i].slice(2));
-
-        //         //     return mod;
-        //         // }));
-        //     }
-
-        //     if (!next) {
-        //         loadExec('next_');
-        //     }
-        // });
-    }
 };

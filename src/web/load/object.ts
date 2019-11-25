@@ -1,18 +1,45 @@
-/**
- * 资源对象加载器， 图片、声音、视频, 字体
-*/
-declare class FontFace {
-    constructor(name: string, url: string);
-    load(): Promise<any>;
-}
+
 // ============================== 导入
 import { FileLoad } from './bin';
 import { fileSuffix, fileBasename, FileInfo } from '../../pi_sys/setup/depend';
+import { HttpDownload } from '../feature/http';
+import { loadBlobRes, loadBlobRes2 } from '../device/bloburl';
+
+/**
+ * 资源对象加载器， 图片、声音、视频, 字体
+*/
+class FontFace {
+    public name: string;
+    public family: string;
+    public localPath: string;
+    public src: string;
+
+    constructor(name: string, src: string) {
+        this.name = name;
+        this.src = src;
+    }
+
+    public load(): Promise<any> {
+
+        const p = new Promise((resolve, rejects) => {
+            const ele = <HTMLFontElement>document.createElement('font');
+            ele.onload = () => {
+                resolve(this);
+            };
+        });
+
+        return p;
+    }
+}
 
 // ============================== 导出
+interface AudioArg {
+    audio?: HTMLAudioElement;
+    asArrayBuffer?: boolean;
+}
 
 interface ObjFileInfo extends FileInfo {
-    obj?: HTMLImageElement | HTMLAudioElement | HTMLFontElement | HTMLVideoElement;
+    arg?: HTMLImageElement | HTMLFontElement | HTMLVideoElement | HTMLAudioElement;
 }
 
 /**
@@ -46,15 +73,27 @@ export class ObjLoad extends FileLoad {
         let arr = [];
         for (let info of this.files.values()) {
             arr.push(new Promise((resolve, reject) => {
-                let suffix = fileSuffix(info.path);
-                let type = Suffixs[suffix];
-                if (type == "img") {
-                    loadObj(this, info, map, resolve, reject);
-                }else if (type) {
-                    loadMedia(this, info, type, map, resolve, reject);
-                } else if (FontSuffixs.has(suffix)) {
-                    loadFont(this, info, map, resolve, reject);
-                }
+                loadBlobRes2(info.path).then((res) => {
+                    let suffix = fileSuffix(info.path);
+                    let type = Suffixs[suffix];
+                    if (type == "img") {
+                        loadObj(this, <any>{ ...info,  path: res }, map, resolve, reject);
+                    }else if (type) {
+                        loadMedia(this, <any>{ ...info,  path: res }, type, map, resolve, reject);
+                    } else if (FontSuffixs.has(suffix)) {
+                        loadFont(this, <any>{ ...info,  path: res }, map, resolve, reject);
+                    }
+                });
+                // let suffix = fileSuffix(info.path);
+                // let type = Suffixs[suffix];
+                // if (type == "img") {
+                //     loadObj(this, info, map, resolve, reject);
+                // }else if (type) {
+                //     loadMedia(this, info, type, map, resolve, reject);
+                // } else if (FontSuffixs.has(suffix)) {
+                //     loadFont(this, info, map, resolve, reject);
+                // }
+
             }));
         }
         return Promise.all(arr).then(() => { return map; });
@@ -86,8 +125,8 @@ const loadObj = (load: ObjLoad, file: ObjFileInfo, map: Map<string, Element>, ca
     }
 
     let n: HTMLImageElement, oldOnLoad: Function;
-    if (file.obj) {
-        n = <HTMLImageElement>file.obj;
+    if (file.arg) {
+        n = <HTMLImageElement>file.arg;
         oldOnLoad = n.onload;
     } else {
         n = new Image();
@@ -106,30 +145,87 @@ const loadObj = (load: ObjLoad, file: ObjFileInfo, map: Map<string, Element>, ca
         oldOnLoad && oldOnLoad();
     };
     n.crossOrigin = "anonymous";
-    n.src = urls[i || 0] + downPath + file.path + "?" + file.sign;
+
+    // loadBlobRes2(file.path).then((blobres) => {
+    //     n.src = blobres;
+    // });
+
+    // n.src = urls[i || 0] + downPath + file.path + "?" + file.sign;
+    n.src = file.path;
 };
 
-const loadMedia = (load: ObjLoad, file: ObjFileInfo, eleType: "audio" | "video", map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+/**
+ * 外部传入 Audio 表示使用audio下载，否则表示下载为ArrayBuffer
+ * @param load
+ * @param file
+ * @param eleType
+ * @param map
+ * @param callback
+ * @param errorCallback
+ * @param errText
+ * @param i
+ */
+const loadAudio = (load: ObjLoad, file: ObjFileInfo, eleType: "audio", map: Map<string, Element>, callback: (e: Element | ArrayBuffer) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+    if (i >= urls.length) {
+        return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
+    }
+
+    if (eleType === 'audio') {
+        if (file.arg) {
+            let n: HTMLAudioElement | HTMLVideoElement, oldOnLoad: Function;
+
+            n = <HTMLAudioElement>file.arg;
+            oldOnLoad = n.onloadstart;
+
+            n.preload = "load";
+            n.onerror = () => {
+                n.onload = n.onerror = undefined;
+                loadAudio(load, file, eleType, map, callback, errorCallback, errText, i === undefined ? 0 : i + 1);
+            };
+            n.onloadstart = () => {
+                n.onload = n.onerror = undefined;
+                map.set(file.path, n);
+                load.loaded += file.size;
+                load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+                callback && callback(n);
+                oldOnLoad && oldOnLoad();
+            };
+            n.crossOrigin = "anonymous";
+
+            // loadBlobRes2(file.path).then((blobres) => {
+            //     n.src = blobres;
+            // });
+
+            // n.src = urls[i || 0] + downPath + file.path + "?" + file.sign;
+            n.src = file.path;
+
+        } else {
+            // n = new Audio();
+
+            let path = downPath + file.path + "?" + file.sign;
+            let down = new HttpDownload(urls, path, 1000, 1);
+            down.onprocess = () => {
+
+            };
+            down.start().then((value: ArrayBuffer) => {
+                callback && callback(value);
+            });
+        }
+    }
+};
+
+const loadMedia = (load: ObjLoad, file: ObjFileInfo, eleType: "video", map: Map<string, Element>, callback: (e: Element) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
         return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
     }
 
     let n: HTMLAudioElement | HTMLVideoElement, oldOnLoad: Function;
 
-    if (eleType === 'audio') {
-        if (file.obj) {
-            n = <HTMLAudioElement>file.obj;
-            oldOnLoad = n.onloadstart;
-        } else {
-            n = new Audio();
-        }
+    if (file.arg) {
+        n = <HTMLVideoElement>file.arg;
+        oldOnLoad = n.onloadstart;
     } else {
-        if (file.obj) {
-            n = <HTMLVideoElement>file.obj;
-            oldOnLoad = n.onloadstart;
-        } else {
-            n = document.createElement(`video`);
-        }
+        n = document.createElement(`video`);
     }
 
     n.preload = "load";

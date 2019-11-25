@@ -26,6 +26,7 @@ import { HttpDownload, ProcessFunc } from "../feature/http";
 import { utf8Decode } from "../../pi_sys/feature/string";
 
 // ============================== 导出
+export const SIGN_KEY = '';
 export interface ResultFunc {
     (val: any, err?: any): void;
 }
@@ -61,7 +62,7 @@ export const init = (storeName: string, domainUrls: string[], downloadPath: stri
         return Promise.resolve();
     }
     return Store.create(storeName).then((store) => {
-        return store.read("").then((value) => {
+        return store.read(SIGN_KEY).then((value) => {
             if (value) {
                 localInitCheck(store, value, false);
             } else {
@@ -84,7 +85,7 @@ export const init = (storeName: string, domainUrls: string[], downloadPath: stri
  * @example
  */
 export const getSign = (path: string) => {
-    return formatSign(localSign[path]);
+    return formatSign(localTempSign[path]);
 };
 /**
  * @description 检查文件是否会从本地加载, 返回 true | false | undefined
@@ -176,7 +177,7 @@ export class LocalLoad extends FileLoad {
             if (isAsset(localSign[path])) {
                 p = read(info.path);
             }else {
-                p = localStore.read(info.path);
+                p = localStore.read(path);
             }
             arr.push(p.then((value: any) => {
                 map.set(path, value);
@@ -237,8 +238,12 @@ export class Download extends FileLoad {
             result = new Result;
         }
         return Promise.all(downWait).then((_v) => {
-            this.onResult(map);
-            Promise.all(localSignWait).then(() => localStore.write("", localSign));
+            this.onResult(fileMap);
+
+            // 所有文件写本地结束
+            Promise.all(localSignWait).then(() => {
+                localStore.write(SIGN_KEY, localSign);
+            });
             return fileMap;
         }).catch((reason) => {
             this.onResult(null, reason);
@@ -276,6 +281,7 @@ export class Download extends FileLoad {
             this.onProcess(path, 'fileDownload', this.total, this.loaded);
         };
         return down.start().then((value) => {
+            setLocalTempSign(files);
             this.save((value as ArrayBuffer), localSignWait, fileMap);
         });
     }
@@ -308,7 +314,12 @@ export const setLocalSign = (files: FileInfo[]) => {
     for (let f of files) {
         localSign[f.path] = f.sign;
     }
-    return localStore.write("", localSign);
+    return localStore.write(SIGN_KEY, localSign);
+};
+export const setLocalTempSign = (files: FileInfo[]) => {
+    for (let f of files) {
+        localTempSign[f.path] = f.sign;
+    }
 };
 // ============================== 本地
 // 下载的多域名
@@ -323,6 +334,8 @@ let sizeLimit = 8 * 1024 * 1024;
 let localStore: Store;
 // 本地签名表
 let localSign: any;
+// 临时本地签名表 - 下载成功时即记录,用于检查文件是否为本地(已下载成功即认为为本地文件)
+let localTempSign: any;
 
 class Result {
     url = "";
@@ -349,6 +362,7 @@ const isAsset = (sign: string) => {
 const localInitCheck = (store: Store, signs: any, save: boolean) => {
     localStore = store;
     localSign = signs;
+    localTempSign = signs;
     // 删除不存在或签名不正确的文件
     for (let k in signs) {
         if (!signs.hasOwnProperty(k))
@@ -361,7 +375,7 @@ const localInitCheck = (store: Store, signs: any, save: boolean) => {
         save = true;
     }
     if (save)
-        store.write("", signs);
+        store.write(SIGN_KEY, signs);
 };
 
 // 获取文件的去掉第一个后缀的文件名
@@ -427,8 +441,17 @@ const replace = (s: string) => {
 
 // 保存文件
 const savefile = (path: string, data: Uint8Array, sign: string) => {
-    return localStore.write(path, data).then((_) => {
+    // if (!(<any>window).ttt) {
+    //     (<any>window).ttt = {};
+    // }
+    // if (!(<any>window).ttt[path]) {
+    //     (<any>window).ttt[path] = [0, []];
+    // }
+    // (<any>window).ttt[path][0]++;
+    // (<any>window).ttt[path][1].push(data.length);
+    return localStore.write(path, new Uint8Array(data.slice().buffer)).then((_) => {
         localSign[path] = sign;
+        localTempSign[path] = sign;
      });
 };
 

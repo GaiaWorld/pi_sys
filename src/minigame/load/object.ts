@@ -9,6 +9,7 @@ import { DEPEND_MGR, FileInfo } from '../setup/depend';
 import { wx } from '../device/wx';
 import { FileSys } from '../device/filesys';
 import { WX_DEPEND_MGR } from '../device/wxdepend';
+import { WXFontFace } from '../device/font';
 
 // ============================== 导出
 type ObjElement = WXFontFace | HTMLImageElement | HTMLAudioElement | WXVideo;
@@ -26,35 +27,6 @@ export const init = (domainUrls: string[], downloadPath: string, _wxdepend: WX_D
     wxdepend = _wxdepend;
     formatMainPath = _formatMainPath;
 };
-
-class WXFontFace {
-    public name: string;
-    public family: string;
-    public localPath: string;
-    public src: string;
-
-    constructor(name: string, src: string) {
-        this.name = name;
-        this.src = src;
-    }
-
-    public load(): Promise<any> {
-        const p = FileSys.download(this.src, this.localPath)
-                    .then((localPath) => {
-                        const family = wx.loadFont(localPath);
-                        if (family === null) {
-                            this.family = family;
-                            this.localPath = localPath;
-                        } else {
-                            this.family = family;
-                            this.localPath = localPath;
-                        }
-                        return localPath;
-                    });
-
-        return p;
-    }
-}
 
 class WXVideo {
     public src: string;
@@ -240,10 +212,11 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
             break;
         }
         case "audio": {
-            let n: HTMLAudioElement, oldOnLoad: Function;
+            let n: HTMLAudioElement, oldOnLoad: Function, oldCanplay: Function;
             if (file.obj) {
                 n = <HTMLAudioElement>file.obj;
                 oldOnLoad = n.onload;
+                oldCanplay = n.oncanplay;
             } else {
                 n = new Audio();
             }
@@ -257,7 +230,7 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
                 load.loaded += file.size;
                 load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
                 callback && callback(n);
-                oldOnLoad && oldOnLoad();
+                oldCanplay && oldCanplay();
             };
             break;
         }
@@ -289,6 +262,6 @@ const Suffixs = {
 };
 
 // 小游戏只支持 ttf 格式的字体
-const FontSuffixs = new Set(["ttf"]);
+const FontSuffixs = new Set(["ttf", "TTF"]);
 
 // ============================== 立即执行
