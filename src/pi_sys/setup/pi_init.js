@@ -243,13 +243,16 @@ var _$pi = self._$pi = _$pi || (function () {
     const require = (names, func, currModName) => {
         if (!Array.isArray(names)) {
             names = [names];
-        }
+		}
+		
+		//如果是debug模式，模块在10秒内未被构建成功， 将打印错误信息
+		requireDebug(names, currModName);
 
         let mods = [];
         let waitCount = names.length;
         for (let i = 0; i < names.length; ++i) {
             let name = relativePath(names[i], currModName);
-            let mod = getModule(name);
+			let mod = getModule(name);
             depend(name);
             if (mod.isReadyBuild()) {
                 execModule(name);
@@ -541,7 +544,50 @@ var _$pi = self._$pi = _$pi || (function () {
         }
 
         return dir + filePath;
-    }
+	}
+	
+	const requireDebug = (names, currModName) => {
+		let envModule = _$pi._modules.get("pi_sys/setup/env");
+		let is_debug = envModule && envModule.exports && envModule.exports.get && envModule.exports.get("debug");
+		if (!is_debug) {
+			return;
+		}
+
+		let mods = [];
+		if (is_debug) {
+			for (let i = 0; i < names.length; ++i) {
+				let name = relativePath(names[i], currModName);
+				let mod = getModule(name);
+				mods.push(mod);
+			}
+		}
+
+		setTimeout(() => {
+			for(let modi of mods) {
+				if (!modi.isBuild()) {
+					let message = {name: modi.name};
+					requireDebugWait(message);
+					console.error("require module fail, module: ", message);
+				}
+			}
+		}, 10000);
+	}
+
+	const requireDebugWait = (wait) => {
+		let mod = _modules.get(wait.name);
+		if (!mod || !mod.isDefined()) {
+			wait.reason = "not defined";
+		} else if(!mod.isBuild()) {
+			wait.reason = "wait depend";
+			if (mod.waitNameSet) {
+				for (wait1 of mod.waitNameSet) {
+					wait.wait = {name: wait1};
+					requireDebugWait(wait.wait);
+					break;
+				}
+			}
+		}
+	}
 
     // ====================== 返回
 
