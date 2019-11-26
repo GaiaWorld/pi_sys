@@ -32,42 +32,46 @@ const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]): Promi
     //     return image;
     // });
     return new Promise((resolve, reject) => {
-        loadRes(info, objInstance).then((ab: ArrayBuffer) => {
-            cc.info() && log("Res load image ok !!!");
-            if (ArrayBuffer.isView(ab)) {
-                ab = (<Uint8Array>ab).slice().buffer;
-            }
-            if (!ab) {
-                console.log(`err loadimageRes`);
-                console.log(info);
-            }
+        loadRes(info, objInstance)
+            .then((ab: ArrayBuffer) => {
+                cc.info() && log("Res load image ok !!!");
+                if (ArrayBuffer.isView(ab)) {
+                    ab = (<Uint8Array>ab).slice().buffer;
+                }
+                if (!ab) {
+                    console.log(`err loadimageRes`);
+                    console.log(info);
+                }
 
-            const url = createURL(ab, "");
-            let oldOnload, oldError;
+                const url = createURL(ab, "");
+                let oldOnload, oldError;
 
-            if (!objInstance) {
-                objInstance = new Image();
-            } else {
-                oldOnload = objInstance.onload;
-                oldError = objInstance.onerror;
-            }
+                if (!objInstance) {
+                    objInstance = new Image();
+                } else {
+                    oldOnload = objInstance.onload;
+                    oldError = objInstance.onerror;
+                }
 
-            objInstance.onload = () => {
-                resolve(objInstance);
-                oldOnload && oldOnload();
-            };
+                objInstance.onload = () => {
+                    resolve(objInstance);
+                    oldOnload && oldOnload();
+                };
 
-            objInstance.onerror = (err) => {
-                console.log(_name);
-                console.log(ab);
-                reject(err);
-                oldError && oldError();
-            };
+                objInstance.onerror = (err) => {
+                    console.log(_name);
+                    console.log(ab);
+                    reject(err);
+                    oldError && oldError();
+                };
 
-            objInstance.src = url;
+                objInstance.src = url;
 
-            // return objInstance;
-        });
+                // return objInstance;
+            })
+            .catch((err) => {
+                console.warn(err);
+            });
     });
 };
 

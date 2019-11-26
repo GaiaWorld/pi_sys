@@ -302,6 +302,7 @@ export class Download extends FileLoad {
             fileMap.set(path, data);
             this.onProcess(path, "downFile", 0, 0, data);
             localSignWait.push(savefile(path, data, info ? info.sign : ""));
+            data = undefined;
         }
     }
 }

@@ -98,7 +98,7 @@ export class Store {
 	 * @description 写入数据，如果键名存在则替换
 	 * @example
 	 */
-    public write(key: number | string, data) : Promise<any> {
+    public write(key: number | string, data: Uint8Array) : Promise<any> {
         return new Promise((resolve, reject) => {
             if (this.map) {
                 this.map.set(key, data);
@@ -116,6 +116,7 @@ export class Store {
                     }
                     this.writing = false;
                     this._write();
+                    data = undefined;
                 };
                 tx.onerror = (err) => {
                     reject(err);

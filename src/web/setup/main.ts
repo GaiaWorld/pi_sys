@@ -204,8 +204,8 @@ const userAgent = (): any => {
     // 通用
     // let h = screen.height > screen.width ? screen.height : screen.width;
     // let w = screen.height > screen.width ? screen.width : screen.height;
-    let h = screen.height;
-    let w = screen.width;
+    let h = window.innerHeight;
+    let w = window.innerWidth;
     set("device", { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
     set("language", navigator.language);
     set("timezone_offset", new Date().getTimezoneOffset());
