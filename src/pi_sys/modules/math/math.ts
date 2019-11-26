@@ -8,6 +8,10 @@
 // ============================== 导入
 
 // ============================== 导出
+export const UINT32_MAX = -1 >>> 0;
+export const UINT32_SIZE = UINT32_MAX + 1;
+export const INT32_SIZE = UINT32_SIZE / 2;
+export const INT32_MAX = INT32_SIZE - 1;
 
 /**
  * 浮点误差

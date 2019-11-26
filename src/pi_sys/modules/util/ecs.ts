@@ -818,6 +818,17 @@ export const writeNotify = (target: any, propertyKey: string, descriptor?: Prope
 		return descriptor;
 	}
 }
+/**
+ * 单数字组件
+*/
+export class NumComponent extends Component{
+    @writeNotify
+    value: number;
+	constructor(value=0) {
+		super();
+		this.value = value;
+	}
+}
 
 interface Listener<E> {
 	(event: E):void
