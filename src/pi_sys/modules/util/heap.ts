@@ -23,6 +23,12 @@ export class Heap<T> {
 	public empty() {
 		return this.array.length === 0;
 	}
+	/**
+	 * 大小
+	 */
+	public size() {
+		return this.array.length;
+	}
 
 	/**
 	 * 返回内部数组
