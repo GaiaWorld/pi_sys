@@ -51,6 +51,12 @@ export class Heap<T> {
 		--this.array.length;
 		this.down(index);
 	}
+	/**
+	 * 获得但不弹出堆顶元素
+	 */
+	public get() {
+		return this.array[0];
+	}
 
 	/**
 	 * 删除堆顶元素并返回
