@@ -461,7 +461,7 @@ export class World {
 				// 未声明读数据或写数据， 直接将world作为该数据传入run函数
 				if (!data[0]) {
 					(<any>data)[0] = this;
-				} else if(!data[0]){
+				} else if(!data[1]){
 					(<any>data)[1] = this;
 				}
 				// 如果使用@read 或@write 装饰器声明run方法需要的数据， 运行run时， 直接将fetch到的数据作为参数传给run
