@@ -321,6 +321,7 @@ const objCall1 = (obj: any, func: string, args: any[]) => {
 };
 
 // TODO 以后改成树结构-并且是写时复制的，就可以任意重入。而且删除效率高。js对象不能直接比较大小，可以转成字符串后的hash来比较大小。如果是乱序执行，则只需要1个树。如果是按照放入的顺序执行，则需要2个树。sbtree或fingertree
+// TODO 改为用set实现
 // tslint:disable:max-classes-per-file
 class HandlerArray {
     public handling: number = 0;
