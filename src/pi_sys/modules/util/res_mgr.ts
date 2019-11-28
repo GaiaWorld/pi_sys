@@ -1,8 +1,8 @@
 /**
  * 通用的资源管理，二级缓冲。
- * 
+ *
  * 1、注册，以 Texture 为例，前提：image已经注册到res去了。
- *   
+ *
  *   register("texture", (resTab, type, name, path, imageConfig) => {
  *          // load的最后一个参数，代表需不需要为该资源添加引用计数
  *          // 如果是外部人员使用，默认是true；
@@ -10,16 +10,16 @@
  *          return resTab.load("image", name, [path, imageConfig], false).then(imageRes => {
  *              // 在这里调用创建纹理的实现
  *              let texture = createTexture(imageRes.link);
- *              
+ *
  *              return Promise.resolve(texture);
  *           });
  *    }, (texture) => {
  *       // 在这里释放纹理，texture就是上面加载函数创建的纹理
  *       destroyTexture(texture);
  *    });
- * 
+ *
  * 2、加载，以纹理为例：
- *    
+ *
  *    resTab.load("texture", name, [path, config]).then(textureRes => {
  *       // 纹理就是 textureRes.link
  *    });
@@ -66,6 +66,10 @@ export class Res {
             throw new Error("res create failed, type isn't registered, type = " + type);
         }
 
+        if (resMap.get(genKey(type, name))) {
+            console.error(`resMap 中已创建了目标Res.此处再次创建`);
+        }
+
         this.name = name;
         this.type = type;
         this.link = link;
@@ -77,7 +81,8 @@ export class Res {
      * 注意：每个ResTab最多只能调用一次use
      */
     public use(): void {
-        ++this._count;
+        this._count = this._count + 1;
+        // console.warn(`${this.key} use ${this._count}`);
     }
 
     /**
@@ -85,7 +90,8 @@ export class Res {
      * 注意：只有ResTab能调用该函数
      */
     public unuse(timeout: number, nowTime: number): void {
-        --this._count;
+        this._count = this._count - 1;
+        // console.warn(`${this.key} unuse ${this._count}`);
         if (timeout > this.timeout) {
             this.timeout = timeout;
         }
@@ -101,8 +107,10 @@ export class Res {
             return;
         }
         if (nowTime < this.timeout) {
+            // console.warn(`${this.key} release ${this._count}`);
             timeoutRelease(this, nowTime, this.timeout);
         } else {
+            // console.warn(`${this.key} destroy ${this._count}`);
             resMap.delete(this.key);
             this.destroy();
         }
@@ -133,7 +141,7 @@ export class ResTab {
     // 超时时间
     public timeout: number = 0;
 
-    /** 
+    /**
      * 加载资源
      * loadArgs 加载函数的参数，调用的时候会展开
      * hasTabRes 该Res是否需要放到tab中，默认true；但是如果是注册一种资源的时候，需要加载的中间资源，可以是false
@@ -266,7 +274,6 @@ export class ResTab {
         return r;
     }
 
-
     /**
      * @description 获取资源
      * @example
@@ -292,7 +299,7 @@ export class ResTab {
     }
 }
 
-/** 
+/**
  * 注册：类型名，以及该类型的加载函数，还有销毁函数
  * @param load 加载函数，返回Promise<link>，通过返回值，可以取到 将要 放到res.link的数据
  * @param destroy 销毁函数，用于销毁res.link
@@ -304,8 +311,8 @@ export const register = (type: string, load: (tab: ResTab, type: string, name: s
     typeMap.set(type, {
         load,
         destroy
-    })
-}
+    });
+};
 
 /**
  * @description 获得资源主表
@@ -347,6 +354,11 @@ const collect = (): void => {
     timerRef = 0;
     timerTime = Number.MAX_SAFE_INTEGER;
     for (const res of arr) {
+        // res.release(time);
+        const res_ = resMap.get(res.key);
+        if (res !== res_) {
+            console.warn(`即将销毁的 res 与 当前缓存的 res 不一致 ${res.key}`);
+        }
         res.release(time);
     }
 };
@@ -356,17 +368,21 @@ const collect = (): void => {
  * @example
  */
 const timeoutRelease = (res: Res, nowTime: number, releaseTime: number): void => {
-    releaseArray.push(res);
+    if (releaseArray.indexOf(res) >= 0) {
+        console.warn(`release again`);
+    } else {
+        releaseArray.push(res);
+    }
     if (timerTime <= releaseTime + minReleaseTimeout) {
         return;
     }
     if (timerRef) {
         clearTimeout(timerRef);
     }
-    timerTime = (releaseTime > nowTime + minReleaseTimeout) ? releaseTime : nowTime + minReleaseTimeout;
+    timerTime = (releaseTime > (nowTime + minReleaseTimeout)) ? releaseTime : nowTime + minReleaseTimeout;
     timerRef = setTimeout(collect, timerTime - nowTime);
 };
 
 const genKey = (type: string, name: string) => {
     return `${type}:${name}`;
-}
+};

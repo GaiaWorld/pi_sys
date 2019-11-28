@@ -40,16 +40,33 @@ export class Heap<T> {
 	}
 
 	/**
+	 * 查找指定元素的位置
+	 */
+	public findIndex(predicate: (value: T, index: number, obj: T[]) => unknown, thisArg?: any) {
+		return this.array.findIndex(predicate, thisArg);
+	}
+	/**
 	 * 删除元素
 	 */
 	public remove(value: T) {
-		const index = this.array.indexOf(value);
+		this.removeByIndex(this.array.indexOf(value));
+	}
+	/**
+	 * 删除指定位置的元素
+	 */
+	public removeByIndex(index: number) {
 		if (index < 0) return;
-
 		// 把最后的叶子赋值给index位置
-		this.array[index] = this.array[this.array.length - 1];
-		--this.array.length;
+		const len = this.array.length - 1;
+		this.array[index] = this.array[len];
+		this.array.length = len;
 		this.down(index);
+	}
+	/**
+	 * 获得但不弹出堆顶元素
+	 */
+	public get() {
+		return this.array[0];
 	}
 
 	/**
@@ -81,7 +98,6 @@ export class Heap<T> {
 		const element = arr[index];
 
 		let curr = index;
-		const child = index;
 		let left = curr * 2 + 1;
 		let right = left + 1;
 

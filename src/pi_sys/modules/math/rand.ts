@@ -38,12 +38,12 @@ export class Rand {
 		let k = 0;
 		let tmp = 0;
 		for (; k < ARRAY_SIZE_MINUS_M; k++) {
-		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1) | 0] & INT32_MAX);
-		  data[k] = data[(k + M) | 0] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
+		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1)] & INT32_MAX);
+		  data[k] = data[(k + M)] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
 		}
 		for (; k < ARRAY_MAX; k++) {
-		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1) | 0] & INT32_MAX);
-		  data[k] = data[(k - ARRAY_SIZE_MINUS_M) | 0] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
+		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1)] & INT32_MAX);
+		  data[k] = data[(k - ARRAY_SIZE_MINUS_M)] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
 		}
 		tmp = (data[ARRAY_MAX] & INT32_SIZE) | (data[0] & INT32_MAX);
 		data[ARRAY_MAX] = data[M - 1] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
@@ -70,7 +70,7 @@ export class Rand {
 		  this.refreshData(this.data);
 		  this.index = 0;
 		}
-		this.index = (this.index + count) | 0;
+		this.index += count;
 	}
 	/**
 	 * @description 获得一个指定范围（左闭右开区间）的随机浮点数
