@@ -1,4 +1,4 @@
-_$pi.define("pi_sys/modules/math/bigint/biginteger", ["require", "exports"], function (require, exports) {
+
 var bigInt = (function (undefined) {
     "use strict";
 
@@ -1294,9 +1294,9 @@ var bigInt = (function (undefined) {
 })();
 
 // Node.js check
-//if (typeof module !== "undefined" && module.hasOwnProperty("exports")) {
-    exports.bigInt = bigInt;
-//}
+if (typeof module !== "undefined" && module.hasOwnProperty("exports")) {
+    module.exports = bigInt;
+}
 
 //amd check
 // if (typeof define === "function" && define.amd) {
@@ -1305,4 +1305,3 @@ var bigInt = (function (undefined) {
 //     });
 // }
 
-});

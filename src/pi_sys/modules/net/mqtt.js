@@ -1,4 +1,4 @@
-_$pi.define("pi_sys/modules/net/mqtt", ["require", "exports"], function (require1, exports1) {
+
     /*******************************************************************************
      * Copyright (c) 2013 IBM Corp.
      *
@@ -86,24 +86,23 @@ _$pi.define("pi_sys/modules/net/mqtt", ["require", "exports"], function (require
     /* jshint shadow:true */
     (function ExportLibrary(root, factory) {
         // 微信小游戏环境下， this 为 undefined
-        root = root || window;
+		root = root || window;
+		var r = factory();
         if (_$pi) {
             if (typeof root.Paho === 'undefined') {
                 root.Paho = {};
             }
-            root.Paho.MQTT = factory();
+            root.Paho.MQTT = r;
         } else 
-        if (typeof exports === 'object' && typeof module === 'object') {
-            module.exports = factory();
+        if (typeof exports === 'object') {
+            module.exports = r;
         } else if (typeof define === 'function' && define.amd) {
             define(factory);
-        } else if (typeof exports === 'object') {
-            exports = factory();
         } else {
             if (typeof root.Paho === 'undefined') {
                 root.Paho = {};
             }
-            root.Paho.MQTT = factory();
+            root.Paho.MQTT = r;
         }
     })(this, function LibraryFactory() {
 
@@ -2651,6 +2650,4 @@ _$pi.define("pi_sys/modules/net/mqtt", ["require", "exports"], function (require
         return PahoMQTT;
     });
 
-    exports1.MqttClient = Paho.MQTT.Client;
-    exports1.Message = Paho.MQTT.Message;
-});
+    
