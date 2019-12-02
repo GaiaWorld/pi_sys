@@ -14,7 +14,7 @@ const ARRAY_SIZE_MINUS_M = ARRAY_SIZE - M;
 const A = 0x9908b0df;
 
 export class Rand {
-	private readonly data: Int32Array;
+	private data: Int32Array;
 	private index: number; // integer within [0, 624]
 
 	constructor(seed = 1) {
@@ -27,26 +27,6 @@ export class Rand {
 		}
 		this.data = data;
 		this.index = ARRAY_SIZE;
-	}
-	private value(v: number) {
-		v ^= v >>> 11;
-		v ^= (v << 7) & 0x9d2c5680;
-		v ^= (v << 15) & 0xefc60000;
-		return v ^ (v >>> 18);
-	}
-	private refreshData(data: Int32Array) {
-		let k = 0;
-		let tmp = 0;
-		for (; k < ARRAY_SIZE_MINUS_M; k++) {
-		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1)] & INT32_MAX);
-		  data[k] = data[(k + M)] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
-		}
-		for (; k < ARRAY_MAX; k++) {
-		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1)] & INT32_MAX);
-		  data[k] = data[(k - ARRAY_SIZE_MINUS_M)] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
-		}
-		tmp = (data[ARRAY_MAX] & INT32_SIZE) | (data[0] & INT32_MAX);
-		data[ARRAY_MAX] = data[M - 1] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
 	}
 	public next() : number {
 		if (this.index >= ARRAY_SIZE) {
@@ -71,6 +51,33 @@ export class Rand {
 		  this.index = 0;
 		}
 		this.index += count;
+	}
+	public getState() {
+		return {data:this.data, index:this.index}
+	}
+	public setState(state:{data:Int32Array, index:number}) {
+		this.data = state.data;
+		this.index = state.index;
+	}
+	private value(v: number) {
+		v ^= v >>> 11;
+		v ^= (v << 7) & 0x9d2c5680;
+		v ^= (v << 15) & 0xefc60000;
+		return v ^ (v >>> 18);
+	}
+	private refreshData(data: Int32Array) {
+		let k = 0;
+		let tmp = 0;
+		for (; k < ARRAY_SIZE_MINUS_M; k++) {
+		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1)] & INT32_MAX);
+		  data[k] = data[(k + M)] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
+		}
+		for (; k < ARRAY_MAX; k++) {
+		  tmp = (data[k] & INT32_SIZE) | (data[(k + 1)] & INT32_MAX);
+		  data[k] = data[(k - ARRAY_SIZE_MINUS_M)] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
+		}
+		tmp = (data[ARRAY_MAX] & INT32_SIZE) | (data[0] & INT32_MAX);
+		data[ARRAY_MAX] = data[M - 1] ^ (tmp >>> 1) ^ (tmp & 0x1 ? A : 0);
 	}
 	/**
 	 * @description 获得一个指定范围（左闭右开区间）的随机浮点数
