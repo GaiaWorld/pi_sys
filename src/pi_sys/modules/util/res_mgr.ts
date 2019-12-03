@@ -200,6 +200,30 @@ export class ResTab {
         });
 
         return p;
+	}
+	
+	/**
+     * @description 获取资源
+     * @example
+     */
+    public get(key: string, hasTabRes: boolean): Res {
+        const tab = this.tab;
+        if (!tab) {
+            return;
+        }
+        let r = tab.get(key);
+        if (r) {
+            return r;
+        }
+        r = resMap.get(key);
+        if (!r) {
+            return;
+        }
+
+        if (hasTabRes) {
+            this.addRes(key, r);
+        }
+        return r;
     }
 
     /**
@@ -271,30 +295,6 @@ export class ResTab {
         let r = new Res();
         r.create(name, type, link);
         resMap.set(r.key, r);
-        return r;
-    }
-
-    /**
-     * @description 获取资源
-     * @example
-     */
-    private get(key: string, hasTabRes: boolean): Res {
-        const tab = this.tab;
-        if (!tab) {
-            return;
-        }
-        let r = tab.get(key);
-        if (r) {
-            return r;
-        }
-        r = resMap.get(key);
-        if (!r) {
-            return;
-        }
-
-        if (hasTabRes) {
-            this.addRes(key, r);
-        }
         return r;
     }
 }
