@@ -10,7 +10,7 @@
 import { baseType, Json } from '../lang/type';
 import { BonBuffer } from '../serialization/bon';
 import { RSync } from '../util/rsync';
-import { Message, MqttClient } from './mqtt';
+import { Message, Client as MqttClient } from './mqtt';
 
 /**
  * mqtt客户端

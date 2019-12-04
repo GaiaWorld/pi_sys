@@ -88,22 +88,16 @@
         // 微信小游戏环境下， this 为 undefined
 		root = root || window;
 		var r = factory();
-        if (_$pi) {
-            if (typeof root.Paho === 'undefined') {
-                root.Paho = {};
-            }
-            root.Paho.MQTT = r;
-        } else 
+		if (typeof root.Paho === 'undefined') {
+			root.Paho = {};
+		}
+		root.Paho.MQTT = r;
         if (typeof exports === 'object') {
-            module.exports = r;
+			exports.Client = r.Client;
+			exports.Message = r.Massage;
         } else if (typeof define === 'function' && define.amd) {
             define(factory);
-        } else {
-            if (typeof root.Paho === 'undefined') {
-                root.Paho = {};
-            }
-            root.Paho.MQTT = r;
-        }
+        } 
     })(this, function LibraryFactory() {
 
 
