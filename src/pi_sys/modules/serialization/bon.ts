@@ -27,7 +27,7 @@
 // 	1 通用对象
 // 	2 通用数组
 // 	3 通用map
-
+	
 // 如果是通用对象、数组、map，后面会有一个动态长度的整数，表示元素的数量。
 
 // 容器，由于有总大小的描述，从而可以只对感兴趣的部分作反序列化
@@ -35,9 +35,9 @@
 
 // ============================== 导入
 import { Json } from "../lang/type";
-import { utf8Decode, utf8Encode } from "../util/util";
+import { utf8Decode, utf8Encode } from "./util";
 
-export type SerializeType = SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
+export type SerializeType =  SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
 // ============================== 导出
 export interface ReadNext {
 	(bb: BonBuffer, type: number, len?: number): BonCode | Array<BonCode>;
@@ -75,12 +75,12 @@ export class BonBuffer {
 	tail;
 
 	constructor(data?: Uint8Array | number, head?: number, tail?: number) {
-		if (!data || Number.isInteger(data as number)) {
+		if(!data || Number.isInteger(data as number)) {
 			this.u8 = new Uint8Array(new ArrayBuffer((data as number) || 32))
 			this.view = new DataView(this.u8.buffer);
 			this.head = 0;
 			this.tail = 0;
-		} else {
+		}else {
 			this.u8 = (data as Uint8Array);
 			this.view = new DataView(this.u8.buffer, this.u8.byteOffset, this.u8.byteLength);
 			this.head = head || 0;
@@ -139,19 +139,19 @@ export class BonBuffer {
 		if (v instanceof ArrayBuffer)
 			return this.writeBin(new Uint8Array(v));
 		if (ArrayBuffer.isView(v) && (<any>v).BYTES_PER_ELEMENT > 0)
-			return this.writeBin(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
-		if (Object.prototype.toString.call(v) == '[object Array]')
-			return this.writeArray(v, (el) => {
-				this.write(el);
-			});
-		if (v instanceof Map)
-			return this.writeMap(v, (k, v) => {
-				this.write(k);
-				this.write(v);
-			});
-		if (v.bonEncode)
-			return this.writeBonCode(v);
-		throw new Error("The serialization of this type is not supported");
+            return this.writeBin(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+        if (Object.prototype.toString.call(v)=='[object Array]')
+            return this.writeArray(v, (el) => {
+                this.write(el);
+            });
+        if(v instanceof Map)
+            return this.writeMap(v, (k, v) => {
+                this.write(k);
+                this.write(v);
+            });
+        if(v.bonEncode)
+            return this.writeBonCode(v);
+        throw new Error("The serialization of this type is not supported");
 	}
 
 	/**
@@ -181,35 +181,35 @@ export class BonBuffer {
 	 */
 	writeU32(v: number): BonBuffer {
 		if (this.tail + 4 > this.view.byteLength)
-			this.extendCapity(4);
-		this.view.setUint32(this.tail, v, true);
+            this.extendCapity(4);
+        this.view.setUint32(this.tail, v, true);
 		this.tail += 4;
 		return this;
-	}
-
+    }
+    
     /**
 	 * @description 写大整数, ArrayBuffer应该是一个小端序
 	 * @example
 	 */
 	writeBigInt(v: number | Uint8Array): BonBuffer {
-		if (typeof v === "number") {
-			this.writeInt(v);
-		} else if (v.byteLength === 8) {
-			if (this.tail + 9 > this.view.byteLength)
-				this.extendCapity(9);
-			this.view.setUint8(this.tail, 40);
-			this.u8.set(v, this.tail + 1);
-			this.tail += 9;
-		} else if (v.byteLength === 16) {
-			if (this.tail + 17 > this.view.byteLength)
-				this.extendCapity(17);
-			this.view.setUint8(this.tail, 41);
-			this.u8.set(v, this.tail + 1);
-			this.tail += 17;
-		}
+        if(typeof v === "number"){
+            this.writeInt(v);
+        }else if(v.byteLength === 8){
+            if (this.tail + 9 > this.view.byteLength)
+                this.extendCapity(9);
+            this.view.setUint8(this.tail, 40);
+            this.u8.set(v, this.tail + 1);
+            this.tail += 9;
+        }else if (v.byteLength === 16){
+            if (this.tail + 17 > this.view.byteLength)
+                this.extendCapity(17);
+            this.view.setUint8(this.tail, 41);
+            this.u8.set(v, this.tail + 1);
+            this.tail += 17;
+        }
 		return this;
 	}
-
+	
 	/**
 	 * @description 写入一个基本类型
 	 * @example
@@ -257,19 +257,19 @@ export class BonBuffer {
 		if (v >= -1 && v < 20) {
 			if (this.tail >= this.view.byteLength)
 				this.extendCapity(1);
-			this.view.setUint8(this.tail++, v + 16);
+            this.view.setUint8(this.tail++, v + 16);
 			return this;
 		}
 		let i = 0;
 		if (v < 0) {
 			v = -v;
 			i = 27;
-		}
+        }
 		if (v <= 0xFF) {
 			if (this.tail + 2 > this.view.byteLength)
 				this.extendCapity(2);
 			this.view.setUint8(this.tail++, 36 - i);
-			this.view.setUint8(this.tail++, v);
+            this.view.setUint8(this.tail++, v);
 		} else if (v <= 0xFFFF) {
 			if (this.tail + 3 > this.view.byteLength)
 				this.extendCapity(3);
@@ -293,11 +293,11 @@ export class BonBuffer {
 			if (this.tail + 9 > this.view.byteLength)
 				this.extendCapity(7);
 			this.view.setUint8(this.tail++, 40 - i);
-			this.view.setUint32(this.tail, v & 0xffffffff, true);
-			this.view.setUint32(this.tail + 4, Math.floor(v / 0x100000000), true);
+            this.view.setUint32(this.tail, v & 0xffffffff, true);
+            this.view.setUint32(this.tail + 4, Math.floor(v / 0x100000000), true);
 			this.tail += 8;
 		} else {
-			throw new Error("can not write as number:" + v);
+            throw new Error("this is a bigInteger, can not write as number:" + v);
 			// if (this.tail + 9 > this.view.byteLength)
 			// 	this.extendCapity(9);
 			// // js里不会出现这种情况，最大安全整数只有 55位 9007199254740991
@@ -362,61 +362,61 @@ export class BonBuffer {
 	 */
 	writeBin(arr: Uint8Array, offset?: number, length?: number): BonBuffer {
 		return this.writeData(arr, 111, offset, length);
-	}
-
+    }
+    
     /**
 	 * @description 写入BonBuffer的二进制数据
 	 * @example
 	 */
 	writeBon(arr: Uint8Array): BonBuffer {
-		this.extendCapity(arr.length);
-		this.u8.set(arr, this.tail);
-		this.tail += arr.length;
-		return this;
-	}
-
+        this.extendCapity(arr.length);
+        this.u8.set(arr, this.tail);
+        this.tail += arr.length;
+        return this;
+    }
+    
 	/**
 	 * @description 写入字符串，用utf8格式
 	 * @example
 	 */
 	writeUtf8(s: string): BonBuffer {
-		let arr = utf8Encode(s);
+        let arr = utf8Encode(s);
 		return this.writeData(arr, 42);
-	}
-
+    }
+    
     /**
 	 * @description 写map
 	 * @example
 	 */
 	writeMap<K, V>(map: Map<K, V>, callbackfn: (key: K, value: V) => void): BonBuffer {
-		this.writeInt(map.size);
-		map.forEach((v, k) => {
-			callbackfn(k, v);
-		});
-		return this;
-	}
-
+        this.writeInt(map.size);
+        map.forEach((v, k) => {
+            callbackfn(k, v);
+        });
+        return this;
+    }
+    
     /**
 	 * @description 写array
 	 * @example
 	 */
 	writeArray<E>(array: Array<E>, callbackfn: (elem: E) => void): BonBuffer {
-		this.writeInt(array.length);
-		for (let i = 0; i < array.length; i++) {
-			callbackfn(array[i]);
-		}
-		return this;
-	}
-
+        this.writeInt(array.length);
+        for(let i = 0; i < array.length; i++){
+            callbackfn(array[i]);
+        }
+        return this;
+    }
+    
     /**
 	 * @description 写array
 	 * @example
 	 */
 	writeBonCode<E>(bon: BonCode): BonBuffer {
-		bon.bonEncode(this);
-		return this;
-	}
-
+        bon.bonEncode(this);
+        return this;
+    }
+    
 	/**
 	 * @description 写入数据
 	 * @example
@@ -482,7 +482,7 @@ export class BonBuffer {
 		if (v < 0x80) {
 			if (this.tail >= this.view.byteLength)
 				this.extendCapity(1);
-			this.view.setUint8(this.tail++, v);
+            this.view.setUint8(this.tail++, v);
 			return this;
 		}
 		if (v < 0x4000) {
@@ -505,11 +505,11 @@ export class BonBuffer {
 	 * @description 写入一个容器类型（对象、数组或map、枚举）
 	 * @example
 	 */
-	writeCt(o: any, writeNext: WriteNext, estimatedSize?: number): BonBuffer {
+	writeCt(o: any, writeNext: WriteNext, estimatedSize?: number) : BonBuffer {
 		const t = this.tail;
 		// 根据预估大小，预留出足够的空间来写入容器的总大小
 		estimatedSize = estimatedSize || 0xffff;
-		let limitSize;
+        let limitSize;
 		if (estimatedSize <= 64) {
 			if (t + 5 > this.view.byteLength)
 				this.extendCapity(5 + estimatedSize);
@@ -541,8 +541,8 @@ export class BonBuffer {
 			this.tail += 9;
 			limitSize = 0xffffffffffffffff;
 		}
-		let tt = this.tail;
-		writeNext(this, o);
+        let tt = this.tail;
+        writeNext(this, o);
 		//writeContainer(o, this, writeNext);
 		let len = this.tail - tt;
 		// 判断实际写入的大小超出预期的大小，需要移动数据
@@ -564,7 +564,9 @@ export class BonBuffer {
 				offset = 9;
 				limitSize = 0xffffffffffffffff;
 			}
-			this.u8.set(new Uint8Array(this.u8.buffer, this.u8.byteOffset + tt, len), t + offset);
+			// this.extendCapity(5 + estimatedSize);
+			this.u8.set(new Uint8Array(this.u8.buffer, this.u8.byteOffset+tt, len), t + offset);
+			this.tail += offset - tt;
 		}
 		// 根据实际的限制大小，写入实际长度
 		switch (limitSize) {
@@ -588,12 +590,12 @@ export class BonBuffer {
 				this.view.setUint16(t + 1, len & 0xffff, true);
 				this.view.setUint32(t + 3, Math.floor(len / 0x10000), true);
 				break;
-			default:
-				throw new Error("container overflow, the max len is 48bit");
-			// this.view.setUint8(t, 249);
-			// this.view.setUint32(t + 1, len & 0xffffffff, true);
-			// this.view.setUint32(t + 5, Math.floor(len / 0x100000000), true);
-			//break;
+            default:
+                throw new Error("container overflow, the max len is 48bit"); 
+				// this.view.setUint8(t, 249);
+				// this.view.setUint32(t + 1, len & 0xffffffff, true);
+				// this.view.setUint32(t + 5, Math.floor(len / 0x100000000), true);
+				//break;
 		}
 		return this;
 	}
@@ -605,18 +607,18 @@ export class BonBuffer {
 		if (this.head >= this.tail)
 			throw new Error("getType overflow: " + this.head);
 		return this.view.getUint8(this.head);
-	}
-
+    }
+    
     /**
 	 * @description 是否为空
 	 * @example
 	 */
 	isNil(): boolean {
 		if (this.getType() === 0) {
-			this.head++;
-			return true;
-		}
-		return false;
+            this.head++;
+            return true;
+        }
+        return false;
 	}
 
 	/**
@@ -625,15 +627,15 @@ export class BonBuffer {
 	 */
 	readU8(): number {
 		return this.view.getUint8(this.head++);
-	}
+    }
 
     /**
 	 * @description 读U16
 	 * @example
 	 */
 	readU16(): number {
-		this.head += 2;
-		return this.view.getUint16(this.head - 2, true);
+        this.head += 2;
+		return this.view.getUint16(this.head-2, true);
 	}
 	/**
 	 * @description 读U32
@@ -641,98 +643,98 @@ export class BonBuffer {
 	 */
 	readU32(): number {
 		this.head += 4;
-		return this.view.getUint32(this.head - 4, true);
+		return this.view.getUint32(this.head-4, true);
 	}
-
+    
     /**
 	 * @description 读整数
 	 * @example
 	 */
-	readInt(): number {
-		if (this.head >= this.tail)
+	readInt():number {
+        if (this.head >= this.tail)
 			throw new Error("readInt overflow: " + this.head);
-		let t = this.view.getUint8(this.head++);
-		if (t < 9 || t > 40) {
-			throw new Error("类型错误， 无法读, type: " + t);
-		}
-		let r = readContent(this, t) as number;
-		return r;
-	}
+        let t = this.view.getUint8(this.head++);
+        if(t < 9 || t > 40){
+            throw new Error("类型错误， 无法读, type: " + t);
+        }
+        let r = readContent(this, t) as number;
+        return r;
+    }
 
     /**
 	 * @description 读大整数
 	 * @example
 	 */
 	readBigInt(): number | Uint8Array {
-		if (this.head >= this.tail)
-			throw new Error("readBigInt overflow: " + this.head);
-
-		let t = this.view.getUint8(this.head++);
-		if (t < 9 || t > 41) {
-			throw new Error("非大整数， 无法读, type: " + t);
-		}
+        if (this.head >= this.tail)
+            throw new Error("readBigInt overflow: " + this.head);
+            
+        let t = this.view.getUint8(this.head++);
+        if(t < 9 || t > 41){
+            throw new Error("非大整数， 无法读, type: " + t);
+        }
 		return readContent(this, t) as number | Uint8Array;
-	}
+    }
 
     /**
 	 * @description 读浮点
 	 * @example
 	 */
-	readf(): number {
-		if (this.head >= this.tail)
+	readf():number {
+        if (this.head >= this.tail)
 			throw new Error("readf overflow: " + this.head);
-		let t = this.view.getUint8(this.head++);
-		if (t < 3 || t > 8) {
-			throw new Error("非浮点数， 无法读");
-		}
-		return readContent(this, t) as number;
-	}
-
+        let t = this.view.getUint8(this.head++);
+        if(t < 3 || t > 8){
+            throw new Error("非浮点数， 无法读");
+        }
+        return readContent(this, t) as number;
+    }
+    
     /**
 	 * @description 读boolean
 	 * @example
 	 */
-	readBool(): boolean {
-		if (this.head >= this.tail)
+	readBool():boolean {
+        if (this.head >= this.tail)
 			throw new Error("readBool overflow: " + this.head);
-		let t = this.view.getUint8(this.head++);
-		switch (t) {
+        let t = this.view.getUint8(this.head++);
+        switch (t) {
 			case 1:
-				return false;
-			case 2:
-				return true;
-			default:
-				throw new Error("非布尔值， 无法读");
-		}
-	}
-
+                return false;
+            case 2:
+                return true;
+            default:
+                throw new Error("非布尔值， 无法读");
+        }
+    }
+    
     /**
 	 * @description 读字符串
 	 * @example
 	 */
-	readUtf8(): string {
-		if (this.head >= this.tail)
+	readUtf8():string {
+        if (this.head >= this.tail)
 			throw new Error("readUtf8 overflow: " + this.head);
-		let t = this.view.getUint8(this.head++);
-		if (t < 42 || t > 110) {
-			throw new Error("非字符串， 无法读");
-		}
-		return readContent(this, t) as string;
-	}
-
+        let t = this.view.getUint8(this.head++);
+        if(t < 42 || t > 110){
+            throw new Error("非字符串， 无法读");
+        }
+        return readContent(this, t) as string;
+    }
+    
     /**
 	 * @description 读二进制
 	 * @example
 	 */
 	readBin(): Uint8Array {
-		if (this.head >= this.tail)
+        if (this.head >= this.tail)
 			throw new Error("readBin overflow: " + this.head);
-		let t = this.view.getUint8(this.head++);
-		if (t < 111 || t > 179) {
-			throw new Error("非字二进制， 无法读");
-		}
-		return readContent(this, t) as Uint8Array;
-	}
+        let t = this.view.getUint8(this.head++);
+        if(t < 111 || t > 179){
+            throw new Error("非字二进制， 无法读");
+        }
+        return readContent(this, t) as Uint8Array;
+    }
 
 	// /**
 	//  * @description 读u16
@@ -755,12 +757,12 @@ export class BonBuffer {
 	 * @description 读入一个类型的值
 	 * @example
 	 */
-	read(readNext?: ReadNext): any {
+	read(readNext?: ReadNext):any {
 		if (this.head >= this.tail)
 			throw new Error("read overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
 		return readContent(this, t, readNext);
-	}
+    }
 	/**
 	 * @description 读出一个正整数，不允许大于0x20000000，使用动态长度
 	 * @example
@@ -768,7 +770,7 @@ export class BonBuffer {
 	readPInt() {
 		const v = this.view.getUint8(this.head);
 		if (v < 0x80) {
-			this.head++;
+            this.head++;
 			return v;
 		}
 		if (v < 0xC0) {
@@ -780,54 +782,54 @@ export class BonBuffer {
 			return this.view.getUint32(this.head - 4) - 0xC0000000;
 		}
 		throw new Error("invalid pint:" + v);
-	}
-
+    }
+    
     /**
 	 * @description 读map
 	 * @example
 	 */
-	readMap<K, V>(callbackfn: () => [K, V]): Map<K, V> {
-		let map = new Map();
-		let size = this.readInt();
-		for (let i = 0; i < size; i++) {
-			let item = callbackfn();
-			map.set(item[0], item[1]);
-		}
-		return map;
-	}
-
+	readMap<K, V>(callbackfn: () => [K, V] ): Map<K, V>{
+        let map = new Map();
+        let size = this.readInt();
+        for(let i = 0; i < size; i++){
+            let item = callbackfn();
+            map.set(item[0] ,item[1]);
+        }
+        return map;
+    }
+    
     /**
 	 * @description 读array
 	 * @example
 	 */
-	readArray<E>(callbackfn: () => E): Array<E> {
-		const array = [];
-		let length = this.readInt();
-		for (let i = 0; i < length; i++) {
-			let el = callbackfn();
-			array.push(el);
-		}
-		return array;
-	}
-
+	readArray<E>(callbackfn: () => E ): Array<E>{
+        const array = [];
+        let length = this.readInt();
+        for(let i = 0; i < length; i++){
+            let el = callbackfn();
+            array.push(el);
+        }
+        return array;
+    }
+    
     /**
 	 * @description 读array, 返回Boncode
 	 * @example
 	 */
 	readBonCode(constructor: any): any {
-		let r = (<BonCode>new constructor());
-		r.bonDecode(this);
-		return r;
-	}
+        let r = (<BonCode>new constructor());
+        r.bonDecode(this);
+        return r;
+    }
 
-	readCt(next: ReadNext): any {
-		let t = this.view.getUint8(this.head++);
-		if (t < 180 || t > 249) {
+    readCt(next: ReadNext): any{
+        let t = this.view.getUint8(this.head++);
+        if (t < 180 || t > 249) {
 			throw new Error("非容器， 无法读");
 		}
-		let a = readContent(this, t, next);
-		return a;
-	}
+        let a = readContent(this, t, next);
+        return a;
+    }
 }
 
 // ============================== 本地
@@ -835,218 +837,218 @@ export class BonBuffer {
 const factor = 1.6;
 
 const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
-	let len;
-	switch (t) {
-		case 0:
-			return null;
-		case 1:
-			return false;
-		case 2:
-			return true;
-		case 3:
-			return 0.0;
-		case 4:
-			return 1.0;
-		case 5:
-			throw new Error("unused type :" + t);
-		case 6:
-			bb.head += 4;
-			return bb.view.getFloat32(bb.head - 4, true);
-		case 7:
-			bb.head += 8;
-			return bb.view.getFloat64(bb.head - 8, true);
-		case 8:
-			throw new Error("unused type :" + t);
-		case 36:
-			return bb.view.getUint8(bb.head++);
-		case 37:
-			bb.head += 2;
-			return bb.view.getUint16(bb.head - 2, true);
-		case 38:
-			bb.head += 4;
-			return bb.view.getUint32(bb.head - 4, true);
-		case 39:
-			bb.head += 6;
-			return bb.view.getUint16(bb.head - 6, true) + (bb.view.getUint32(bb.head - 4, true) * 0x10000);
-		case 40:
-			bb.head += 8;
-			let u64_1 = bb.view.getUint32(bb.head - 8, true);
-			let u64_2 = bb.view.getUint32(bb.head - 4, true);
-			if ((u64_1 === 0 && u64_2 <= 2097152) || (u64_1 > 0 && u64_2 < 2097152)) {// 在9007199254740992范围内
-				bb.u8.slice(bb.head - 8, bb.head)
-				return u64_1 + u64_2 * 0x100000000;
-			} else {// 大于9007199254740992，返回一个u8array
-				return bb.u8.slice(bb.head - 8, bb.head)
-			}
-		case 41:
-			bb.head += 16;
-			let u128_1 = bb.view.getUint32(bb.head - 16, true);
-			let u128_2 = bb.view.getUint32(bb.head - 12, true);
-			let u128_3 = bb.view.getUint32(bb.head - 8, true);
-			let u128_4 = bb.view.getUint32(bb.head - 4, true);
-			if (u128_3 === 0 && u128_4 === 0 && ((u128_1 === 0 && u128_2 <= 2097152) || (u128_1 > 0 && u128_2 < 2097152))) {// 在9007199254740992范围内
-				return u128_1 + u128_2 * 0x100000000;
-			} else {// 大于9007199254740992，返回一个u8array
-				return bb.u8.slice(bb.head - 16, bb.head)
-			}
-		case 9:
-			return -bb.view.getUint8(bb.head++);
-		case 10:
-			bb.head += 2;
-			return -bb.view.getUint16(bb.head - 2, true);
-		case 11:
-			bb.head += 4;
-			return -bb.view.getUint32(bb.head - 4, true);
-		case 12:
-			bb.head += 6;
-			return -bb.view.getUint16(bb.head - 6, true) - (bb.view.getUint32(bb.head - 4, true) * 0x10000);
-		case 13:
-			bb.head += 8;
-			let i64_1 = bb.view.getUint32(bb.head - 8, true);
-			let i64_2 = bb.view.getUint32(bb.head - 4, true);
-			if ((i64_1 === 0 && i64_2 <= 2097152) || (i64_1 > 0 && i64_2 < 2097152)) {
-				return -(i64_1 + i64_2 * 0x100000000);
-			} else {
-				return bb.u8.slice(bb.head - 8, bb.head);// todo
-			}
-		case 14:
-			bb.head += 16;
-			let i128_1 = bb.view.getUint32(bb.head - 16, true);
-			let i128_2 = bb.view.getUint32(bb.head - 12, true);
-			let i128_3 = bb.view.getUint32(bb.head - 8, true);
-			let i128_4 = bb.view.getUint32(bb.head - 4, true);
-			if (i128_3 === 0 && i128_4 === 0 && ((i128_1 === 0 && i128_2 <= 2097152) || (i128_1 > 0 && i128_2 < 2097152))) {// 在9007199254740992范围内
-				return i128_1 + i128_2 * 0x100000000;
-			} else {// 大于9007199254740992，返回一个u8array
-				return bb.u8.slice(bb.head - 16, bb.head)
-			}
-		case 176:
-			len = bb.view.getUint8(bb.head);
-			bb.head += len + 1;
-			return bb.u8.slice(bb.head - len, bb.head);
-		case 177:
-			len = bb.view.getUint16(bb.head, true);
-			bb.head += len + 2;
-			return bb.u8.slice(bb.head - len, bb.head);
-		case 178:
-			len = bb.view.getUint32(bb.head, true);
-			bb.head += len + 4;
-			return bb.u8.slice(bb.head - len, bb.head);
-		case 179:
-			len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
-			bb.head += len + 6;
-			return bb.u8.slice(bb.head - len, bb.head);
-		case 107:
-			len = bb.view.getUint8(bb.head);
-			bb.head += len + 1;
-			return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
-		case 108:
-			len = bb.view.getUint16(bb.head, true);
-			bb.head += len + 2;
-			return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
-		case 109:
-			len = bb.view.getUint32(bb.head, true);
-			bb.head += len + 4;
-			return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
-		case 110:
-			len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
-			bb.head += len + 6;
-			return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
-		case 245:
-			len = bb.view.getUint8(bb.head);
-			bb.head += 5;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
-		case 246:
-			len = bb.view.getUint16(bb.head, true);
-			bb.head += 6;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
-		case 247:
-			len = bb.view.getUint32(bb.head, true);
-			bb.head += 8;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
-		case 248:
-			len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
-			bb.head += 10;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
-		default:
-			if (t < 36) {
-				return t - 16;
-			}
-			if (t < 107) {
+    let len;
+    switch (t) {
+        case 0:
+            return null;
+        case 1:
+            return false;
+        case 2:
+            return true;
+        case 3:
+            return 0.0;
+        case 4:
+            return 1.0;
+        case 5:
+            throw new Error("unused type :" + t);
+        case 6:
+            bb.head += 4;
+            return bb.view.getFloat32(bb.head - 4, true);
+        case 7:
+            bb.head += 8;
+            return bb.view.getFloat64(bb.head - 8, true);
+        case 8:
+            throw new Error("unused type :" + t);
+        case 36:
+            return bb.view.getUint8(bb.head++);
+        case 37:
+            bb.head += 2;
+            return bb.view.getUint16(bb.head - 2, true);
+        case 38:
+            bb.head += 4;
+            return bb.view.getUint32(bb.head - 4, true);
+        case 39:
+            bb.head += 6;
+            return bb.view.getUint16(bb.head - 6, true) + (bb.view.getUint32(bb.head - 4, true) * 0x10000);
+        case 40:
+            bb.head += 8;
+            let u64_1 = bb.view.getUint32(bb.head - 8, true);
+            let u64_2 = bb.view.getUint32(bb.head - 4, true);
+            if ((u64_1 === 0 && u64_2 <= 2097152) || (u64_1 > 0 && u64_2 < 2097152)){// 在9007199254740992范围内
+                bb.u8.slice(bb.head - 8, bb.head)
+                return u64_1 + u64_2 * 0x100000000;
+            }else{// 大于9007199254740992，返回一个u8array
+                return bb.u8.slice(bb.head - 8, bb.head)
+            }
+        case 41:
+            bb.head += 16;
+            let u128_1 = bb.view.getUint32(bb.head - 16, true);
+            let u128_2 = bb.view.getUint32(bb.head - 12, true);
+            let u128_3 = bb.view.getUint32(bb.head - 8, true);
+            let u128_4 = bb.view.getUint32(bb.head - 4, true);
+            if (u128_3 === 0 && u128_4 === 0 && ((u128_1 === 0 && u128_2 <= 2097152) || (u128_1 > 0 && u128_2 < 2097152)) ){// 在9007199254740992范围内
+                return u128_1 + u128_2 * 0x100000000;
+            }else{// 大于9007199254740992，返回一个u8array
+                return bb.u8.slice(bb.head - 16, bb.head)
+            }
+        case 9:
+            return -bb.view.getUint8(bb.head++);
+        case 10:
+            bb.head += 2;
+            return -bb.view.getUint16(bb.head - 2, true);
+        case 11:
+            bb.head += 4;
+            return -bb.view.getUint32(bb.head - 4, true);
+        case 12:
+            bb.head += 6;
+            return -bb.view.getUint16(bb.head - 6, true) - (bb.view.getUint32(bb.head - 4, true) * 0x10000);
+        case 13:
+            bb.head += 8;
+            let i64_1 = bb.view.getUint32(bb.head - 8, true); 
+            let i64_2 = bb.view.getUint32(bb.head - 4, true);
+            if ((i64_1 === 0 && i64_2 <= 2097152) || (i64_1 > 0 && i64_2 < 2097152)){
+                return -(i64_1 + i64_2 * 0x100000000);
+            }else{
+                return bb.u8.slice(bb.head - 8, bb.head);// todo
+            }
+        case 14:
+            bb.head += 16;
+            let i128_1 = bb.view.getUint32(bb.head - 16, true);
+            let i128_2 = bb.view.getUint32(bb.head - 12, true);
+            let i128_3 = bb.view.getUint32(bb.head - 8, true);
+            let i128_4 = bb.view.getUint32(bb.head - 4, true);
+            if (i128_3 === 0 && i128_4 === 0 && ((i128_1 === 0 && i128_2 <= 2097152) || (i128_1 > 0 && i128_2 < 2097152)) ){// 在9007199254740992范围内
+                return i128_1 + i128_2 * 0x100000000;
+            }else{// 大于9007199254740992，返回一个u8array
+                return bb.u8.slice(bb.head - 16, bb.head)
+            }
+        case 176:
+            len = bb.view.getUint8(bb.head);
+            bb.head += len + 1;
+            return bb.u8.slice(bb.head - len, bb.head);
+        case 177:
+            len = bb.view.getUint16(bb.head, true);
+            bb.head += len + 2;
+            return bb.u8.slice(bb.head - len, bb.head);
+        case 178:
+            len = bb.view.getUint32(bb.head, true);
+            bb.head += len + 4;
+            return bb.u8.slice(bb.head - len, bb.head);
+        case 179:
+            len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
+            bb.head += len + 6;
+            return bb.u8.slice(bb.head - len, bb.head);
+        case 107:
+            len = bb.view.getUint8(bb.head);
+            bb.head += len + 1;
+            return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
+        case 108:
+            len = bb.view.getUint16(bb.head, true);
+            bb.head += len + 2;
+            return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
+        case 109:
+            len = bb.view.getUint32(bb.head, true);
+            bb.head += len + 4;
+            return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
+        case 110:
+            len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
+            bb.head += len + 6;
+            return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
+        case 245:
+            len = bb.view.getUint8(bb.head);
+            bb.head += 5;
+            return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+        case 246:
+            len = bb.view.getUint16(bb.head, true);
+            bb.head += 6;
+            return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+        case 247:
+            len = bb.view.getUint32(bb.head, true);
+            bb.head += 8;
+            return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+        case 248:
+            len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
+            bb.head += 10;
+            return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+        default:
+            if (t < 36) {
+                return t - 16;
+            }
+            if (t < 107) {
 				// 读取utf8编码的字符串
-				len = t - 42;
-				bb.head += len;
-				return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
-			}
-			if (t < 176) {
-
+                len = t - 42;
+                bb.head += len;
+                return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
+            }
+            if (t < 176) {
+				
 				// 读取二进制数据
-				len = t - 111;
-				bb.head += len;
-				return bb.u8.slice(bb.head - len, bb.head);
-			}
-			if (t < 245) {
-				bb.head += 4;
-				// 读取容器类型
-				return readNext(bb, bb.view.getUint32(bb.head - 4, true), t - 180);
-			}
-			throw new Error("invalid type :" + t);
-	}
+                len = t - 111;
+                bb.head += len;
+                return bb.u8.slice(bb.head - len, bb.head);
+            }
+            if (t < 245) {
+                bb.head += 4;
+                // 读取容器类型
+                return readNext(bb, bb.view.getUint32(bb.head - 4, true), t - 180 );
+            }	
+            throw new Error("invalid type :" + t);
+    }
 }
 
 type SerializeBase = number | string | String | boolean | ArrayBuffer | Uint8Array | BonCode | Json;
 
 (<any>Number.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	let v = this.valueOf();
-	if (v != parseInt(v)) {
-		bb.writeF32(v);
-	} else {
-		bb.writeInt(this.valueOf());
-	}
-	return bb;
+    let v = this.valueOf();
+    if (v != parseInt(v)) {
+        bb.writeF32(v);
+    } else {
+        bb.writeInt(this.valueOf());
+    }
+    return bb;
 };
 
 (<any>Number.prototype).bonDecode = function (bb: BonBuffer): number {
-	let type = bb.getType();
-	if (type > 3 && type < 9) {
-		return bb.readInt();
-	} else {
-		return bb.readf();
-	}
+    let type = bb.getType();
+    if (type > 3 && type < 9) {
+        return bb.readInt();
+    } else {
+        return bb.readf();
+    }
 };
 
 (<any>String.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeUtf8(this.valueOf());
-	return this;
+    bb.writeUtf8(this.valueOf());
+    return this;
 };
 
 (<any>String.prototype).bonDecode = function (bb: BonBuffer): string {
-	return bb.readUtf8();
+    return bb.readUtf8();
 };
 
 (<any>Boolean.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeBool(this.valueOf());
-	return this;
+    bb.writeBool(this.valueOf());
+    return this;
 };
 
 (<any>Boolean.prototype).bonDecode = function (bb: BonBuffer): boolean {
-	return bb.readBool();
+    return bb.readBool();
 };
 
 (<any>ArrayBuffer.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeBin(new Uint8Array(this));
-	return this;
+    bb.writeBin(new Uint8Array(this));
+    return this;
 };
 
 (<any>ArrayBuffer.prototype).bonDecode = function (bb: BonBuffer): ArrayBuffer {
-	return bb.readBin().buffer;
+    return bb.readBin().buffer;
 };
 
 (<any>Uint8Array.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeBin(this);
-	return this;
+    bb.writeBin(this);
+    return this;
 };
 
 (<any>Uint8Array.prototype).bonDecode = function (bb: BonBuffer): Uint8Array {
-	return bb.readBin();
+    return bb.readBin();
 };
