@@ -248,3 +248,4 @@ export class StructMgr {
 }
 
 export const structMgr = new StructMgr();
+(<any>window).structMgr = structMgr;
