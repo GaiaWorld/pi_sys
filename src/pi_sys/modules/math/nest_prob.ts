@@ -14,17 +14,19 @@ import {Rand} from "./rand"
 
 export class Avg{
 	values: any[];
+
 	constructor(values: any[]) {
 		this.values = values;
 	}
-	select(rand: Rand, result: any[]){
-		let i = rand.nextInt(0, this.values.length);
+	select(rand: Rand, result: any[]) {
+		let i = this.values.length > 1 ?rand.nextInt(0, this.values.length) : 0;
 		nextSelect(rand, this.values[i], result);
 	}
 }
 export class Weight extends Avg{
     weights: number[];
-    amount: number = 0;
+	amount: number = 0;
+
 	constructor(values: any[], weights: number[]) {
 		super(values);
 		// 允许权重数量大于内容， 这样允许可以返回undefined
@@ -78,19 +80,23 @@ export const rateToWeight = (arr: number[]) : number[] => {
 	return r;
 }
 /**
- * @description 将数字或数组转成100%的概率Prob
+ * @description 将数组转成100%的概率Prob。如果是嵌套随机结构，则返回对应的Avg。 如果都不是（比如数字或字符串或json），则转成单元素的Avg，保证100%返回。
  */
-export const makeArrToProb = (arr: number[] | number) : Prob => {
-	if(!Array.isArray(arr)) {
-		return new Prob([arr], [1.0]);
+export const make = (arg: any[] | number | any) : Avg => {
+	if(Array.isArray(arg)) {
+		let p = [];
+		p.length = arg.length;
+		return new Prob(arg.map(e => {
+			return makeByJson(e) || e;
+		}), p.map(_e => {
+			return 1.0;
+		}));
 	}
-	let p = [];
-	p.length = arr.length;
-	return new Prob(arr.map(e => {
-		return makeByJson(e) || e;
-	}), p.map(_e => {
-		return 1.0;
-	}));
+	let r = makeByJson(arg);
+	if(r) {
+		return r;
+	}
+	return new Avg([arg]);
 }
 /**
  * @description 用约定结构的嵌套结构数组来构建嵌套随机结构。
