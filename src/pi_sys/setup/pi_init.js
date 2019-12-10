@@ -44,7 +44,7 @@ var _$pi = self._$pi = _$pi || (function () {
 
     class Module {
         /**
-         * @param {Function} buildFunc = (require, exports, a, b, c, ...) => { ... }
+         * @param {Function} buildFunc = (require, exports, modules, a, b, c, ...) => { ... }
          * @param {string[]} dependNames 依赖模块名数组
          */
         constructor(name) {
@@ -197,8 +197,8 @@ var _$pi = self._$pi = _$pi || (function () {
     /**
      * 模块定义
      * name：模块的路径，相对与项目目录
-     * depends: 该模块依赖的模块名数组，头两个永远是："require", "exports"
-     * func = (require, exports, 模块1-Export, 模块-2Export, ...) => { ... }
+     * depends: 该模块依赖的模块名数组，头三个永远是："require", "exports", "module"
+     * func = (require, exports, module, 模块1-Export, 模块-2Export, ...) => { ... }
      *    参数长度和depends长度相同。
      */
     const define = (name, dependNames, func) => {
@@ -209,8 +209,8 @@ var _$pi = self._$pi = _$pi || (function () {
         }
 
         let ds = [];
-        // 依赖名称数组的头两个永远都是"require", "expots"，去掉
-        for (let i = 2; i < dependNames.length; ++i) {
+        // 依赖名称数组的头三个永远都是"require", "expots", "module" 去掉
+        for (let i = 3; i < dependNames.length; ++i) {
             // 转成相对于name的绝对路径
             ds.push(relativePath(dependNames[i], name));
         }
@@ -492,7 +492,7 @@ var _$pi = self._$pi = _$pi || (function () {
                 return _import(names, name);
             }
         }
-        func(reqFunc, mod.exports, ...mod.children);
+        func(reqFunc, mod.exports, mod, ...mod.children);
         mod.setBuild();
     }
 

@@ -55,9 +55,9 @@ export class Heap<T> {
 	 * 删除指定位置的元素
 	 */
 	public removeByIndex(index: number) {
-		if (index < 0) return;
 		// 把最后的叶子赋值给index位置
 		const len = this.array.length - 1;
+		if (index < 0 || index > len) return;
 		this.array[index] = this.array[len];
 		this.array.length = len;
 		this.down(index);
