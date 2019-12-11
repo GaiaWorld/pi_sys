@@ -5,6 +5,10 @@
 !*.bat
 !*.conf
 
+/**/*.cfg.json
+/**/*.struct.ts
+/**/*.topic.ts
+
 /**/*.c.ts
 /**/*.s.ts
 /**/*.p.ts
