@@ -9,7 +9,7 @@
  */
 // ============================== 导入
 import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
-import { FileInfo, fileSuffix, DirInfo, getDir, getFile } from "../setup/depend";
+import { FileInfo, fileSuffix, DirInfo, getDir, getFile, filePseudoSuffix } from "../setup/depend";
 import { cc, log, pattern } from "../feature/log";
 import { CodeLoad } from './code';
 import { ObjLoad } from './object';
@@ -509,14 +509,23 @@ const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
 const handleBinMap = (map: Map<string, Uint8Array>) => {
     let arr = [];
     for (let [k, v] of map) {
-        let suffix = fileSuffix(k);
-        let st = suffixMap.get(suffix);
-        if (st === SuffixType.CFG) {
-            arr.push(handleCfg(k, v, suffix));
-        } else if (st === SuffixType.RES) {
-            let lru = resMap.get(suffix);
-            lru.add(k, v);
-        }
+		let suffix = filePseudoSuffix(k);
+		while(true) {
+			if (!suffix) {
+				break;
+			} else {
+				let st = suffixMap.get(suffix);
+				if (st === SuffixType.CFG) {
+					arr.push(handleCfg(k, v, suffix));
+					break;
+				} else if (st === SuffixType.RES) {
+					let lru = resMap.get(suffix);
+					lru.add(k, v);
+					break;
+				}
+			}
+			suffix = filePseudoSuffix(suffix);
+		}
     }
     return Promise.all(arr);
 }

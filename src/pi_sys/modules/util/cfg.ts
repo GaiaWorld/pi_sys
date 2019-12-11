@@ -91,28 +91,62 @@ export class Cfg{
 
 export const cfgMgr = new Cfg();
 
-const SCFG_SUFFIX = "scfg";
+const SCFG_SUFFIX = "cfg.json";
 export const sCfgHandle = (): Promise<any> => {
 	return setCfgHandler(SCFG_SUFFIX, (file: string, data: Uint8Array): Promise<any> => {
+        console.log('----------sCfgHandle--------------', file);
+        
 		return new Promise((resolve, reject) => {
 			try {
 				const cfgs = JSON.parse(utf8Decode(data));
 				let all = [];
 				for (let key in cfgs) {
-					let file = cfgs[key];
-					for (let structName in file) {
-						let arr = [];
-						let split_index = structName.indexOf(".");
-						let modName = structName.slice(0, split_index) + ".s";
-						let Ty = structName.slice(split_index + 1, structName.length);
-						let r = import(modName).then((mod) => {
-							for (let item of file[structName]) {
-								arr.push( mod[Ty].prototype.__create(item));
-							}
-							cfgMgr.set_arr(structName, arr);
-						});
-						all.push(r);
-					}
+                    let file = cfgs[key];
+                    let split_index = key.indexOf(".");
+                    let modName = key.slice(0, split_index) + ".struct";
+                    let Ty = key.slice(split_index + 1, key.length);
+                    let r = import(modName).then((mod) => {
+                        let m = mod[Ty];
+                        let _$c = (path, notes) => { return new m(path, notes) };
+                        try {
+                            let i = 0;
+                            let flag = false;
+                            let arr = [];
+                            for (var v of file) {
+                                if(m.prototype.__create) {
+                                    arr.push( m.prototype.__create(v));
+                                    flag = true;
+                                } else {
+                                    arr.push([i, _$c(v[0], new Map<string, string>(v[1]))]);
+                                }
+                                i += 1;
+                            }
+                            if (flag) {
+                                cfgMgr.set_arr(key, arr);
+                            } else {
+                                cfgMgr.update(key, new Map<number, any>(arr));
+                            }
+                        }catch(e){
+                            throw e;
+                        }
+                    });   
+
+
+                    // let r = import(modName).then((mod) => {
+                    //     let arr = [];
+                    //     try {
+                    //         for (let item of file) {
+                    //             arr.push( mod[Ty].prototype.__create(item));
+                    //         }
+                    //     } catch (error) {
+                    //         console.log(mod[Ty]);
+                    //         throw error;
+                    //     }
+                        
+                        
+                    //     cfgMgr.set_arr(key, arr);
+                    // });
+                    all.push(r);
 				}
 				Promise.all(all).then(() => {
 					resolve(null);

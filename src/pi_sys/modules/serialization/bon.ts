@@ -35,7 +35,7 @@
 
 // ============================== 导入
 import { Json } from "../lang/type";
-import { utf8Decode, utf8Encode } from "./util";
+import { utf8Decode, utf8Encode } from "../util/util";
 
 export type SerializeType =  SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
 // ============================== 导出

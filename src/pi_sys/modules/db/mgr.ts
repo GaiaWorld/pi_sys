@@ -1,4 +1,5 @@
 import { TabMeta } from "../serialization/sinfo";
+import { Struct } from "../serialization/struct_mgr";
 
 export interface Item {
     ware: string,
@@ -8,6 +9,13 @@ export interface Item {
 }
 
 export interface Mgr {
+	/**
+	 * 是否存在表
+	 * @param ware_name 库名
+	 * @param tab_name 表名
+	 */
+	isExist(ware_name: string, tab_name: string): boolean;
+
     //表的元信息
     tabInfo(ware_name: string, tab_name: string): TabMeta;
 
@@ -18,13 +26,26 @@ export interface Mgr {
     register<T>(ware_name: string, ware: T): boolean;
 
     //写数据库
-    write(txhd: Handler, timeout?: number);
+    write(txhd: Handler, timeout?: number): void;
 
     //读数据库
-    read(txhd: Handler, timeout?: number);
+    read(txhd: Handler, timeout?: number): void;
 
     // 数据改变通知
-    notify(items: Item[]);
+	notify(items: Item[]): void;
+	
+	/**
+	 * 添加监听器
+	 * @param name 监听器名称， 如果数据库管理器已经存在相同名称的监听器，添加监听器会失败
+	 * @param listner 监听器
+	 */
+	addListener(name: string, listner: DbListener): boolean;
+
+	/**
+	 * 取消监听器
+	 * @param name 监听器名称
+	 */
+	cancelListener(name: string): void;
 }
 
 export interface Tr {
@@ -50,7 +71,7 @@ export interface Tr {
     iter<K, V>(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterable<[K, V]>;
 
     //迭代器
-    iter_raw?<K, V>(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterator<[K, V]>;
+    iter_raw?(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterator<[any, any]>;
 }
 
 export interface Handler {
@@ -59,4 +80,11 @@ export interface Handler {
 
 export interface DataListener {
     (items: Item[]): void;
+}
+
+/**
+ * 数据库监听器
+ */
+export interface DbListener extends Struct {
+	listen(items: Item[]): void;
 }

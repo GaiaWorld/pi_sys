@@ -9,7 +9,7 @@
  */
 // ============================== 导入
 import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
-import { FileInfo, fileSuffix, DirInfo, getDir, getFile } from "../../pi_sys/setup/depend";
+import { FileInfo, fileSuffix, DirInfo, getDir, getFile, filePseudoSuffix } from "../../pi_sys/setup/depend";
 import { cc, log, pattern } from "../../pi_sys/feature/log";
 import { CodeLoad, loadJSFromAB } from './code';
 import { ObjLoad } from './object';
@@ -523,19 +523,46 @@ const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
 const handleBinMap = (map: Map<string, Uint8Array>) => {
     let arr = [];
     for (let [k, v] of map) {
-        let suffix = fileSuffix(k);
-        let st = suffixMap.get(suffix);
-        if (st === SuffixType.CFG) {
-            arr.push(handleCfg(k, v, suffix));
-        } else if (st === SuffixType.RES) {
-            let lru = resMap.get(suffix);
-            lru.add(k, v);
-        } else if (st === SuffixType.CODE) {
-            // arr.push(loadJSFromAB(v));
-        }
+		let suffix = filePseudoSuffix(k);
+		while(true) {
+			if (!suffix) {
+				break;
+			} else {
+				let st = suffixMap.get(suffix);
+				if (st === SuffixType.CFG) {
+					arr.push(handleCfg(k, v, suffix));
+					break;
+				} else if (st === SuffixType.RES) {
+					let lru = resMap.get(suffix);
+					lru.add(k, v);
+					break;
+				} else if (st === SuffixType.CODE) {
+					// arr.push(loadJSFromAB(v));
+				}
+			}
+			suffix = filePseudoSuffix(suffix);
+		}
     }
     return Promise.all(arr);
-};
+}
+
+// // 二进制文件表的后处理
+// const handleBinMap = (map: Map<string, Uint8Array>) => {
+//     let arr = [];
+//     for (let [k, v] of map) {
+//         let suffix = fileSuffix(k);
+//         let st = suffixMap.get(suffix);
+//         if (st === SuffixType.CFG) {
+//             arr.push(handleCfg(k, v, suffix));
+//         } else if (st === SuffixType.RES) {
+//             let lru = resMap.get(suffix);
+//             lru.add(k, v);
+//         } else if (st === SuffixType.CODE) {
+//             // arr.push(loadJSFromAB(v));
+//         }
+//     }
+//     return Promise.all(arr);
+// };
 // 二进制文件的后处理
 const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
     let arr = cfgMap.get(file);
