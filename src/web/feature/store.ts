@@ -111,9 +111,10 @@ export class Store {
                 tx.oncomplete = () => {
                     if (this.dataMap) {
                         this.dataMap.delete(<string>key);
-                    } else {
-                        resolve();
                     }
+
+                    resolve();
+
                     this.writing = false;
                     this._write();
                     data = undefined;
@@ -133,7 +134,6 @@ export class Store {
 
             if (this.dataMap) {
                 this.dataMap.set(<string>key, data);
-                resolve();
             }
         });
     }
@@ -183,8 +183,9 @@ export class Store {
         if (!iDB) {
             return setTimeout(() => {
                 for (let [key, value] of this.map) {
-                    if (callback({key, value}) === false)
+                    if (callback({key, value}) === false) {
                         return;
+                    }
                 }
                 callback(null);
             }, 0);
@@ -193,8 +194,9 @@ export class Store {
         cursor.onsuccess = () => {
             let r = cursor.result;
             if (r) {
-                if (callback(r) === false)
+                if (callback(r) === false) {
                     return;
+                }
                 r.continue();
             } else {
                 callback(null);
