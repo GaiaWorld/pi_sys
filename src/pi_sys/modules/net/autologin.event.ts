@@ -8,7 +8,7 @@ import { Mgr, Tr } from '../db/mgr';
 import { Env } from '../lang/env';
 import { Session as PiSession } from '../net/session';
 import { randomInt } from '../math/math';
-import { AutoLogin, AutoLoginResult, GetToken, Session, SessionTab, Token } from './autologin.s';
+import { AutoLogin, AutoLoginResult, GetToken, Session, SessionTab, Token } from './autologin.struct';
 
 declare var env: Env;
 
