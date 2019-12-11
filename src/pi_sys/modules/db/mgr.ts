@@ -71,7 +71,7 @@ export interface Tr {
     iter<K, V>(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterable<[K, V]>;
 
     //迭代器
-    iter_raw?(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterator<[any, any]>;
+    iter_raw?<K, V>(ware: string, tab: string, key: any, descending: boolean, _filter: string): Iterator<[K, V]>;
 }
 
 export interface Handler {
