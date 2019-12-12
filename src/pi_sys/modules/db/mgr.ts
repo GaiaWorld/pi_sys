@@ -29,7 +29,7 @@ export interface Mgr {
     write(txhd: Handler, timeout?: number): void;
 
     //读数据库
-    read(txhd: Handler, timeout?: number): void;
+    read(txhd: Handler, timeout?: number): any;
 
     // 数据改变通知
 	notify(items: Item[]): void;
