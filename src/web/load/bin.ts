@@ -120,18 +120,21 @@ export class FileLoad {
      * @example
      */
     public onProcess(url: string, type: string, total: number, loaded: number, data?: any) {
-        if (!this.process)
+        if (!this.process) {
             return;
-        for (let p of this.process)
+        }
+        for (let p of this.process) {
             p(url, type, total, loaded, data);
+        }
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addProcess(p: ProcessFunc) {
-        if (!this.process)
+        if (!this.process) {
             this.process = [];
+        }
         this.process.push(p);
     }
     /**
@@ -139,18 +142,21 @@ export class FileLoad {
      * @example
      */
     public onResult(val: any, err?: any) {
-        if (!this.result)
+        if (!this.result) {
             return;
-        for (let r of this.result)
+        }
+        for (let r of this.result) {
             r(val, err);
+        }
     }
     /**
      * @description 添加下载文件
      * @example
      */
     public addResult(r: ResultFunc) {
-        if (!this.result)
+        if (!this.result) {
             this.result = [];
+        }
         this.result.push(r);
     }
     /**
@@ -230,11 +236,13 @@ export class Download extends FileLoad {
             let count = result.files.length;
             // 检查url长度, 限制长度1k，超过1k，需要分多次下载
             stringify(fileDirTree, limitLength, result);
-            if (result.files.length > count)
+            if (result.files.length > count) {
                 result.f = result.url;
+            }
             downWait.push(this.startURL(result.d, result.f, result.files, localSignWait, fileMap));
-            if (!result.next)
+            if (!result.next) {
                 break;
+            }
             result = new Result;
         }
         return Promise.all(downWait).then((_v) => {
@@ -254,8 +262,9 @@ export class Download extends FileLoad {
      * @example
      */
     public abort() {
-        if (!this.downloadMap)
+        if (!this.downloadMap) {
             return;
+        }
         for (let v of this.downloadMap.values()) {
             v.abort();
         }
@@ -263,8 +272,9 @@ export class Download extends FileLoad {
     // 指定目录和文件的一次下载
     startURL(durl: string, furl: string, files: FileInfo[], localSignWait: Promise<void>[], fileMap: Map<string, Uint8Array>) {
         let len = files.length, size = 0, h = 0; // hash值
-        if (len === 0)
+        if (len === 0) {
             return;
+        }
         for (let i = 0; i < len; i++) {
             let info = files[i];
             size += info.size;
@@ -349,10 +359,12 @@ class Result {
 
 // 格式化签名， "-"开头表示本地文件
 const formatSign = (sign: string) => {
-    if (!sign)
+    if (!sign) {
         return sign;
-    if (isAsset(sign))
+    }
+    if (isAsset(sign)) {
         return sign.slice(1);
+    }
     return sign;
 };
 // 判断是否为本地文件， "-"开头表示本地文件
@@ -366,17 +378,20 @@ const localInitCheck = (store: Store, signs: any, save: boolean) => {
     localTempSign = signs;
     // 删除不存在或签名不正确的文件
     for (let k in signs) {
-        if (!signs.hasOwnProperty(k))
+        if (!signs.hasOwnProperty(k)) {
             continue;
+        }
         let info = getFile(k);
-        if (info && getSign(k) === info.sign)
+        if (info && getSign(k) === info.sign) {
             continue;
+        }
         store.delete(k);
         delete signs[k];
         save = true;
     }
-    if (save)
+    if (save) {
         store.write(SIGN_KEY, signs);
+    }
 };
 
 // 获取文件的去掉第一个后缀的文件名
@@ -421,8 +436,9 @@ const stringify = (tree: DirInfo, limit: number, result: Result) => {
         }
     }
     result.url += ":";
-    if (!tree.children)
+    if (!tree.children) {
         return;
+    }
     let dir: DirInfo;
     while (dir = tree.children[tree.children.length - 1]) {
         let i = dir.path.lastIndexOf("/", dir.path.length - 2);
@@ -430,8 +446,9 @@ const stringify = (tree: DirInfo, limit: number, result: Result) => {
         result.url += rk + "(";
         stringify(dir, limit, result);
         result.url += ")";
-        if (result.next)
+        if (result.next) {
             return result;
+        }
         tree.children.length -= 1;
     }
 };
@@ -442,14 +459,6 @@ const replace = (s: string) => {
 
 // 保存文件
 const savefile = (path: string, data: Uint8Array, sign: string) => {
-    // if (!(<any>window).ttt) {
-    //     (<any>window).ttt = {};
-    // }
-    // if (!(<any>window).ttt[path]) {
-    //     (<any>window).ttt[path] = [0, []];
-    // }
-    // (<any>window).ttt[path][0]++;
-    // (<any>window).ttt[path][1].push(data.length);
     return localStore.write(path, new Uint8Array(data.slice().buffer)).then((_) => {
         localSign[path] = sign;
         localTempSign[path] = sign;
