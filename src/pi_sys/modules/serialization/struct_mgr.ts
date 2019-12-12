@@ -141,9 +141,9 @@ export class Struct implements BonCode {
 		return (<any>this.constructor)._$info
 	}
 	removeMeta() { };//从元信息上移除
-	addMeta(mgr: StructMgr) { };//添加到元信息上
-	bonEncode(bb: BonBuffer) { };	//二进制编码
-	bonDecode(bb: BonBuffer) { };//二进制解码
+	addMeta(_mgr: StructMgr) { };//添加到元信息上
+	bonEncode(bb: BonBuffer): BonBuffer { return bb};	//二进制编码
+	bonDecode(_bb: BonBuffer) { };//二进制解码
 }
 
 export class Bon extends Struct {
@@ -154,8 +154,9 @@ export class Bon extends Struct {
 		this.data = data;
 	}
 
-	bonEncode(bb: BonBuffer) {
+	bonEncode(bb: BonBuffer): BonBuffer {
 		bb.writeBon(this.data);
+		return bb;
 	};
 
 	bonDecode(bb: BonBuffer) {
