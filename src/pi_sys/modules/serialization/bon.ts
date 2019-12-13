@@ -34,13 +34,13 @@
 // TODO 定义一个全类型的枚举 enum BonType<T>， ReadNext WriteNext 的 T 应该为BonType。提供一个 read(&self) -> BonType<T>
 
 // ============================== 导入
-import { Json } from "../lang/type";
+// import { Json } from "../lang/type";
 import { utf8Decode, utf8Encode } from "../util/util";
 
-export type SerializeType =  SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
+// export type SerializeType =  SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
 // ============================== 导出
 export interface ReadNext {
-	(bb: BonBuffer, type: number, len?: number): BonCode | Array<BonCode>;
+	(bb: BonBuffer, type: number, len?: number): BonDecode<any> | Array<BonDecode<any>>;
 }
 export interface WriteNext<T> {
 	(bb: BonBuffer, o: T): void;
@@ -49,16 +49,24 @@ export interface WriteNext<T> {
  * 二进制可序列化对象
  * @example
  */
-export interface BonCode {
+export interface BonEncode {
 	/**
 	 * 二进制编码
 	 */
 	bonEncode: (bb: BonBuffer) => BonBuffer;
+}
+
+/**
+ * 二进制可序列化对象
+ * @example
+ */
+export interface BonDecode<T> {
 	/**
 	 * 二进制解码
 	 */
-	bonDecode: (bb: BonBuffer) => void;
+	bonDecode: (bb: BonBuffer) => T;
 }
+
 
 /**
  * @description 二进制数据缓存
@@ -126,7 +134,7 @@ export class BonBuffer {
 	 * @description 写入任意类型
 	 * @example
 	 */
-	write(v: BonCode): BonBuffer {
+	write(v: BonEncode): BonBuffer {
 		if (v === undefined || v === null)
 			return this.writeNil();
 		else 
@@ -419,7 +427,7 @@ export class BonBuffer {
 	 * @description 写array
 	 * @example
 	 */
-	writeBonCode(bon: BonCode): BonBuffer {
+	writeBonCode(bon: BonEncode): BonBuffer {
 		bon.bonEncode(this);
 		return this;
 	}
@@ -823,10 +831,11 @@ export class BonBuffer {
 	 * @description 读array, 返回Boncode
 	 * @example
 	 */
-	readBonCode(constructor: any): any {
-		let r = (<BonCode>new constructor());
-		r.bonDecode(this);
-		return r;
+	readBonCode(constructor: BonDecode<any>): any {
+		// let r = (<BonDecode<any>>new constructor());
+		
+		// r.bonDecode(this);
+		return constructor.bonDecode(this);;
 	}
 
 	readCt(next: ReadNext): any{
@@ -1003,7 +1012,7 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 	}
 }
 
-type SerializeBase = number | string | String | boolean | ArrayBuffer | Uint8Array | BonCode | Json;
+// type SerializeBase = number | string | String | boolean | ArrayBuffer | Uint8Array | BonEncode | Json;
 
 Object.defineProperty(Object.prototype, "bonEncode", {
 	configurable: true,
@@ -1020,20 +1029,6 @@ Object.defineProperty(Object.prototype, "bonEncode", {
 			}
 		});
 		return bb;
-	}
-});
-
-Object.defineProperty(Object.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): Object {
-		let type = bb.getType();
-		if (type === 1) {
-			return readContent(bb, type);
-		} else {
-			throw new Error("Object bonDecode fail, type:" + type);
-		}
 	}
 });
 
@@ -1063,20 +1058,6 @@ Object.defineProperty(Array.prototype, "bonEncode", {
 			}
 		});
 		return bb;
-	}
-});
-
-Object.defineProperty(Array.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): Array<any> {
-		let type = bb.getType();
-		if (type === 2) {
-			return readContent(bb, type);
-		} else {
-			throw new Error("Array bonDecode fail, type:" + type);
-		}
 	}
 });
 
@@ -1110,20 +1091,6 @@ Object.defineProperty(Map.prototype, "bonEncode", {
 	}
 });
 
-Object.defineProperty(Map.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): Map<any, any> {
-		let type = bb.getType();
-		if (type === 3) {
-			return readContent(bb, type);
-		} else {
-			throw new Error("Array bonDecode fail, type:" + type);
-		}
-	}
-});
-
 Object.defineProperty(Map, "bonDecode", {
 	configurable: true,
 	enumerable: false,
@@ -1153,20 +1120,6 @@ Object.defineProperty(Number.prototype, "bonEncode", {
 	}
 });
 
-Object.defineProperty(Number.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): number {
-		let type = bb.getType();
-		if (type > 3 && type < 9) {
-			return bb.readInt();
-		} else {
-			return bb.readf();
-		}
-	}
-});
-
 Object.defineProperty(Number, "bonDecode", {
 	configurable: true,
 	enumerable: false,
@@ -1191,15 +1144,6 @@ Object.defineProperty(String.prototype, "bonEncode", {
 	}
 });
 
-Object.defineProperty(String.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): string {
-		return bb.readUtf8();
-	}
-});
-
 Object.defineProperty(String, "bonDecode", {
 	configurable: true,
 	enumerable: false,
@@ -1216,15 +1160,6 @@ Object.defineProperty(Boolean.prototype, "bonEncode", {
 	value: function (bb: BonBuffer): BonBuffer {
 		bb.writeUtf8(this.valueOf());
 		return bb;
-	}
-});
-
-Object.defineProperty(Boolean.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): boolean {
-		return bb.readBool();
 	}
 });
 
@@ -1247,15 +1182,6 @@ Object.defineProperty(ArrayBuffer.prototype, "bonEncode", {
 	}
 });
 
-Object.defineProperty(ArrayBuffer.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): ArrayBuffer {
-		return bb.readBin().buffer as any; // any? TODO
-	}
-});
-
 Object.defineProperty(ArrayBuffer, "bonDecode", {
 	configurable: true,
 	enumerable: false,
@@ -1272,15 +1198,6 @@ Object.defineProperty(Uint8Array.prototype, "bonEncode", {
 	value: function (bb: BonBuffer): BonBuffer {
 		bb.writeBin(this);
 		return bb;
-	}
-});
-
-Object.defineProperty(Uint8Array.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): Uint8Array {
-		return bb.readBin();
 	}
 });
 
@@ -1303,15 +1220,6 @@ Object.defineProperty(Uint16Array.prototype, "bonEncode", {
 	}
 });
 
-Object.defineProperty(Uint16Array.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): Uint16Array {
-		return new Uint16Array(bb.readBin().buffer);
-	}
-});
-
 Object.defineProperty(Uint16Array, "bonDecode", {
 	configurable: true,
 	enumerable: false,
@@ -1331,14 +1239,6 @@ Object.defineProperty(Uint32Array.prototype, "bonEncode", {
 	}
 });
 
-Object.defineProperty(Uint32Array.prototype, "bonDecode", {
-	configurable: true,
-	enumerable: false,
-	writable: true,
-	value: function (bb: BonBuffer): Uint32Array {
-		return new Uint32Array(bb.readBin().buffer);
-	}
-});
 
 Object.defineProperty(Uint32Array, "bonDecode", {
 	configurable: true,
@@ -1378,7 +1278,6 @@ const jsonReadNext = (bb: BonBuffer, t: number, l: number, readNext?: ReadNext) 
 	*/
 declare global {
 	interface Object {
-		bonDecode(bb: BonBuffer): Object;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1387,7 +1286,6 @@ declare global {
 	}
 
 	interface Number {
-		bonDecode(bb: BonBuffer): number;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1396,7 +1294,6 @@ declare global {
 	}
 
 	interface String {
-		bonDecode(bb: BonBuffer): string;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1405,7 +1302,6 @@ declare global {
 	}
 
 	interface Boolean {
-		bonDecode(bb: BonBuffer): boolean;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1414,7 +1310,6 @@ declare global {
 	}
 
 	interface Map<K, V> {
-		bonDecode(bb: BonBuffer): Map<K, V>;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1423,7 +1318,6 @@ declare global {
 	}
 
 	interface Array<T> {
-		bonDecode(bb: BonBuffer): Array<T>;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1432,7 +1326,6 @@ declare global {
 	}
 
 	interface ArrayBuffer {
-		bonDecode(bb: BonBuffer): ArrayBuffer;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1441,7 +1334,6 @@ declare global {
 	}
 
 	interface Uint8Array {
-		bonDecode(bb: BonBuffer): Uint8Array;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1450,7 +1342,6 @@ declare global {
 	}
 
 	interface Uint16Array {
-		bonDecode(bb: BonBuffer): Uint16Array;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 
@@ -1459,7 +1350,6 @@ declare global {
 	}
 
 	interface Uint32Array {
-		bonDecode(bb: BonBuffer): Uint32Array;
 		bonEncode(bb: BonBuffer): BonBuffer;
 	}
 

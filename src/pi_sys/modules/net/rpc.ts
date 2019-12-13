@@ -4,29 +4,28 @@
  */
 
 // ============================== 导入
-import { Func, Struct, StructMgr } from "../serialization/struct_mgr";
-import { writeBon, read } from "../serialization/util";
-import { BonBuffer, SerializeType } from '../serialization/bon';
+import { Func, read, write } from "../serialization/struct_mgr";
+import { BonBuffer, BonEncode } from '../serialization/bon';
 import { Client } from "./mqtt_c";
 
 /**
  * 创建一个RPC函数
  * @example
  */
-export const create = (client: Client, mgr: StructMgr): Rpc => {
-	const mqttRpc = new MqttRpc(client, mgr);
+export const create = (client: Client): Rpc => {
+	const mqttRpc = new MqttRpc(client);
 	client.onMessage((topic, payload: Uint8Array) => {
 		if (topic === "$r") {
 			let bb = new BonBuffer(payload, 0, payload.length);
 			let rid = bb.readU32();//消息开始表示此次请求的id
-			let timeout = bb.readU8();
+			bb.readU8(); // timeout TODO
 			if (mqttRpc.wait[rid]) {
-				mqttRpc.wait[rid](read(bb, mgr));
+				mqttRpc.wait[rid](read(bb));
 				delete mqttRpc.wait[rid];
 			}
 		}
 	});
-	return (name: string, req: SerializeType, callback: Func, timeout: number) => {
+	return (name: string, req: BonEncode, callback: Func, timeout: number) => {
 		mqttRpc.call(name, req, callback, timeout);
 	}
 }
@@ -35,30 +34,22 @@ class MqttRpc {
 	rid = 1;
 	wait = {};
 	client: Client;
-	mgr: StructMgr;
-	constructor(client: Client, mgr: StructMgr) {
+	constructor(client: Client) {
 		this.client = client;
-		this.mgr = mgr;
 	};
 
 	//远程调用
-	call(name: string, req: SerializeType, callback: Func, timeout: number) {
+	call(name: string, req: BonEncode, callback: Func, timeout: number) {
 		let bb = new BonBuffer();
 		this.wait[this.rid] = callback;
-		bb.writeU32(this.rid++);
-		bb.writeU8(timeout);
+		bb.writeU32(this.rid++); // rid
+		bb.writeU8(timeout); // timeout
 		this.rid >= 0xffffffff && (this.rid = 1);
-		if (req === null || req === undefined) {
-			bb.writeNil();
-		} else if (req instanceof Struct) {
-			writeBon(req, bb);
-		} else {
-			req.bonEncode(bb);
-		}
+		write(req, bb);
 		this.client.publish(name, bb.getBuffer(), 0, true);
 	}
 }
 
 export interface Rpc {
-	(name: string, req: SerializeType, callback: Func, timeout: number): void;
+	(name: string, req: BonEncode, callback: Func, timeout: number): void;
 }
