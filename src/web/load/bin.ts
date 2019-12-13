@@ -85,7 +85,7 @@ export const init = (storeName: string, domainUrls: string[], downloadPath: stri
  * @example
  */
 export const getSign = (path: string) => {
-    return formatSign(localTempSign[path]);
+    return formatSign(localSign[path]);
 };
 /**
  * @description 检查文件是否会从本地加载, 返回 true | false | undefined
@@ -291,7 +291,6 @@ export class Download extends FileLoad {
             this.onProcess(path, 'fileDownload', this.total, this.loaded);
         };
         return down.start().then((value) => {
-            setLocalTempSign(files);
             this.save((value as ArrayBuffer), localSignWait, fileMap);
         });
     }
@@ -327,11 +326,6 @@ export const setLocalSign = (files: FileInfo[]) => {
     }
     return localStore.write(SIGN_KEY, localSign);
 };
-export const setLocalTempSign = (files: FileInfo[]) => {
-    for (let f of files) {
-        localTempSign[f.path] = f.sign;
-    }
-};
 // ============================== 本地
 // 下载的多域名
 let urls: string[] = [];
@@ -345,8 +339,6 @@ let sizeLimit = 8 * 1024 * 1024;
 let localStore: Store;
 // 本地签名表
 let localSign: any;
-// 临时本地签名表 - 下载成功时即记录,用于检查文件是否为本地(已下载成功即认为为本地文件)
-let localTempSign: any;
 
 class Result {
     url = "";
@@ -375,7 +367,6 @@ const isAsset = (sign: string) => {
 const localInitCheck = (store: Store, signs: any, save: boolean) => {
     localStore = store;
     localSign = signs;
-    localTempSign = signs;
     // 删除不存在或签名不正确的文件
     for (let k in signs) {
         if (!signs.hasOwnProperty(k)) {
@@ -461,7 +452,6 @@ const replace = (s: string) => {
 const savefile = (path: string, data: Uint8Array, sign: string) => {
     return localStore.write(path, new Uint8Array(data.slice().buffer)).then((_) => {
         localSign[path] = sign;
-        localTempSign[path] = sign;
      });
 };
 
