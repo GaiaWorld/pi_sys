@@ -53,6 +53,10 @@ export class DirInfo {
 
 // 根据文件表初始化依赖表
 export const init = (files: any[][]) => {
+	let root = new DirInfo("");
+	root.children = [];
+	dirMap.set("", root);
+	
 	for (let args of files) {
 		let f = new FileInfo(args);
 		fileMap.set(f.path, f);
