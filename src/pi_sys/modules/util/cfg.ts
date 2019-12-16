@@ -53,6 +53,9 @@ export class Cfg{
     }
 
     update(key: string, value: Map<baseType, Struct>){
+		if(value.size === 0) {
+			return;
+		}
         let m = this.map.get(key);
         if(!m){
             this.set(key, value);
@@ -93,9 +96,7 @@ export const cfgMgr = new Cfg();
 
 const SCFG_SUFFIX = "cfg.json";
 export const sCfgHandle = (): Promise<any> => {
-	return setCfgHandler(SCFG_SUFFIX, (file: string, data: Uint8Array): Promise<any> => {
-        console.log('----------sCfgHandle--------------', file);
-        
+	return setCfgHandler(SCFG_SUFFIX, (_file: string, data: Uint8Array): Promise<any> => {
 		return new Promise((resolve, reject) => {
 			try {
 				const cfgs = JSON.parse(utf8Decode(data));
