@@ -822,11 +822,17 @@ export const writeNotify = (target: any, propertyKey: string, descriptor?: Prope
  * 单数字组件
 */
 export class NumComponent extends Component{
-    @writeNotify
-    value: number;
+	_value: number;
 	constructor(value=0) {
 		super();
-		this.value = value;
+		this._value = value;
+	}
+	@writeNotify
+	set value(value: number) {
+		this._value = value;
+	}
+	get value(): number {
+		return this._value;
 	}
 }
 
