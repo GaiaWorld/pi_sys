@@ -48,7 +48,7 @@ export interface PointerHookCfg {
 // tslint:disable-next-line:no-unnecessary-class
 export class PointerHook {
     /**
-     * 设定号码长度
+     * 设定号码长度 - 项目如果修改 CODE_LENGTH 需要同时修改 QUIT_CODE
      */
     public static CODE_LENGTH: number = 10;
 
@@ -57,9 +57,12 @@ export class PointerHook {
      * @description 超过该时间没有事件响应，则清除所有号码记录
      */
     public static WAIT_MAX_TIME: number = 10000;
+    /**
+     * 项目如果修改 CODE_LENGTH 需要同时修改 QUIT_CODE
+     */
     public static QUIT_CODE: string = '0000000000';
-    public static lastDownTime: number = 0;
-    public static hookMap: Map<string, PointerHookCfg> = new Map();
+    private static lastDownTime: number = 0;
+    private static hookMap: Map<string, PointerHookCfg> = new Map();
     private static recordCodes: number[] = [];
 
     /**
