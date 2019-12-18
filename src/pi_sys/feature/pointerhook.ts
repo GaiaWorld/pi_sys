@@ -1,7 +1,7 @@
 /**
  * 对屏幕事件进行监控
  * * 项目配置 监控名称 - 监控号码 - 监控响应事件
- * * 监控号码: 全为 '0' 预制为清除所有监控的响应
+ * * 监控号码: 为 '0123456780' 预制为清除所有监控的响应
  * * 数字键盘: 
  *     +--------+----------+--------+
  *     |        |          |        |
@@ -37,8 +37,9 @@ export interface PointerHookCfg {
     hcode: string;
     /**
      * 事件取消
+     * @descript 可以通过设置另一个号码的 hactive 来作为退出
      */
-    hquit: Function;
+    hquit?: Function;
     /**
      * 事件激活
      */
@@ -56,11 +57,11 @@ export class PointerHook {
      * 设定号码响应的最大等待时间
      * @description 超过该时间没有事件响应，则清除所有号码记录
      */
-    public static WAIT_MAX_TIME: number = 10000;
+    public static WAIT_MAX_TIME: number = 1000;
     /**
      * 项目如果修改 CODE_LENGTH 需要同时修改 QUIT_CODE
      */
-    public static QUIT_CODE: string = '0000000000';
+    public static QUIT_CODE: string = '0123456780';
     private static lastDownTime: number = 0;
     private static hookMap: Map<string, PointerHookCfg> = new Map();
     private static recordCodes: number[] = [];
@@ -113,7 +114,7 @@ export class PointerHook {
     
             if (cfg) {
                 try {
-                    cfg.hactive();
+                    cfg.hactive && cfg.hactive();
                 } catch (err) {
                     console.error(err);
                 }
@@ -132,7 +133,7 @@ export class PointerHook {
     private static quit() {
         this.hookMap.forEach((cfg) => {
             try {
-                cfg.hquit();
+                cfg.hquit && cfg.hquit();
             } catch (err) {
                 console.error(err);
             }
