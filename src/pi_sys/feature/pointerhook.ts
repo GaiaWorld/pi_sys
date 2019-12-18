@@ -75,17 +75,19 @@ export class PointerHook {
         }
 
         const code = PointerHook.formatCode(x, y);
-        PointerHook.recordCodes.push(code);
-        if (PointerHook.recordCodes.length > PointerHook.CODE_LENGTH) {
-            PointerHook.recordCodes.shift();
+        if (code >= 0 && code <= 8) {
+            PointerHook.recordCodes.push(code);
+            if (PointerHook.recordCodes.length > PointerHook.CODE_LENGTH) {
+                PointerHook.recordCodes.shift();
+            }
+    
+            if (PointerHook.recordCodes.length === PointerHook.CODE_LENGTH) {
+                const codes = PointerHook.recordCodes.join('');
+                PointerHook.check(codes);
+            }
+    
+            PointerHook.lastDownTime = Date.now();
         }
-
-        if (PointerHook.recordCodes.length === PointerHook.CODE_LENGTH) {
-            const codes = PointerHook.recordCodes.join('');
-            PointerHook.check(codes);
-        }
-
-        PointerHook.lastDownTime = Date.now();
     }
     /**
      * 添加hook
