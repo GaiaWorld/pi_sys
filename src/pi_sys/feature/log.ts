@@ -16,7 +16,7 @@ export enum LogLevel {
     info,
     warn,
     error,
-    none,
+    none
 }
 
 /**
@@ -32,32 +32,33 @@ export let logLevel = LogLevel.info;
  * 星星号*，匹配 0层 或 多层 斜杠 /
  */
 export const pattern = (p: string) : RegExp => {
-    let str = "";
-    let arr = p.split("/");
+    let str = '';
+    const arr = p.split('/');
     for (let i = 0; i < arr.length; ++i) {
         let p = arr[i];
-        if (p === "**") {
-            str += "(?:(.*)\\\/)?";
+        if (p === '**') {
+            str += '(?:(.*)\\\/)?';
         } else {
             // 将所有的*替换掉
-            p = p.replace(/\./g, "\\\.");
-            p = p.replace(/\*/g, "([^/]*)");
+            p = p.replace(/\./g, '\\\.');
+            p = p.replace(/\*/g, '([^/]*)');
 
             str += p;
             if (i + 1 < arr.length) {
-                str += "\\\/";
+                str += '\\\/';
             }
         }
     }
-    return new RegExp("^" + str + "$", "g");
+    return new RegExp('^' + str + '$', 'g');
 };
 /**
  * 根据配置设置日志级别
  */
 export const init = (cfg: any) => {
-    for (let k in cfg) {
-        if (cfg.hasOwnProperty(k))
+    for (const k in cfg) {
+        if (cfg.hasOwnProperty(k)) {
             set(k, cfg[k]);
+        }
     }
 };
 
@@ -66,9 +67,9 @@ export const init = (cfg: any) => {
  * 支持**, *。
  */
 export const set = (p: string, level: LogLevel) => {
-    let r = pattern(p);
-    patternMap.set(p, {reg: r, level: level});
-    for (let [k, v] of logMap) {
+    const r = pattern(p);
+    patternMap.set(p, { reg: r, level: level });
+    for (const [k, v] of logMap) {
         if (r.test(k)) {
             v.pattern = p;
             v.level = level;
@@ -91,17 +92,18 @@ export const cc = {
     debug: debug,
     info: info,
     warn: warn,
-    error: error,
+    error: error
 };
 
 export const check = (level: LogLevel, mod?: string) => {
-    if (logLevel > level || !console || !mod)
+    if (logLevel > level || !console || !mod) {
         return false;
+    }
     let r = logMap.get(mod);
     if (!r) {
         // 匹配最后的设置
-        r = {pattern: "", level: LogLevel.none};
-        for (let [k, v] of patternMap) {
+        r = { pattern: '', level: LogLevel.none };
+        for (const [k, v] of patternMap) {
             if (v.reg.test(mod)) {
                 r.pattern = k;
                 r.level = v.level;
@@ -109,8 +111,9 @@ export const check = (level: LogLevel, mod?: string) => {
         }
         logMap.set(mod, r);
     }
-    if (r.level > level)
+    if (r.level > level) {
         return false;
+    }
     lastLevel = level;
     lastMod = mod;
 };
@@ -121,63 +124,11 @@ export let log = (msg: any, ...args: any[]): void => {
     consoleLog[lastLevel - LogLevel.debug](lastMod, Date.now() / 1000, msg, args);
 };
 
-const logMap: Map<string, {pattern: string, level: LogLevel}> = new Map; // 日志表
+const logMap: Map<string, {pattern: string; level: LogLevel}> = new Map; // 日志表
 
-const patternMap: Map<string, {reg: RegExp, level: number}> = new Map; // 匹配表
+const patternMap: Map<string, {reg: RegExp; level: number}> = new Map; // 匹配表
 
 const consoleLog = [console.debug, console.info, console.warn, console.error];
 
 let lastLevel = LogLevel.debug;
-let lastMod = "";
-
-/**
- * 整个屏幕划分为 九宫格
- * down 顺序:
- * 		左上 3 次
- * 		右下 4 次
- * 		左下 3 次
- *      右下 3 次
- */
-let ruleList = [
-    { x: [0.0, 0.3], y: [0.0, 0.3] },
-    { x: [0.0, 0.3], y: [0.0, 0.3] },
-    { x: [0.0, 0.3], y: [0.0, 0.3] },
-
-    { x: [0.7, 1.0], y: [0.7, 1.0] },
-    { x: [0.7, 1.0], y: [0.7, 1.0] },
-    { x: [0.7, 1.0], y: [0.7, 1.0] },
-    { x: [0.7, 1.0], y: [0.7, 1.0] },
-
-    { x: [0.0, 0.3], y: [0.7, 1.0] },
-    { x: [0.0, 0.3], y: [0.7, 1.0] },
-    { x: [0.0, 0.3], y: [0.7, 1.0] },
-
-    { x: [0.7, 1.0], y: [0.0, 0.3] },
-    { x: [0.7, 1.0], y: [0.0, 0.3] },
-    { x: [0.7, 1.0], y: [0.0, 0.3] }
-];
-
-let downRecord = 0;
-
-let isActive: boolean = false;
-
-/**
- * 连续点击满足所有规则则切换状态
- * @param e down 坐标
- */
-export const downCall = (e: { x: number, y: number }) => {
-    let rule = ruleList[downRecord];
-    if (rule.x[0] < e.x && e.x < rule.x[1]) {
-        if (rule.y[0] < e.y && e.y < rule.y[1]) {
-            downRecord++;
-        } else {
-            downRecord = 0;
-        }
-    } else {
-        downRecord = 0;
-    }
-
-    if (downRecord >= ruleList.length) {
-        isActive = !isActive;
-    }
-};
+let lastMod = '';
