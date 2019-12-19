@@ -63,6 +63,17 @@ export class Heap<T> {
 		this.down(index);
 	}
 	/**
+	 * 用过滤函数清除不要的元素， 过滤函数返回true表示保留
+	 */
+	public filter(f: (e: T) => boolean) {
+		for(let i = this.array.length - 1; i >= 0; i--) {
+			if(!f(this.array[i])) {
+				this.removeByIndex(i);
+			};
+		}
+	}
+
+	/**
 	 * 获得但不弹出堆顶元素
 	 */
 	public get() {
