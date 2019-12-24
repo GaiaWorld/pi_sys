@@ -14,7 +14,7 @@ export class Cfg{
                 let primarys = primary.split("-");
                 for(let i = 0; i < primarys.length; i++){
                     let primaryMap = new Map<any, Struct>();
-                    value.forEach((v, k) => {
+                    value.forEach((v, _k) => {
                         primaryMap.set(v[primarys[i]], v);
                     });
                     this.map.set(`${key}#${primarys[i]}`, primaryMap);
