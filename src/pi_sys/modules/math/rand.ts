@@ -4,7 +4,7 @@
  */
 
 // ============================== 导入
-import {imul, INT32_SIZE, INT32_MAX} from "./math"
+import {imul, INT32_SIZE, INT32_MAX, UINT32_MAX} from "./math"
 
 // ============================== 导出
 const ARRAY_SIZE = 624;
@@ -63,7 +63,7 @@ export class Rand {
 		v ^= v >>> 11;
 		v ^= (v << 7) & 0x9d2c5680;
 		v ^= (v << 15) & 0xefc60000;
-		return v ^ (v >>> 18);
+		return (v ^ (v >>> 18)) >>> 0;
 	}
 	private refreshData(data: Int32Array) {
 		let k = 0;
@@ -83,20 +83,20 @@ export class Rand {
 	 * @description 获得一个指定范围（左闭右开区间）的随机浮点数
 	 */
 	public nextFloat(v1: number, v2: number): number {
-		return v1 + this.next() * (v2 - v1);
+		return v1 + this.next()/UINT32_MAX * (v2 - v1);
 	}
 	/**
 	 * @description 获得一个指定范围（闭区间）的随机整数
 	 */
 	public nextInt(v1: number, v2: number): number {
-		return v1 + Math.floor(this.next() * (v2 - v1 + 1.0));
+		return v1 + Math.floor(this.next()/UINT32_MAX * (v2 - v1 + 1.0));
 	}
 	/**
 	 * @description 数组乱序
 	 */
 	public shuffle(array: any[]) {
 		for (let i = array.length - 1; i >= 0; i--) {
-			const j = Math.floor(this.next() * (i + 1));
+			const j = Math.floor(this.next()/UINT32_MAX * (i + 1));
 			const temp = array[i];
 			array[i] = array[j];
 			array[j] = temp;
