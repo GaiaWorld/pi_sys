@@ -102,7 +102,7 @@ export class Composer {
 	public render() {
 		const gl = <WebGLRenderingContext>this.gl;
 		gl.scissor(0, 0, this._width, this._height);
-		// this.beforeRender(isClear);
+		this.beforeRender();
 
 		for(let obj of this.list) {
 			// 纹理激活
@@ -239,7 +239,7 @@ export class Composer {
 
 	private updateData(obj: Obj) {
 		const gl = this.gl;
-		this.beforeRender()
+		// this.beforeRender()
 
 		if (!obj.vertex_buffer) {
 			obj.vertex_buffer = <WebGLBuffer>gl.createBuffer();
