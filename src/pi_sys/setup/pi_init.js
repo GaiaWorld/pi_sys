@@ -615,3 +615,15 @@ var _$pi = self._$pi = _$pi || (function () {
         _modules,
     };
 }());
+
+// window.__metadata = (k, v) => {
+// 	return (target, key) => {
+// 		if(!target.__metadata) {
+// 			target.__metadata = {};
+// 		}
+// 		if(!target.__metadata[k]) {
+// 			target.__metadata[k] = {};
+// 		}
+// 		target.__metadata[k][key] = v;
+// 	}
+// }

@@ -138,7 +138,10 @@ export class Component implements BonEncode, BonDecode<Component> {
 		return bb;
 	}
 	bonDecode(_bb: BonBuffer): Component {
-		return new Component();
+		return this;
+	}
+	static bonDeCode(bb:BonBuffer): Component {
+		return new Component().bonDecode(bb);
 	}
 }
 
@@ -272,7 +275,7 @@ export class Entitys<E> extends Notify {
 	}
 
 	// 注册组件
-	register_component<C>(component: Multi<E, C>) {
+	register_component<C extends Component>(component: Multi<E, C>) {
 		this.components.push(component);
 	}
 
@@ -420,14 +423,14 @@ export class World {
 		}
 		
 		let mc = new Multi();
-		this.data.set((<any>eTy).__world_eid__ | (<any>cTy).__world_cid__, mc);
+		this.data.set((<any>eTy).__world_eid__ | (<any>cTy).__world_cid__, mc as any);
 		if(key) {
-			this.key_data.set(key, mc);
+			this.key_data.set(key, mc as any);
 		}
 		if(!this.entity.get(eTy)) {
 			let entitys = new Entitys();
 			this.entity.set(eTy, entitys);
-			entitys.register_component(mc);
+			entitys.register_component(mc as any);
 		}
 	}
 
@@ -844,16 +847,15 @@ export class NumComponent extends Component{
 		return this._value;
 	}
 	bonEncode(bb: BonBuffer){
-		let v = this._value;
-		if(Number.isInteger(v)) {
-			bb.writeInt(v);
-		}else{
-			bb.writeF64(v);
-		}
-		return bb;
+		return this._value.bonEncode(bb);
 	}
-	bonDecode(bb: BonBuffer): Component {
-		return new NumComponent(bb.read());
+	bonDecode(bb: BonBuffer): NumComponent {
+		super.bonDecode(bb);
+		this._value.bonEncode(bb);
+		return this;
+	}
+	static bonDeCode(bb:BonBuffer): NumComponent {
+		return new NumComponent().bonDecode(bb);
 	}
 }
 
