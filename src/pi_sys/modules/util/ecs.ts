@@ -1,3 +1,5 @@
+import { BonEncode, BonDecode, BonBuffer } from "../serialization/bon";
+
 /**
  * ecs系统
  * 概念： https://blog.csdn.net/i_dovelemon/article/details/25798677
@@ -131,7 +133,14 @@ export interface System {
 /**
  * 组件
  */
-export class Component {}
+export class Component implements BonEncode, BonDecode<Component> {
+	bonEncode(bb: BonBuffer){
+		return bb;
+	}
+	bonDecode(_bb: BonBuffer): Component {
+		return new Component();
+	}
+}
 
 /**
  * 实体
@@ -833,6 +842,18 @@ export class NumComponent extends Component{
 	}
 	get value(): number {
 		return this._value;
+	}
+	bonEncode(bb: BonBuffer){
+		let v = this._value;
+		if(Number.isInteger(v)) {
+			bb.writeInt(v);
+		}else{
+			bb.writeF64(v);
+		}
+		return bb;
+	}
+	bonDecode(bb: BonBuffer): Component {
+		return new NumComponent(bb.read());
 	}
 }
 
