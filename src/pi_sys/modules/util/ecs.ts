@@ -541,8 +541,15 @@ export class World {
 	 * 取到指定key的单例数据
 	 * @param keyS
 	 */
-	fetchSingleByKey<S>(key: string): Single<S> {
-		return this.key_data.get(key) as Single<S>;
+	// fetchSingleByKey<S>(key: string): Single<S> {
+	// 	return this.key_data.get(key) as Single<S>;
+	// }
+	/**
+	 * 取到指定key的组件数据（组件或单例）
+	 * @param key
+	 */
+	fetchByKey(key: string) {
+		return this.key_data.get(key);
 	}
 
 	/**

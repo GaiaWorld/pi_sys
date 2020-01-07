@@ -77,7 +77,7 @@ export const toString = (o: any) => {
 	}
 };
 /**
- * @description 将xx0yyyyy这样的整数(x不能为0, y可以为0)按从高位出现的第一个0来劈分数字，取x和y的值。 主要用在将配置中将类型和参数结合后的数的分解
+ * @description 将xx0yyyyy这样的整数(x不能为0, y可以为0)按从高位出现的第一个0来劈分数字，取x和y的值。 主要用在将类型和参数结合后的数的分解
  * @example
  */
 export const splitFirstZero = (n: number) => {
