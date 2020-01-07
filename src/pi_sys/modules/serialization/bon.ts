@@ -37,6 +37,18 @@
 // import { Json } from "../lang/type";
 import { utf8Decode, utf8Encode } from "../util/util";
 
+// const __metadata = (k: string, v: any) => {
+// 	return (target: any, key: any) => {
+// 		if(!target.__metadata) {
+// 			target.__metadata = {};
+// 		}
+// 		if(!target.__metadata[k]) {
+// 			target.__metadata[k] = {};
+// 		}
+// 		target.__metadata[k][key] = v;
+// 	}
+// }
+
 // export type SerializeType =  SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
 // ============================== 导出
 export interface ReadNext {
@@ -1111,10 +1123,10 @@ Object.defineProperty(Number.prototype, "bonEncode", {
 	writable: true,
 	value: function (bb: BonBuffer): BonBuffer {
 		let v = this.valueOf();
-		if (v != parseInt(v)) {
-			bb.writeF32(v);
+		if (Number.isInteger(v)) {
+			bb.writeInt(v);
 		} else {
-			bb.writeInt(this.valueOf());
+			bb.writeF64(v);
 		}
 		return bb;
 	}
@@ -1272,6 +1284,99 @@ const jsonReadNext = (bb: BonBuffer, t: number, l: number, readNext?: ReadNext) 
 	}
 	return r;
 };
+
+// export const BonCode = (target) => {
+// 	let list = target.prototype.__encodeList;
+// 	if(!list) {
+// 		return;
+// 	}
+// 	if (eval) {
+// 		let e = "";
+// 		let d = "";
+// 		for (let item of list) {
+// 			e += `if (this.${item[0]} === undefined || this.${item[0]} === null) {
+// 				bb.writeNil();
+// 			} else {
+// 				this.${item[0]}.bonEncode(bb);
+// 			}`
+// 			let cName = item[1].name;
+// 			d += `this.${item[0]} = ${cName}.bonDecode(bb)`;
+// 		}
+// 		e += "return bb;";
+
+// 		let decode = eval(`(bb) => {
+// 			this.__proto__.__proto__.decode(bb);
+// 			${d}
+// 		}`);
+
+// 		let staticDecode = eval(`(bb) => {
+// 			let oo = new ${target.name}();
+// 			oo.decode(bb);
+// 			return oo;
+// 		}`);
+
+// 		let encode = eval(`(bb) => {
+// 			this.__proto__.__proto__.encode(bb);
+// 			${e}
+// 		}`);
+
+// 		Object.defineProperty(target, "bonDecode", {
+// 			configurable: true,
+// 			enumerable: false,
+// 			writable: true,
+// 			value: staticDecode
+// 		});
+
+// 		Object.defineProperty(target.prototype, "bonDecode", {
+// 			configurable: true,
+// 			enumerable: false,
+// 			writable: true,
+// 			value: decode,
+// 		});
+	
+// 		Object.defineProperty(target.prototype, "bonEncode", {
+// 			configurable: true,
+// 			enumerable: false,
+// 			writable: true,
+// 			value: encode
+// 		});
+// 	} else {
+// 		// Object.defineProperty(target, "bonDecode", {
+// 		// 	configurable: true,
+// 		// 	enumerable: false,
+// 		// 	writable: true,
+// 		// 	value: function (bb): Uint32Array {
+// 		// 		return new Uint32Array(bb.readBin().buffer);
+// 		// 	}
+// 		// });
+
+// 		// Object.defineProperty(target.prototype, "bonDecode", {
+// 		// 	configurable: true,
+// 		// 	enumerable: false,
+// 		// 	writable: true,
+// 		// 	value: function (bb): Uint32Array {
+// 		// 		return new Uint32Array(bb.readBin().buffer);
+// 		// 	}
+// 		// });
+	
+// 		// Object.defineProperty(target.prototype, "bonEncode", {
+// 		// 	configurable: true,
+// 		// 	enumerable: false,
+// 		// 	writable: true,
+// 		// 	value: function (bb) {
+// 		// 		bb.writeBin(new Uint8Array(this.buffer, this.byteOffset, this.byteLength));
+// 		// 		return bb;
+// 		// 	}
+// 		// });
+// 	}
+// }
+
+// export const BonCodeField = (target, propertyKey: string) => {
+// 	if(!target.__encodeList) {
+// 		target.__encodeList = []
+// 	}
+// 	target.__encodeList.push([propertyKey, target.__metadata["design:type"][propertyKey]]);
+// }
 
 /**
 	* 为全局对象声明序列化接口
