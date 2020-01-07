@@ -181,9 +181,9 @@ export class Client {
     }
 }
 
-// 压缩模式
-enum CompressMode {
-    NONE = 0,
-    LZ4 = 1,
-    ZSTD = 2
-}
+// // 压缩模式
+// enum CompressMode {
+//     NONE = 0,
+//     LZ4 = 1,
+//     ZSTD = 2
+// }

@@ -27,38 +27,58 @@
 // 	1 通用对象
 // 	2 通用数组
 // 	3 通用map
-
+	
 // 如果是通用对象、数组、map，后面会有一个动态长度的整数，表示元素的数量。
 
 // 容器，由于有总大小的描述，从而可以只对感兴趣的部分作反序列化
 // TODO 定义一个全类型的枚举 enum BonType<T>， ReadNext WriteNext 的 T 应该为BonType。提供一个 read(&self) -> BonType<T>
 
 // ============================== 导入
-import { Json } from "../lang/type";
+// import { Json } from "../lang/type";
 import { utf8Decode, utf8Encode } from "../util/util";
 
-export type SerializeType = SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
+// const __metadata = (k: string, v: any) => {
+// 	return (target: any, key: any) => {
+// 		if(!target.__metadata) {
+// 			target.__metadata = {};
+// 		}
+// 		if(!target.__metadata[k]) {
+// 			target.__metadata[k] = {};
+// 		}
+// 		target.__metadata[k][key] = v;
+// 	}
+// }
+
+// export type SerializeType =  SerializeBase | Array<SerializeBase> | Map<SerializeBase, SerializeBase>
 // ============================== 导出
 export interface ReadNext {
-	(bb: BonBuffer, type: number, len?: number): BonCode | Array<BonCode>;
+	(bb: BonBuffer, type: number, len?: number): BonDecode<any> | Array<BonDecode<any>>;
 }
-export interface WriteNext {
-	(bb: BonBuffer, o: BonCode): void;
+export interface WriteNext<T> {
+	(bb: BonBuffer, o: T): void;
 }
 /**
  * 二进制可序列化对象
  * @example
  */
-export interface BonCode {
+export interface BonEncode {
 	/**
 	 * 二进制编码
 	 */
-	bonEncode: (bb: BonBuffer) => void;
+	bonEncode: (bb: BonBuffer) => BonBuffer;
+}
+
+/**
+ * 二进制可序列化对象
+ * @example
+ */
+export interface BonDecode<T> {
 	/**
 	 * 二进制解码
 	 */
-	bonDecode: (bb: BonBuffer) => void;
+	bonDecode: (bb: BonBuffer) => T;
 }
+
 
 /**
  * @description 二进制数据缓存
@@ -75,12 +95,12 @@ export class BonBuffer {
 	tail;
 
 	constructor(data?: Uint8Array | number, head?: number, tail?: number) {
-		if (!data || Number.isInteger(data as number)) {
+		if(!data || Number.isInteger(data as number)) {
 			this.u8 = new Uint8Array(new ArrayBuffer((data as number) || 32))
 			this.view = new DataView(this.u8.buffer);
 			this.head = 0;
 			this.tail = 0;
-		} else {
+		}else {
 			this.u8 = (data as Uint8Array);
 			this.view = new DataView(this.u8.buffer, this.u8.byteOffset, this.u8.byteLength);
 			this.head = head || 0;
@@ -126,31 +146,38 @@ export class BonBuffer {
 	 * @description 写入任意类型
 	 * @example
 	 */
-	write(v: any): BonBuffer {
+	write(v: BonEncode): BonBuffer {
 		if (v === undefined || v === null)
 			return this.writeNil();
-		let t = typeof v;
-		if (t === 'number')
-			return Number.isInteger(v) ? this.writeInt(v) : this.writeF64(v);
-		if (t === "string")
-			return this.writeUtf8(v);
-		if (t === "boolean")
-			return this.writeBool(v);
-		if (v instanceof ArrayBuffer)
-			return this.writeBin(new Uint8Array(v));
-		if (ArrayBuffer.isView(v) && (<any>v).BYTES_PER_ELEMENT > 0)
-			return this.writeBin(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
-		if (Object.prototype.toString.call(v) == '[object Array]')
-			return this.writeArray(v, (el) => {
-				this.write(el);
-			});
-		if (v instanceof Map)
-			return this.writeMap(v, (k, v) => {
-				this.write(k);
-				this.write(v);
-			});
-		if (v.bonEncode)
-			return this.writeBonCode(v);
+		else 
+			return (<any>v).bonEncode(this); // any? TODO
+		// let t = typeof v;
+		// if (t === 'number')
+		// 	return Number.isInteger(v) ? this.writeInt(v) : this.writeF64(v);
+		// if (t === "string")
+		// 	return this.writeUtf8(v);
+		// if (t === "boolean")
+		// 	return this.writeBool(v);
+		// if (v instanceof ArrayBuffer)
+		// 	return this.writeBin(new Uint8Array(v));
+		// if (ArrayBuffer.isView(v) && (<any>v).BYTES_PER_ELEMENT > 0)
+		//     return this.writeBin(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+		// if (Object.prototype.toString.call(v)=='[object Array]')
+		// 	return v.bonEncode(this);
+
+		// if(v instanceof Map)
+		// 	return this.writeCt(v, (bb, _o) => {
+		// 		bb.writeU32(3)
+		// 		return this.writeMap(v, (k, v) => {
+		// 			this.write(k);
+		// 			this.write(v);
+		// 		});
+		// 	});
+		// if(v.bonEncode)
+		// 	return this.writeBonCode(v);
+		// if(v instanceof Object) {
+		// 	return this.writeJson(v);
+		// }
 		throw new Error("The serialization of this type is not supported");
 	}
 
@@ -186,21 +213,21 @@ export class BonBuffer {
 		this.tail += 4;
 		return this;
 	}
-
-    /**
+	
+	/**
 	 * @description 写大整数, ArrayBuffer应该是一个小端序
 	 * @example
 	 */
 	writeBigInt(v: number | Uint8Array): BonBuffer {
-		if (typeof v === "number") {
+		if(typeof v === "number"){
 			this.writeInt(v);
-		} else if (v.byteLength === 8) {
+		}else if(v.byteLength === 8){
 			if (this.tail + 9 > this.view.byteLength)
 				this.extendCapity(9);
 			this.view.setUint8(this.tail, 40);
 			this.u8.set(v, this.tail + 1);
 			this.tail += 9;
-		} else if (v.byteLength === 16) {
+		}else if (v.byteLength === 16){
 			if (this.tail + 17 > this.view.byteLength)
 				this.extendCapity(17);
 			this.view.setUint8(this.tail, 41);
@@ -209,7 +236,7 @@ export class BonBuffer {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * @description 写入一个基本类型
 	 * @example
@@ -297,7 +324,7 @@ export class BonBuffer {
 			this.view.setUint32(this.tail + 4, Math.floor(v / 0x100000000), true);
 			this.tail += 8;
 		} else {
-			throw new Error("can not write as number:" + v);
+			throw new Error("this is a bigInteger, can not write as number:" + v);
 			// if (this.tail + 9 > this.view.byteLength)
 			// 	this.extendCapity(9);
 			// // js里不会出现这种情况，最大安全整数只有 55位 9007199254740991
@@ -363,8 +390,8 @@ export class BonBuffer {
 	writeBin(arr: Uint8Array, offset?: number, length?: number): BonBuffer {
 		return this.writeData(arr, 111, offset, length);
 	}
-
-    /**
+	
+	/**
 	 * @description 写入BonBuffer的二进制数据
 	 * @example
 	 */
@@ -374,7 +401,7 @@ export class BonBuffer {
 		this.tail += arr.length;
 		return this;
 	}
-
+	
 	/**
 	 * @description 写入字符串，用utf8格式
 	 * @example
@@ -383,8 +410,8 @@ export class BonBuffer {
 		let arr = utf8Encode(s);
 		return this.writeData(arr, 42);
 	}
-
-    /**
+	
+	/**
 	 * @description 写map
 	 * @example
 	 */
@@ -395,24 +422,24 @@ export class BonBuffer {
 		});
 		return this;
 	}
-
-    /**
+	
+	/**
 	 * @description 写array
 	 * @example
 	 */
 	writeArray<E>(array: Array<E>, callbackfn: (elem: E) => void): BonBuffer {
 		this.writeInt(array.length);
-		for (let i = 0; i < array.length; i++) {
+		for(let i = 0; i < array.length; i++){
 			callbackfn(array[i]);
 		}
 		return this;
 	}
-
-    /**
+	
+	/**
 	 * @description 写array
 	 * @example
 	 */
-	writeBonCode<E>(bon: BonCode): BonBuffer {
+	writeBonCode(bon: BonEncode): BonBuffer {
 		bon.bonEncode(this);
 		return this;
 	}
@@ -421,7 +448,7 @@ export class BonBuffer {
 	 * @description 写入数据
 	 * @example
 	 */
-	writeData(arr: Uint8Array, type: number, offset?: number, length?: number): BonBuffer {
+	writeData(arr: Uint8Array, type: number, _offset?: number, length?: number): BonBuffer {
 		if (!arr || arr.length === 0) {
 			if (this.tail >= this.view.byteLength)
 				this.extendCapity(1);
@@ -505,7 +532,7 @@ export class BonBuffer {
 	 * @description 写入一个容器类型（对象、数组或map、枚举）
 	 * @example
 	 */
-	writeCt(o: any, writeNext: WriteNext, estimatedSize?: number): BonBuffer {
+	writeCt<T>(o: any, writeNext: WriteNext<T>, estimatedSize?: number) : BonBuffer {
 		const t = this.tail;
 		// 根据预估大小，预留出足够的空间来写入容器的总大小
 		estimatedSize = estimatedSize || 0xffff;
@@ -564,7 +591,9 @@ export class BonBuffer {
 				offset = 9;
 				limitSize = 0xffffffffffffffff;
 			}
-			this.u8.set(new Uint8Array(this.u8.buffer, this.u8.byteOffset + tt, len), t + offset);
+			// this.extendCapity(5 + estimatedSize);
+			this.u8.set(new Uint8Array(this.u8.buffer, this.u8.byteOffset+tt, len), t + offset);
+			this.tail += offset - tt;
 		}
 		// 根据实际的限制大小，写入实际长度
 		switch (limitSize) {
@@ -589,11 +618,11 @@ export class BonBuffer {
 				this.view.setUint32(t + 3, Math.floor(len / 0x10000), true);
 				break;
 			default:
-				throw new Error("container overflow, the max len is 48bit");
-			// this.view.setUint8(t, 249);
-			// this.view.setUint32(t + 1, len & 0xffffffff, true);
-			// this.view.setUint32(t + 5, Math.floor(len / 0x100000000), true);
-			//break;
+				throw new Error("container overflow, the max len is 48bit"); 
+				// this.view.setUint8(t, 249);
+				// this.view.setUint32(t + 1, len & 0xffffffff, true);
+				// this.view.setUint32(t + 5, Math.floor(len / 0x100000000), true);
+				//break;
 		}
 		return this;
 	}
@@ -606,8 +635,8 @@ export class BonBuffer {
 			throw new Error("getType overflow: " + this.head);
 		return this.view.getUint8(this.head);
 	}
-
-    /**
+	
+	/**
 	 * @description 是否为空
 	 * @example
 	 */
@@ -627,13 +656,13 @@ export class BonBuffer {
 		return this.view.getUint8(this.head++);
 	}
 
-    /**
+	/**
 	 * @description 读U16
 	 * @example
 	 */
 	readU16(): number {
 		this.head += 2;
-		return this.view.getUint16(this.head - 2, true);
+		return this.view.getUint16(this.head-2, true);
 	}
 	/**
 	 * @description 读U32
@@ -641,58 +670,58 @@ export class BonBuffer {
 	 */
 	readU32(): number {
 		this.head += 4;
-		return this.view.getUint32(this.head - 4, true);
+		return this.view.getUint32(this.head-4, true);
 	}
-
-    /**
+	
+	/**
 	 * @description 读整数
 	 * @example
 	 */
-	readInt(): number {
+	readInt():number {
 		if (this.head >= this.tail)
 			throw new Error("readInt overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
-		if (t < 9 || t > 40) {
+		if(t < 9 || t > 40){
 			throw new Error("类型错误， 无法读, type: " + t);
 		}
 		let r = readContent(this, t) as number;
 		return r;
 	}
 
-    /**
+	/**
 	 * @description 读大整数
 	 * @example
 	 */
 	readBigInt(): number | Uint8Array {
 		if (this.head >= this.tail)
 			throw new Error("readBigInt overflow: " + this.head);
-
+			
 		let t = this.view.getUint8(this.head++);
-		if (t < 9 || t > 41) {
+		if(t < 9 || t > 41){
 			throw new Error("非大整数， 无法读, type: " + t);
 		}
 		return readContent(this, t) as number | Uint8Array;
 	}
 
-    /**
+	/**
 	 * @description 读浮点
 	 * @example
 	 */
-	readf(): number {
+	readf():number {
 		if (this.head >= this.tail)
 			throw new Error("readf overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
-		if (t < 3 || t > 8) {
+		if(t < 3 || t > 8){
 			throw new Error("非浮点数， 无法读");
 		}
 		return readContent(this, t) as number;
 	}
-
-    /**
+	
+	/**
 	 * @description 读boolean
 	 * @example
 	 */
-	readBool(): boolean {
+	readBool():boolean {
 		if (this.head >= this.tail)
 			throw new Error("readBool overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
@@ -705,22 +734,22 @@ export class BonBuffer {
 				throw new Error("非布尔值， 无法读");
 		}
 	}
-
-    /**
+	
+	/**
 	 * @description 读字符串
 	 * @example
 	 */
-	readUtf8(): string {
+	readUtf8():string {
 		if (this.head >= this.tail)
 			throw new Error("readUtf8 overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
-		if (t < 42 || t > 110) {
+		if(t < 42 || t > 110){
 			throw new Error("非字符串， 无法读");
 		}
 		return readContent(this, t) as string;
 	}
-
-    /**
+	
+	/**
 	 * @description 读二进制
 	 * @example
 	 */
@@ -728,7 +757,7 @@ export class BonBuffer {
 		if (this.head >= this.tail)
 			throw new Error("readBin overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
-		if (t < 111 || t > 179) {
+		if(t < 111 || t > 179){
 			throw new Error("非字二进制， 无法读");
 		}
 		return readContent(this, t) as Uint8Array;
@@ -755,7 +784,7 @@ export class BonBuffer {
 	 * @description 读入一个类型的值
 	 * @example
 	 */
-	read(readNext?: ReadNext): any {
+	read(readNext?: ReadNext):any {
 		if (this.head >= this.tail)
 			throw new Error("read overflow: " + this.head);
 		let t = this.view.getUint8(this.head++);
@@ -781,46 +810,47 @@ export class BonBuffer {
 		}
 		throw new Error("invalid pint:" + v);
 	}
-
-    /**
+	
+	/**
 	 * @description 读map
 	 * @example
 	 */
-	readMap<K, V>(callbackfn: () => [K, V]): Map<K, V> {
+	readMap<K, V>(callbackfn: () => [K, V] ): Map<K, V>{
 		let map = new Map();
 		let size = this.readInt();
-		for (let i = 0; i < size; i++) {
+		for(let i = 0; i < size; i++){
 			let item = callbackfn();
-			map.set(item[0], item[1]);
+			map.set(item[0] ,item[1]);
 		}
 		return map;
 	}
-
-    /**
+	
+	/**
 	 * @description 读array
 	 * @example
 	 */
-	readArray<E>(callbackfn: () => E): Array<E> {
+	readArray<E>(callbackfn: () => E ): Array<E>{
 		const array = [];
 		let length = this.readInt();
-		for (let i = 0; i < length; i++) {
+		for(let i = 0; i < length; i++){
 			let el = callbackfn();
 			array.push(el);
 		}
 		return array;
 	}
-
-    /**
+	
+	/**
 	 * @description 读array, 返回Boncode
 	 * @example
 	 */
-	readBonCode(constructor: any): any {
-		let r = (<BonCode>new constructor());
-		r.bonDecode(this);
-		return r;
+	readBonCode(constructor: BonDecode<any>): any {
+		// let r = (<BonDecode<any>>new constructor());
+		
+		// r.bonDecode(this);
+		return constructor.bonDecode(this);;
 	}
 
-	readCt(next: ReadNext): any {
+	readCt(next: ReadNext): any{
 		let t = this.view.getUint8(this.head++);
 		if (t < 180 || t > 249) {
 			throw new Error("非容器， 无法读");
@@ -872,10 +902,10 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 			bb.head += 8;
 			let u64_1 = bb.view.getUint32(bb.head - 8, true);
 			let u64_2 = bb.view.getUint32(bb.head - 4, true);
-			if ((u64_1 === 0 && u64_2 <= 2097152) || (u64_1 > 0 && u64_2 < 2097152)) {// 在9007199254740992范围内
+			if ((u64_1 === 0 && u64_2 <= 2097152) || (u64_1 > 0 && u64_2 < 2097152)){// 在9007199254740992范围内
 				bb.u8.slice(bb.head - 8, bb.head)
 				return u64_1 + u64_2 * 0x100000000;
-			} else {// 大于9007199254740992，返回一个u8array
+			}else{// 大于9007199254740992，返回一个u8array
 				return bb.u8.slice(bb.head - 8, bb.head)
 			}
 		case 41:
@@ -884,9 +914,9 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 			let u128_2 = bb.view.getUint32(bb.head - 12, true);
 			let u128_3 = bb.view.getUint32(bb.head - 8, true);
 			let u128_4 = bb.view.getUint32(bb.head - 4, true);
-			if (u128_3 === 0 && u128_4 === 0 && ((u128_1 === 0 && u128_2 <= 2097152) || (u128_1 > 0 && u128_2 < 2097152))) {// 在9007199254740992范围内
+			if (u128_3 === 0 && u128_4 === 0 && ((u128_1 === 0 && u128_2 <= 2097152) || (u128_1 > 0 && u128_2 < 2097152)) ){// 在9007199254740992范围内
 				return u128_1 + u128_2 * 0x100000000;
-			} else {// 大于9007199254740992，返回一个u8array
+			}else{// 大于9007199254740992，返回一个u8array
 				return bb.u8.slice(bb.head - 16, bb.head)
 			}
 		case 9:
@@ -902,11 +932,11 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 			return -bb.view.getUint16(bb.head - 6, true) - (bb.view.getUint32(bb.head - 4, true) * 0x10000);
 		case 13:
 			bb.head += 8;
-			let i64_1 = bb.view.getUint32(bb.head - 8, true);
+			let i64_1 = bb.view.getUint32(bb.head - 8, true); 
 			let i64_2 = bb.view.getUint32(bb.head - 4, true);
-			if ((i64_1 === 0 && i64_2 <= 2097152) || (i64_1 > 0 && i64_2 < 2097152)) {
+			if ((i64_1 === 0 && i64_2 <= 2097152) || (i64_1 > 0 && i64_2 < 2097152)){
 				return -(i64_1 + i64_2 * 0x100000000);
-			} else {
+			}else{
 				return bb.u8.slice(bb.head - 8, bb.head);// todo
 			}
 		case 14:
@@ -915,9 +945,9 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 			let i128_2 = bb.view.getUint32(bb.head - 12, true);
 			let i128_3 = bb.view.getUint32(bb.head - 8, true);
 			let i128_4 = bb.view.getUint32(bb.head - 4, true);
-			if (i128_3 === 0 && i128_4 === 0 && ((i128_1 === 0 && i128_2 <= 2097152) || (i128_1 > 0 && i128_2 < 2097152))) {// 在9007199254740992范围内
+			if (i128_3 === 0 && i128_4 === 0 && ((i128_1 === 0 && i128_2 <= 2097152) || (i128_1 > 0 && i128_2 < 2097152)) ){// 在9007199254740992范围内
 				return i128_1 + i128_2 * 0x100000000;
-			} else {// 大于9007199254740992，返回一个u8array
+			}else{// 大于9007199254740992，返回一个u8array
 				return bb.u8.slice(bb.head - 16, bb.head)
 			}
 		case 176:
@@ -955,19 +985,19 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 		case 245:
 			len = bb.view.getUint8(bb.head);
 			bb.head += 5;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+			return jsonReadNext(bb, bb.view.getUint32(bb.head - 4, true), len, readNext);
 		case 246:
 			len = bb.view.getUint16(bb.head, true);
 			bb.head += 6;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+			return jsonReadNext(bb, bb.view.getUint32(bb.head - 4, true), len, readNext);
 		case 247:
 			len = bb.view.getUint32(bb.head, true);
 			bb.head += 8;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+			return jsonReadNext(bb, bb.view.getUint32(bb.head - 4, true), len, readNext);
 		case 248:
 			len = bb.view.getUint16(bb.head, true) + (bb.view.getUint32(bb.head + 2, true) * 0x10000);
 			bb.head += 10;
-			return readNext(bb, bb.view.getUint32(bb.head - 4, true), len);
+			return jsonReadNext(bb, bb.view.getUint32(bb.head - 4, true), len, readNext);
 		default:
 			if (t < 36) {
 				return t - 16;
@@ -979,7 +1009,7 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 				return utf8Decode(new Uint8Array(bb.view.buffer, bb.view.byteOffset + bb.head - len, len));
 			}
 			if (t < 176) {
-
+				
 				// 读取二进制数据
 				len = t - 111;
 				bb.head += len;
@@ -988,65 +1018,447 @@ const readContent = (bb: BonBuffer, t: number, readNext?: ReadNext) => {
 			if (t < 245) {
 				bb.head += 4;
 				// 读取容器类型
-				return readNext(bb, bb.view.getUint32(bb.head - 4, true), t - 180);
-			}
+				return jsonReadNext(bb, bb.view.getUint32(bb.head - 4, true), t - 180,readNext );
+			}	
 			throw new Error("invalid type :" + t);
 	}
 }
 
-type SerializeBase = number | string | String | boolean | ArrayBuffer | Uint8Array | BonCode | Json;
+// type SerializeBase = number | string | String | boolean | ArrayBuffer | Uint8Array | BonEncode | Json;
 
-(<any>Number.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	let v = this.valueOf();
-	if (v != parseInt(v)) {
-		bb.writeF32(v);
-	} else {
-		bb.writeInt(this.valueOf());
+Object.defineProperty(Object.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeCt<Object>(this, (bb, o) => {
+			bb.writeU32(1);
+			for(let i in o) {
+				if (o.hasOwnProperty(i)) {
+					bb.writeUtf8(i);
+					bb.write(o[i]);
+				}
+			}
+		});
+		return bb;
 	}
-	return bb;
-};
+});
 
-(<any>Number.prototype).bonDecode = function (bb: BonBuffer): number {
-	let type = bb.getType();
-	if (type > 3 && type < 9) {
-		return bb.readInt();
-	} else {
-		return bb.readf();
+Object.defineProperty(Object, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): Object {
+		let type = bb.getType();
+		if (type === 1) {
+			return readContent(bb, type);
+		} else {
+			throw new Error("Object bonDecode fail, type:" + type);
+		}
 	}
+});
+
+Object.defineProperty(Array.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeCt<Array<any>>(this, (bb, o) => {
+			bb.writeU32(2);
+			for(let i of o) {
+				bb.write(i);
+			}
+		});
+		return bb;
+	}
+});
+
+Object.defineProperty(Array, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): Array<any> {
+		let type = bb.getType();
+		if (type === 2) {
+			return readContent(bb, type);
+		} else {
+			throw new Error("Array bonDecode fail, type:" + type);
+		}
+	}
+});
+
+Object.defineProperty(Map.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeCt<Map<any, any>>(this, (bb, o) => {
+			bb.writeU32(3)
+			return bb.writeMap(o, (k: any, v: any) => {
+				bb.write(k);
+				bb.write(v);
+			});
+		});
+		return bb;
+	}
+});
+
+Object.defineProperty(Map, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): Map<any, any> {
+		let type = bb.getType();
+		if (type === 3) {
+			return readContent(bb, type);
+		} else {
+			throw new Error("Array bonDecode fail, type:" + type);
+		}
+	}
+});
+
+Object.defineProperty(Number.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		let v = this.valueOf();
+		if (Number.isInteger(v)) {
+			bb.writeInt(v);
+		} else {
+			bb.writeF64(v);
+		}
+		return bb;
+	}
+});
+
+Object.defineProperty(Number, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): number {
+		let type = bb.getType();
+		if (type > 3 && type < 9) {
+			return bb.readInt();
+		} else {
+			return bb.readf();
+		}
+	}
+});
+
+Object.defineProperty(String.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeUtf8(this.valueOf());
+		return bb;
+	}
+});
+
+Object.defineProperty(String, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): string {
+		return bb.readUtf8();
+	}
+});
+
+Object.defineProperty(Boolean.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeUtf8(this.valueOf());
+		return bb;
+	}
+});
+
+Object.defineProperty(Boolean, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): boolean {
+		return bb.readBool();
+	}
+});
+
+Object.defineProperty(ArrayBuffer.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeBin(new Uint8Array(this));
+		return bb;
+	}
+});
+
+Object.defineProperty(ArrayBuffer, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): ArrayBuffer {
+		return bb.readBin().buffer as any; // any? TODO
+	}
+});
+
+Object.defineProperty(Uint8Array.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeBin(this);
+		return bb;
+	}
+});
+
+Object.defineProperty(Uint8Array, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): Uint8Array {
+		return bb.readBin();
+	}
+});
+
+Object.defineProperty(Uint16Array.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeBin(new Uint8Array(this.buffer, this.byteOffset, this.byteLength));
+		return bb;
+	}
+});
+
+Object.defineProperty(Uint16Array, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): Uint16Array {
+		return new Uint16Array(bb.readBin().buffer);
+	}
+});
+
+Object.defineProperty(Uint32Array.prototype, "bonEncode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): BonBuffer {
+		bb.writeBin(new Uint8Array(this.buffer, this.byteOffset, this.byteLength));
+		return bb;
+	}
+});
+
+
+Object.defineProperty(Uint32Array, "bonDecode", {
+	configurable: true,
+	enumerable: false,
+	writable: true,
+	value: function (bb: BonBuffer): Uint32Array {
+		return new Uint32Array(bb.readBin().buffer);
+	}
+});
+
+const jsonReadNext = (bb: BonBuffer, t: number, l: number, readNext?: ReadNext) => {
+	let r: any;
+	let old_head = bb.head;
+	l = l - 4;
+	if(t === 1) {
+		r = {};
+		while(bb.head - old_head < l) {
+			r[bb.readUtf8()] =  bb.read(readNext);
+		}
+	} else if (t === 2) {
+		r = [];
+		while(bb.head - old_head < l) {
+			r.push(bb.read(readNext));
+		}
+	} else {
+		if(readNext) {
+			r = readNext(bb, t, l);
+		} else {
+			throw new Error("jsonReadNext fail, type: " + t);
+		}
+	}
+	return r;
 };
 
-(<any>String.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeUtf8(this.valueOf());
-	return this;
-};
+// export const BonCode = (target) => {
+// 	let list = target.prototype.__encodeList;
+// 	if(!list) {
+// 		return;
+// 	}
+// 	if (eval) {
+// 		let e = "";
+// 		let d = "";
+// 		for (let item of list) {
+// 			e += `if (this.${item[0]} === undefined || this.${item[0]} === null) {
+// 				bb.writeNil();
+// 			} else {
+// 				this.${item[0]}.bonEncode(bb);
+// 			}`
+// 			let cName = item[1].name;
+// 			d += `this.${item[0]} = ${cName}.bonDecode(bb)`;
+// 		}
+// 		e += "return bb;";
 
-(<any>String.prototype).bonDecode = function (bb: BonBuffer): string {
-	return bb.readUtf8();
-};
+// 		let decode = eval(`(bb) => {
+// 			this.__proto__.__proto__.decode(bb);
+// 			${d}
+// 		}`);
 
-(<any>Boolean.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeBool(this.valueOf());
-	return this;
-};
+// 		let staticDecode = eval(`(bb) => {
+// 			let oo = new ${target.name}();
+// 			oo.decode(bb);
+// 			return oo;
+// 		}`);
 
-(<any>Boolean.prototype).bonDecode = function (bb: BonBuffer): boolean {
-	return bb.readBool();
-};
+// 		let encode = eval(`(bb) => {
+// 			this.__proto__.__proto__.encode(bb);
+// 			${e}
+// 		}`);
 
-(<any>ArrayBuffer.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeBin(new Uint8Array(this));
-	return this;
-};
+// 		Object.defineProperty(target, "bonDecode", {
+// 			configurable: true,
+// 			enumerable: false,
+// 			writable: true,
+// 			value: staticDecode
+// 		});
 
-(<any>ArrayBuffer.prototype).bonDecode = function (bb: BonBuffer): ArrayBuffer {
-	return bb.readBin().buffer;
-};
+// 		Object.defineProperty(target.prototype, "bonDecode", {
+// 			configurable: true,
+// 			enumerable: false,
+// 			writable: true,
+// 			value: decode,
+// 		});
+	
+// 		Object.defineProperty(target.prototype, "bonEncode", {
+// 			configurable: true,
+// 			enumerable: false,
+// 			writable: true,
+// 			value: encode
+// 		});
+// 	} else {
+// 		// Object.defineProperty(target, "bonDecode", {
+// 		// 	configurable: true,
+// 		// 	enumerable: false,
+// 		// 	writable: true,
+// 		// 	value: function (bb): Uint32Array {
+// 		// 		return new Uint32Array(bb.readBin().buffer);
+// 		// 	}
+// 		// });
 
-(<any>Uint8Array.prototype).bonEncode = function (bb: BonBuffer): BonBuffer {
-	bb.writeBin(this);
-	return this;
-};
+// 		// Object.defineProperty(target.prototype, "bonDecode", {
+// 		// 	configurable: true,
+// 		// 	enumerable: false,
+// 		// 	writable: true,
+// 		// 	value: function (bb): Uint32Array {
+// 		// 		return new Uint32Array(bb.readBin().buffer);
+// 		// 	}
+// 		// });
+	
+// 		// Object.defineProperty(target.prototype, "bonEncode", {
+// 		// 	configurable: true,
+// 		// 	enumerable: false,
+// 		// 	writable: true,
+// 		// 	value: function (bb) {
+// 		// 		bb.writeBin(new Uint8Array(this.buffer, this.byteOffset, this.byteLength));
+// 		// 		return bb;
+// 		// 	}
+// 		// });
+// 	}
+// }
 
-(<any>Uint8Array.prototype).bonDecode = function (bb: BonBuffer): Uint8Array {
-	return bb.readBin();
-};
+// export const BonCodeField = (target, propertyKey: string) => {
+// 	if(!target.__encodeList) {
+// 		target.__encodeList = []
+// 	}
+// 	target.__encodeList.push([propertyKey, target.__metadata["design:type"][propertyKey]]);
+// }
+
+/**
+	* 为全局对象声明序列化接口
+	*/
+declare global {
+	interface Object {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface ObjectConstructor {
+		bonDecode(bb: BonBuffer): Object;
+	}
+
+	interface Number {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface NumberConstructor {
+		bonDecode(bb: BonBuffer): number;
+	}
+
+	interface String {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface StringConstructor {
+		bonDecode(bb: BonBuffer): string;
+	}
+
+	interface Boolean {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface BooleanConstructor {
+		bonDecode(bb: BonBuffer): boolean;
+	}
+
+	interface Map<K, V> {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface MapConstructor {
+		bonDecode(bb: BonBuffer): Map<any, any>;
+	}
+
+	interface Array<T> {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface ArrayConstructor {
+		bonDecode(bb: BonBuffer): Array<any>;
+	}
+
+	interface ArrayBuffer {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface ArrayBufferConstructor {
+		bonDecode(bb: BonBuffer): ArrayBuffer;
+	}
+
+	interface Uint8Array {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface Uint8ArrayConstructor {
+		bonDecode(bb: BonBuffer): Uint8Array;
+	}
+
+	interface Uint16Array {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface Uint16ArrayConstructor {
+		bonDecode(bb: BonBuffer): Uint16Array;
+	}
+
+	interface Uint32Array {
+		bonEncode(bb: BonBuffer): BonBuffer;
+	}
+
+	interface Uint32ArrayConstructor {
+		bonDecode(bb: BonBuffer): Uint32Array;
+	}
+}

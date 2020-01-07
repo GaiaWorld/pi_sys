@@ -243,16 +243,16 @@ var _$pi = self._$pi = _$pi || (function () {
     const require = (names, func, currModName) => {
         if (!Array.isArray(names)) {
             names = [names];
-		}
-		
-		//如果是debug模式，模块在10秒内未被构建成功， 将打印错误信息
-		requireDebug(names, currModName);
+        }
+
+        //如果是debug模式，模块在10秒内未被构建成功， 将打印错误信息
+        requireDebug(names, currModName);
 
         let mods = [];
         let waitCount = names.length;
         for (let i = 0; i < names.length; ++i) {
             let name = relativePath(names[i], currModName);
-			let mod = getModule(name);
+            let mod = getModule(name);
             depend(name);
             if (mod.isReadyBuild()) {
                 execModule(name);
@@ -299,7 +299,7 @@ var _$pi = self._$pi = _$pi || (function () {
         for (let name of names) {
             name = relativePath(name, currName);
             let mod = getModule(name);
-            depend(name);
+            depend(name, false);
             if (mod.isReadyBuild()) {
                 execModule(name);
 
@@ -328,7 +328,7 @@ var _$pi = self._$pi = _$pi || (function () {
     /** 
      * 分析依赖
      */
-    const depend = (name) => {
+    const depend = (name, isNotify = true) => {
         let mod = getModule(name);
 
         // 模块没定义
@@ -344,6 +344,12 @@ var _$pi = self._$pi = _$pi || (function () {
 
         // 已经分析过
         if (mod.waitNameSet) {
+            if (isNotify) {
+                // 需要为等待模块添加本模块的通知，否则等待模块定义后，无法通知这个模块。
+                for (let w of mod.waitNameSet) {
+                    getModule(w).addNotify(name);
+                }
+            }
             return;
         }
 
@@ -544,50 +550,54 @@ var _$pi = self._$pi = _$pi || (function () {
         }
 
         return dir + filePath;
-	}
-	
-	const requireDebug = (names, currModName) => {
-		let envModule = _$pi._modules.get("pi_sys/setup/env");
-		let is_debug = envModule && envModule.exports && envModule.exports.get && envModule.exports.get("debug");
-		if (!is_debug) {
-			return;
-		}
+    }
 
-		let mods = [];
-		if (is_debug) {
-			for (let i = 0; i < names.length; ++i) {
-				let name = relativePath(names[i], currModName);
-				let mod = getModule(name);
-				mods.push(mod);
-			}
-		}
+    const requireDebug = (names, currModName) => {
+        let envModule = _$pi._modules.get("pi_sys/setup/env");
+        let is_debug = envModule && envModule.exports && envModule.exports.get && envModule.exports.get("debug");
+        if (!is_debug) {
+            return;
+        }
 
-		setTimeout(() => {
-			for(let modi of mods) {
-				if (!modi.isBuild()) {
-					let message = {name: modi.name};
-					requireDebugWait(message);
-					console.error("require module fail, module: ", message);
-				}
-			}
-		}, 10000);
-	}
+        let mods = [];
+        if (is_debug) {
+            for (let i = 0; i < names.length; ++i) {
+                let name = relativePath(names[i], currModName);
+                let mod = getModule(name);
+                mods.push(mod);
+            }
+        }
 
-	const requireDebugWait = (wait) => {
-		let mod = _modules.get(wait.name);
-		if (!mod || !mod.isDefined()) {
-			wait.reason = "not defined";
-		} else if(!mod.isBuild()) {
-			wait.reason = "wait depend";
-			if (mod.waitNameSet) {
-				for (wait1 of mod.waitNameSet) {
-					wait.wait = {name: wait1};
-					requireDebugWait(wait.wait);
-					break;
-				}
-			}
-		}
-	}
+        setTimeout(() => {
+            for (let modi of mods) {
+                if (!modi.isBuild()) {
+                    let message = {
+                        name: modi.name
+                    };
+                    requireDebugWait(message);
+                    console.error("require module fail, module: ", message);
+                }
+            }
+        }, 10000);
+    }
+
+    const requireDebugWait = (wait) => {
+        let mod = _modules.get(wait.name);
+        if (!mod || !mod.isDefined()) {
+            wait.reason = "not defined";
+        } else if (!mod.isBuild()) {
+            wait.reason = "wait depend";
+            if (mod.waitNameSet) {
+                for (wait1 of mod.waitNameSet) {
+                    wait.wait = {
+                        name: wait1
+                    };
+                    requireDebugWait(wait.wait);
+                    break;
+                }
+            }
+        }
+    }
 
     // ====================== 返回
 
@@ -605,3 +615,15 @@ var _$pi = self._$pi = _$pi || (function () {
         _modules,
     };
 }());
+
+// window.__metadata = (k, v) => {
+// 	return (target, key) => {
+// 		if(!target.__metadata) {
+// 			target.__metadata = {};
+// 		}
+// 		if(!target.__metadata[k]) {
+// 			target.__metadata[k] = {};
+// 		}
+// 		target.__metadata[k][key] = v;
+// 	}
+// }

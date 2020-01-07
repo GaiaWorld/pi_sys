@@ -1,4 +1,4 @@
-import { BonBuffer, BonCode } from './bon';
+import { BonBuffer, BonEncode } from './bon';
 
 export enum Type {
     Bool,
@@ -28,7 +28,7 @@ export enum Type {
     Enum,// 是枚举的类型 ，ts语法ru: number | string
 }
 
-export class EnumType implements BonCode {
+export class EnumType implements BonEncode {
     type: Type;
     into?: EnumType;
     mapType?: [EnumType, EnumType];
@@ -60,7 +60,7 @@ export class EnumType implements BonCode {
     /**
 	 * 二进制编码
 	 */
-    bonEncode(bb: BonBuffer) {
+    bonEncode(bb: BonBuffer): BonBuffer {
         bb.writeInt(this.type);
         this.into && bb.writeBonCode(this.into);
         if (this.mapType) {
@@ -68,36 +68,39 @@ export class EnumType implements BonCode {
             bb.writeBonCode(this.mapType[1]);
         }
         this.structType && bb.writeBonCode(this.structType);
-        this.enumType && bb.writeBonCode(this.enumType);
+		this.enumType && bb.writeBonCode(this.enumType);
+		return bb;
     }
 	/**
 	 * 二进制解码
 	 */
-    bonDecode(bb: BonBuffer) {
-        this.type = bb.readInt();
-        switch (this.type) {
+    static bonDecode(bb: BonBuffer): EnumType {
+		let t = new EnumType(0)
+        t.type = bb.readInt();
+        switch (t.type) {
             case Type.Arr:
-                this.into = bb.readBonCode(EnumType);
+                t.into = bb.readBonCode(EnumType);
                 break;
             case Type.Option:
-                this.into = bb.readBonCode(EnumType);
+                t.into = bb.readBonCode(EnumType);
                 break;
             case Type.Map:
-                this.mapType = [bb.readBonCode(EnumType), bb.readBonCode(EnumType)];
+                t.mapType = [bb.readBonCode(EnumType), bb.readBonCode(EnumType)];
                 break;
             case Type.Struct:
-                this.structType = bb.readBonCode(StructInfo);
+                t.structType = bb.readBonCode(StructInfo);
                 break;
             case Type.Enum:
-                this.enumType = bb.readBonCode(EnumInfo)
+                t.enumType = bb.readBonCode(EnumInfo)
                 break;
             default:
                 break;
-        }
+		}
+		return t;
     }
 }
 
-export class FieldInfo implements BonCode {
+export class FieldInfo implements BonEncode {
     name: string;
     ftype: EnumType;
     notes: Map<string, string>;
@@ -115,7 +118,7 @@ export class FieldInfo implements BonCode {
     /**
 	 * 二进制编码
 	 */
-    bonEncode(bb: BonBuffer) {
+    bonEncode(bb: BonBuffer): BonBuffer {
         bb.writeUtf8(this.name);
         bb.writeBonCode(this.ftype);
         if (this.notes) {
@@ -126,20 +129,22 @@ export class FieldInfo implements BonCode {
         } else {
             bb.writeNil();
         }
-
+		return bb;
     }
 
 	/**
 	 * 二进制解码
 	 */
-    bonDecode(bb: BonBuffer) {
-        this.name = bb.readUtf8();
-        this.ftype = bb.readBonCode(EnumType);
+    static bonDecode(bb: BonBuffer): FieldInfo {
+		let o = new FieldInfo(null, null, null);
+        o.name = bb.readUtf8();
+        o.ftype = bb.readBonCode(EnumType);
         if (!bb.isNil()) {
-            this.notes = bb.readMap(() => {
+            o.notes = bb.readMap(() => {
                 return [bb.readUtf8(), bb.readUtf8()]
             });
-        }
+		}
+		return o;
     }
 }
 
@@ -147,7 +152,7 @@ export class FieldInfo implements BonCode {
  * 结构信息
  * @example
  */
-export class StructInfo implements BonCode {
+export class StructInfo implements BonEncode {
     name: string;//名称
     name_hash: number;//名称hash
     notes: Map<string, string>;//注解,与rust的StructInfo保持一致，可以为null
@@ -166,7 +171,7 @@ export class StructInfo implements BonCode {
         this.fields = fields || [];
     }
 
-    bonEncode(bb: BonBuffer) {
+    bonEncode(bb: BonBuffer): BonBuffer {
         bb.writeUtf8(this.name);
         bb.writeInt(this.name_hash);
         if (this.notes) {
@@ -180,27 +185,28 @@ export class StructInfo implements BonCode {
 
         bb.writeArray(this.fields, (el) => {
             bb.writeBonCode(el);
-        });
+		});
+		return bb;
     }
 	/**
 	 * 二进制解码
 	 */
-    bonDecode(bb: BonBuffer) {
-        this.name = bb.readUtf8();
-        this.name_hash = bb.readInt();
+    static bonDecode(bb: BonBuffer): StructInfo {
+		let notes, fields;
         if (!bb.isNil()) {
-            this.notes = bb.readMap(() => {
+            notes = bb.readMap(() => {
                 return [bb.readUtf8(), bb.readUtf8()]
             });
         }
 
-        this.fields = bb.readArray(() => {
+        fields = bb.readArray(() => {
             return bb.readBonCode(FieldInfo);
-        });
+		});
+		return new StructInfo(bb.readUtf8(), bb.readInt(), notes, fields);
     }
 }
 
-export class EnumInfo {
+export class EnumInfo implements BonEncode{
     name: string;//名称
     name_hash: number;//名称hash
     notes: Map<string, string>;//注解,可以为null
@@ -219,7 +225,7 @@ export class EnumInfo {
         this.members = members || [];
     }
 
-    bonEncode(bb: BonBuffer) {
+    bonEncode(bb: BonBuffer): BonBuffer {
         bb.writeUtf8(this.name);
         bb.writeInt(this.name_hash);
         if (this.notes) {
@@ -237,32 +243,33 @@ export class EnumInfo {
             } else {
                 bb.writeBonCode(el);
             }
-        });
+		});
+		return bb;
     }
 	/**
 	 * 二进制解码
 	 */
-    bonDecode(bb: BonBuffer) {
-        this.name = bb.readUtf8();
-        this.name_hash = bb.readInt();
+    static bonDecode(bb: BonBuffer): EnumInfo {
+        let notes;
         if (!bb.isNil()) {
-            this.notes = bb.readMap(() => {
+            notes = bb.readMap(() => {
                 return [bb.readUtf8(), bb.readUtf8()]
             });
         }
 
-        this.members = bb.readArray(() => {
+        let members = bb.readArray(() => {
             if (bb.isNil()) {
                 return null;
             } else {
                 return bb.readBonCode(EnumType);
             }
-        });
+		});
+		return new EnumInfo(bb.readUtf8(), bb.readInt(), notes, members);
     }
 }
 
 //数据库表的元信息， 应该移动至db.ts文件中？
-export class TabMeta implements BonCode {
+export class TabMeta implements BonEncode {
     k: EnumType;
     v: EnumType;
 
@@ -271,13 +278,14 @@ export class TabMeta implements BonCode {
         this.v = v;
     }
 
-    bonEncode(bb: BonBuffer) {
+    bonEncode(bb: BonBuffer): BonBuffer {
         this.k.bonEncode(bb);
-        this.v.bonEncode(bb);
+		this.v.bonEncode(bb);
+		return bb;
     }
 
-    bonDecode(bb: BonBuffer) {
-        this.k = bb.readBonCode(EnumType);
-        this.v = bb.readBonCode(EnumType);
+    static bonDecode(bb: BonBuffer): TabMeta {
+		return new TabMeta(bb.readBonCode(EnumType), bb.readBonCode(EnumType));
     }
 }
+

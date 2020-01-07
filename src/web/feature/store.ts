@@ -4,7 +4,14 @@ export class Store {
     public readonly tabName: string;
     tab: IDBDatabase;
     map: Map<number | string, any>;
+    /**
+     * 文件已下载 但未写成功的这段时间里缓冲文件数据
+     */
     dataMap: Map<string, ArrayBuffer>;
+    /**
+     * 考虑事务性能的影响, 将写文件任务作队列排队执行
+     * * TODO 调整方案, 优化为一次事务管理一段时间内的多次 读/写
+     */
     writeList: Function[] = [];
     writing: boolean = false;
     /**
@@ -74,7 +81,7 @@ export class Store {
     public read(key: number | string) : Promise<any> {
         return new Promise((resolve, reject) => {
             if (this.map) {
-                return resolve([key, this.map.get(key)]);
+                return resolve(this.map.get(key));
             }
             if (this.dataMap) {
                 const data = this.dataMap.get(<string>key);
@@ -111,9 +118,10 @@ export class Store {
                 tx.oncomplete = () => {
                     if (this.dataMap) {
                         this.dataMap.delete(<string>key);
-                    } else {
-                        resolve();
                     }
+
+                    resolve();
+
                     this.writing = false;
                     this._write();
                     data = undefined;
@@ -133,7 +141,6 @@ export class Store {
 
             if (this.dataMap) {
                 this.dataMap.set(<string>key, data);
-                resolve();
             }
         });
     }
@@ -183,8 +190,9 @@ export class Store {
         if (!iDB) {
             return setTimeout(() => {
                 for (let [key, value] of this.map) {
-                    if (callback({key, value}) === false)
+                    if (callback({key, value}) === false) {
                         return;
+                    }
                 }
                 callback(null);
             }, 0);
@@ -193,8 +201,9 @@ export class Store {
         cursor.onsuccess = () => {
             let r = cursor.result;
             if (r) {
-                if (callback(r) === false)
+                if (callback(r) === false) {
                     return;
+                }
                 r.continue();
             } else {
                 callback(null);

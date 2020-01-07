@@ -53,6 +53,10 @@ export class DirInfo {
 
 // 根据文件表初始化依赖表
 export const init = (files: any[][]) => {
+	let root = new DirInfo("");
+	root.children = [];
+	dirMap.set("", root);
+	
 	for (let args of files) {
 		let f = new FileInfo(args);
 		fileMap.set(f.path, f);
@@ -130,12 +134,16 @@ export const fileSuffix = (file: string) => {
 	return (dot >= 0) ? file.slice(dot + 1) : "";
 }
 
-// // 伪后缀
-// export const filePseudoSuffix = (file: string, count: number): string => {
-// 	let dot = fileDot(file);
-// 	return (dot >= 0) ? file.slice(dot + 1) : "";
-// }
 
+// 伪后缀
+export const filePseudoSuffix = (file: string): string => {
+	let dot = file.indexOf(".");
+	return (dot >= 0) ? file.slice(dot + 1) : "";
+}
+export const filename = (file: string) => {
+	let i = file.lastIndexOf("/");
+	return (i < 0) ? file : file.slice(i + 1);
+}
 export const fileBasename = (file: string) => {
 	let i = file.lastIndexOf("/");
 	let dot = fileDot(file);

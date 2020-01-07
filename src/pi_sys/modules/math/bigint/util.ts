@@ -57,7 +57,7 @@ export const bufferToU64 = (buf: Uint8Array,  littleEnd?: boolean): bigInt.BigIn
         return bigInt(arr[1]).multiply(0x100000000).add(bigInt(arr[0]));
     }else{
         let view = new DataView(buf.buffer);
-        return bigInt(view.getUint32(0)).multiply(bigInt(0x100000000)).add(bigInt(view.getUint32(1)));
+        return bigInt(view.getUint32(0)).multiply(bigInt(0x100000000)).add(bigInt(view.getUint32(4)));
     }
 }
 
@@ -68,7 +68,7 @@ export const bufferToU128 = (buf: Uint8Array,  littleEnd?: boolean): bigInt.BigI
         return bigInt(arr[3]).multiply(bigInt("79228162514264337593543950336").add(bigInt(arr[2]).multiply(bigInt("18446744073709551616")))).add(bigInt(arr[1]).multiply(bigInt("0x100000000"))).add(bigInt(arr[0]));
     }else{
         let view = new DataView(buf.buffer);
-        return bigInt(view.getUint32(0)).multiply(bigInt("79228162514264337593543950336").add(bigInt(view.getUint32(1)).multiply(bigInt("18446744073709551616")))).add(bigInt(view.getUint32(2)).multiply(bigInt("0x100000000"))).add(bigInt(view.getUint32(3)));
+        return bigInt(view.getUint32(0)).multiply(bigInt("79228162514264337593543950336").add(bigInt(view.getUint32(4)).multiply(bigInt("18446744073709551616")))).add(bigInt(view.getUint32(8)).multiply(bigInt("0x100000000"))).add(bigInt(view.getUint32(12)));
     }
 }
 

@@ -1,3 +1,5 @@
+import { BonEncode, BonDecode, BonBuffer } from "../serialization/bon";
+
 /**
  * ecs系统
  * 概念： https://blog.csdn.net/i_dovelemon/article/details/25798677
@@ -131,7 +133,17 @@ export interface System {
 /**
  * 组件
  */
-export class Component {}
+export class Component implements BonEncode, BonDecode<Component> {
+	bonEncode(bb: BonBuffer){
+		return bb;
+	}
+	bonDecode(_bb: BonBuffer): Component {
+		return this;
+	}
+	static bonDeCode(bb:BonBuffer): Component {
+		return new Component().bonDecode(bb);
+	}
+}
 
 /**
  * 实体
@@ -263,7 +275,7 @@ export class Entitys<E> extends Notify {
 	}
 
 	// 注册组件
-	register_component<C>(component: Multi<E, C>) {
+	register_component<C extends Component>(component: Multi<E, C>) {
 		this.components.push(component);
 	}
 
@@ -411,14 +423,14 @@ export class World {
 		}
 		
 		let mc = new Multi();
-		this.data.set((<any>eTy).__world_eid__ | (<any>cTy).__world_cid__, mc);
+		this.data.set((<any>eTy).__world_eid__ | (<any>cTy).__world_cid__, mc as any);
 		if(key) {
-			this.key_data.set(key, mc);
+			this.key_data.set(key, mc as any);
 		}
 		if(!this.entity.get(eTy)) {
 			let entitys = new Entitys();
 			this.entity.set(eTy, entitys);
-			entitys.register_component(mc);
+			entitys.register_component(mc as any);
 		}
 	}
 
@@ -532,8 +544,15 @@ export class World {
 	 * 取到指定key的单例数据
 	 * @param keyS
 	 */
-	fetchSingleByKey<S>(key: string): Single<S> {
-		return this.key_data.get(key) as Single<S>;
+	// fetchSingleByKey<S>(key: string): Single<S> {
+	// 	return this.key_data.get(key) as Single<S>;
+	// }
+	/**
+	 * 取到指定key的组件数据（组件或单例）
+	 * @param key
+	 */
+	fetchByKey(key: string) {
+		return this.key_data.get(key);
 	}
 
 	/**
@@ -822,11 +841,28 @@ export const writeNotify = (target: any, propertyKey: string, descriptor?: Prope
  * 单数字组件
 */
 export class NumComponent extends Component{
-    @writeNotify
-    value: number;
+	_value: number;
 	constructor(value=0) {
 		super();
-		this.value = value;
+		this._value = value;
+	}
+	@writeNotify
+	set value(value: number) {
+		this._value = value;
+	}
+	get value(): number {
+		return this._value;
+	}
+	bonEncode(bb: BonBuffer){
+		return this._value.bonEncode(bb);
+	}
+	bonDecode(bb: BonBuffer): NumComponent {
+		super.bonDecode(bb);
+		this._value.bonEncode(bb);
+		return this;
+	}
+	static bonDeCode(bb:BonBuffer): NumComponent {
+		return new NumComponent().bonDecode(bb);
 	}
 }
 

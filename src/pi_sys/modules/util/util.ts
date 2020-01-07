@@ -44,14 +44,14 @@ export const isBoolean = (bool: any) => {
 export const isPrimaryDataType = (data: any) => {
 	return data === null || data === undefined || isString(data) || isNumber(data) || isBoolean(data);
 };
-export const ObjToPrimaryData = (data: any) => {
+export const objToPrimaryData = (obj: any) => {
 	// tslint:disable:variable-name
 	const _data = {};
-	for (const key in data) {
-		if (isString(data[key])) {
-			_data[key] = data[key];
+	for (const key in obj) {
+		if (isString(obj[key])) {
+			_data[key] = obj[key];
 		} else {
-			_data[key] = JSON.stringify(data[key]);
+			_data[key] = JSON.stringify(obj[key]);
 		}
 	}
 
@@ -76,7 +76,25 @@ export const toString = (o: any) => {
 		return '' + o;
 	}
 };
-
+/**
+ * @description 将xx0yyyyy这样的整数(x不能为0, y可以为0)按从高位出现的第一个0来劈分数字，取x和y的值。 主要用在将类型和参数结合后的数的分解
+ * @example
+ */
+export const splitFirstZero = (n: number) => {
+    let lastn = 0;
+    let lasti = 0;
+    let i10 = 1;
+    let i = n;
+    while(i > 9) {
+        i = (i/10)|0;
+        i10*=10;
+        if(i %10 === 0 ){
+            lastn = i;
+            lasti = i10;
+        }
+    }
+    return [(lastn/10)|0, n - lastn*lasti];
+};
 /**
  * @description 比较2个Obj, 跳过所有_$开头的键， 值为undefined表示没有该键， 用===直接比较值。返回相同键的数量。先遍历长的，如果短的键都被长的覆盖，则不需要遍历短的
  * @example

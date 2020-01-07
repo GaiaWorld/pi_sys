@@ -9,7 +9,7 @@
  */
 // ============================== 导入
 import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
-import { FileInfo, fileSuffix, DirInfo, getDir, getFile } from "../setup/depend";
+import { FileInfo, fileSuffix, DirInfo, getDir, getFile, filePseudoSuffix } from "../setup/depend";
 import { cc, log, pattern } from "../feature/log";
 import { CodeLoad } from './code';
 import { ObjLoad } from './object';
@@ -42,14 +42,12 @@ export let setCfgHandler = (
 		return Promise.resolve();
 	let arr = [];
     for (let [k, v] of cfgTempMap) {
-		let f = k;
-		let s: string;
-		while(true){
-			s = fileSuffix(f);
-			if (s == suffix || !s) {
+		let s = filePseudoSuffix(k);
+		while(s){
+			if (s === suffix) {
 				break;
 			}
-			f = f.slice(0, f.length - s.length);
+			s = filePseudoSuffix(s);
 		}
 		if (!s) {
 			continue;
@@ -509,14 +507,19 @@ const checkWaitLoad = (file: FileInfo, set: Set<FileLoad>) => {
 const handleBinMap = (map: Map<string, Uint8Array>) => {
     let arr = [];
     for (let [k, v] of map) {
-        let suffix = fileSuffix(k);
-        let st = suffixMap.get(suffix);
-        if (st === SuffixType.CFG) {
-            arr.push(handleCfg(k, v, suffix));
-        } else if (st === SuffixType.RES) {
-            let lru = resMap.get(suffix);
-            lru.add(k, v);
-        }
+		let suffix = filePseudoSuffix(k);
+		while(suffix) {
+			let st = suffixMap.get(suffix);
+			if (st === SuffixType.CFG) {
+				arr.push(handleCfg(k, v, suffix));
+				break;
+			} else if (st === SuffixType.RES) {
+				let lru = resMap.get(suffix);
+				lru.add(k, v);
+				break;
+			}
+			suffix = filePseudoSuffix(suffix);
+		}
     }
     return Promise.all(arr);
 }

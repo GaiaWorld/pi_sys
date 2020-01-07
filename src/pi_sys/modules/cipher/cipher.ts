@@ -1,58 +1,62 @@
-import * as sjcl from './sjcl'
-import * as sample from './sample_ecdsa'
+// import * as elliptic from './elliptic'
 
-
+const elliptic = require('./elliptic');
 // ===================================================== 导出
 export class Cipher {
     
     /**
-     * 生成ECDSA密钥对 (secp256k1)
-     * @param str 生成密钥对的种子字符串
+     * 生成EDDSA密钥对 (secp256k1)
+     * @param secretStr 生成密钥对的种子字符串
      * @param salt 盐
      * @param level 强度系数(哈希次数))
      */
-    public static generateECDSAKeys(str: string, salt: string, level: number): SerializedKeys {
-        let keyStr = str;
-        for (let i = 0; i < level; i++) {
-            keyStr = str.concat(salt); // 加盐
-            const hashArr = sjcl.sjclCipher.hash.sha256.hash(keyStr); // 哈希
-            keyStr = sjcl.sjclCipher.codec.hex.fromBits(hashArr);
-        }
-        const exponent = new sjcl.sjclCipher.bn(keyStr);
+    public static generateEDDSAKeys(secretStr: string, salt: string, level: number): SerializedKeys {
+        let keyStr = secretStr;
+        // for (let i = 0; i < level; i++) {
+        //     keyStr = str.concat(salt); // 加盐
+        //     const hashArr = sjcl.sjclCipher.hash.sha256.hash(keyStr); // 哈希
+        //     keyStr = sjcl.sjclCipher.codec.hex.fromBits(hashArr);
+        // }
+        const ec = new elliptic.eddsa('ed25519');
         // 计算密钥对
-        const keys = sjcl.sjclCipher.ecc.ecdsa.generateKeys(sjcl.sjclCipher.ecc.curves.k256, 0, exponent);
+        const key = ec.keyFromSecret(keyStr);
         const serializedKeys = new SerializedKeys();
-        // sjcl生成的公钥在此加上非压缩格式的前缀04
-        serializedKeys.publicStr = '04' + keys.pub.serialize().point;
-        serializedKeys.secretStr = keys.sec.serialize().exponent;
+        serializedKeys.publicStr = elliptic.utils.toHex(key.pubBytes());
+        serializedKeys.secretStr = keyStr;
 
         return serializedKeys;
     }
 
     /**
-     * ECDSA签名
+     * EDDSA签名
      * @param signStr 待签名字符串
      * @param secretHexStr 16进制密钥字符串
      */
-    public static ECDSASign(signStr: string, secretHexStr: string): string {
-        const sig = new sample.KJUR.crypto.Signature({ alg: sample.KJUR.jws.JWS.jwsalg2sigalg.ES256 });
-        sig.init({ d: secretHexStr, curve: 'secp256k1' });
-        sig.updateString(signStr);
-        const sign = sig.sign();
+    public static EDDSASign(signStr: string, secretHexStr: string): string {
+        const ec = new elliptic.eddsa('ed25519');
+        // 计算密钥对
+        const key = ec.keyFromSecret(secretHexStr);
+        const signature = key.sign(signStr).toHex();
 
-        return sign; 
+        return signature; 
     }
 
     /**
-     * ECDSA验签
-     * @param str 签名源数据
+     * EDDSA验签
+     * @param strHash 签名源数据
      * @param sign 签名
      * @param pubHexStr 16进制公钥字符串
      */
-    public static ECDSAVerify(str: string, sign: string, pubHexStr: string): boolean {
-        // 生成ECDSA对象
-        const ec = new sample.KJUR.crypto.ECDSA({'curve': 'secp256k1'});
-        if (ec.verifyHex(str, sign, pubHexStr)) {
+    public static EDDSAVerify(strHash: string, sign: string, pubHexStr: string): boolean {
+        const EdDSA = require('./elliptic').eddsa;
+        console.log('---------generateEDDSAKeys---------', elliptic);
+        // 生成EDDSA对象
+        console.log('---------elliptic.eddsa---------', elliptic.eddsa);
+        const ec = new EdDSA('ed25519');
+        console.log('---------ec---------', ec);
+        const key = ec.keyFromPublic(pubHexStr, 'hex');
+        console.log('---------key---------', ec);
+        if (key.verify(strHash, sign)) {
             return true;
         } else {
             return false;

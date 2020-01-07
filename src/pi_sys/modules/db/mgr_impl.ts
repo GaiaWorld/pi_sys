@@ -4,11 +4,15 @@
 
 import { TabMeta } from '../serialization/sinfo';
 import { CDB, CSession, CTransaction } from './client';
-import { Handler, Item, Mgr as MgrInterface, Tr as TrInterface } from './mgr';
+import { Handler, Item, Mgr as MgrInterface, Tr as TrInterface, DbListener } from './mgr';
 
 export class Mgr implements MgrInterface {
     public ware_list: Map<string, CDB>;
-    public sessions: Map<string, CSession>;
+	public sessions: Map<string, CSession>;
+	
+	isExist(ware_name: string, tab_name: string): boolean {
+		return false; // PITODO
+	}
 
     // PITODO
     notify(_items: Item[]) {
@@ -71,7 +75,20 @@ export class Mgr implements MgrInterface {
             }
         }
         throw new Error('read timeout');
-    }
+	}
+	
+	/**
+	 * 添加监听器
+	 * @param name 监听器名称， 如果数据库管理器已经存在相同名称的监听器，添加监听器会失败
+	 * @param listner 监听器
+	 */
+	addListener(name: string, listner: DbListener): boolean { return false;}
+
+	/**
+	 * 取消监听器
+	 * @param name 监听器名称
+	 */
+	cancelListener(name: string): void {}
 }
 
 export class Tr implements TrInterface {
