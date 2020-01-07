@@ -450,7 +450,10 @@ const replace = (s: string) => {
 
 // 保存文件
 const savefile = (path: string, data: Uint8Array, sign: string) => {
-    return localStore.write(path, new Uint8Array(data.slice().buffer)).then((_) => {
+    if(data.byteLength !== data.buffer.byteLength) {
+        data = new Uint8Array(data.slice().buffer);
+    }
+    return localStore.write(path, data).then((_) => {
         localSign[path] = sign;
      });
 };

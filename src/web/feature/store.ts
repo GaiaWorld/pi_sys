@@ -74,7 +74,7 @@ export class Store {
     public read(key: number | string) : Promise<any> {
         return new Promise((resolve, reject) => {
             if (this.map) {
-                return resolve([key, this.map.get(key)]);
+                return resolve(this.map.get(key));
             }
             if (this.dataMap) {
                 const data = this.dataMap.get(<string>key);
