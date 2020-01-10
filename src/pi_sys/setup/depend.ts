@@ -140,7 +140,10 @@ export const filePseudoSuffix = (file: string): string => {
 	let dot = file.indexOf(".");
 	return (dot >= 0) ? file.slice(dot + 1) : "";
 }
-
+export const filename = (file: string) => {
+	let i = file.lastIndexOf("/");
+	return (i < 0) ? file : file.slice(i + 1);
+}
 export const fileBasename = (file: string) => {
 	let i = file.lastIndexOf("/");
 	let dot = fileDot(file);

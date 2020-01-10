@@ -524,22 +524,18 @@ const handleBinMap = (map: Map<string, Uint8Array>) => {
     let arr = [];
     for (let [k, v] of map) {
 		let suffix = filePseudoSuffix(k);
-		while(true) {
-			if (!suffix) {
-				break;
-			} else {
-				let st = suffixMap.get(suffix);
-				if (st === SuffixType.CFG) {
-					arr.push(handleCfg(k, v, suffix));
-					break;
-				} else if (st === SuffixType.RES) {
-					let lru = resMap.get(suffix);
-					lru.add(k, v);
-					break;
-				} else if (st === SuffixType.CODE) {
-					// arr.push(loadJSFromAB(v));
-				}
-			}
+		while(suffix) {
+            let st = suffixMap.get(suffix);
+            if (st === SuffixType.CFG) {
+                arr.push(handleCfg(k, v, suffix));
+                break;
+            } else if (st === SuffixType.RES) {
+                let lru = resMap.get(suffix);
+                lru.add(k, v);
+                break;
+            } else if (st === SuffixType.CODE) {
+                // arr.push(loadJSFromAB(v));
+            }
 			suffix = filePseudoSuffix(suffix);
 		}
     }

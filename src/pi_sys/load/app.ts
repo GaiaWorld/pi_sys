@@ -42,14 +42,12 @@ export let setCfgHandler = (
 		return Promise.resolve();
 	let arr = [];
     for (let [k, v] of cfgTempMap) {
-		let f = k;
-		let s: string;
-		while(true){
-			s = fileSuffix(f);
-			if (s == suffix || !s) {
+		let s = filePseudoSuffix(k);
+		while(s){
+			if (s === suffix) {
 				break;
 			}
-			f = f.slice(0, f.length - s.length);
+			s = filePseudoSuffix(s);
 		}
 		if (!s) {
 			continue;
@@ -510,19 +508,15 @@ const handleBinMap = (map: Map<string, Uint8Array>) => {
     let arr = [];
     for (let [k, v] of map) {
 		let suffix = filePseudoSuffix(k);
-		while(true) {
-			if (!suffix) {
+		while(suffix) {
+			let st = suffixMap.get(suffix);
+			if (st === SuffixType.CFG) {
+				arr.push(handleCfg(k, v, suffix));
 				break;
-			} else {
-				let st = suffixMap.get(suffix);
-				if (st === SuffixType.CFG) {
-					arr.push(handleCfg(k, v, suffix));
-					break;
-				} else if (st === SuffixType.RES) {
-					let lru = resMap.get(suffix);
-					lru.add(k, v);
-					break;
-				}
+			} else if (st === SuffixType.RES) {
+				let lru = resMap.get(suffix);
+				lru.add(k, v);
+				break;
 			}
 			suffix = filePseudoSuffix(suffix);
 		}
