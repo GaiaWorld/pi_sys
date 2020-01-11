@@ -1139,9 +1139,10 @@ Object.defineProperty(Number, "bonDecode", {
 	value: function (bb: BonBuffer): number {
 		let type = bb.getType();
 		if (type > 3 && type < 9) {
-			return bb.readInt();
-		} else {
 			return bb.readf();
+		} else {
+			return bb.readInt();
+			
 		}
 	}
 });
