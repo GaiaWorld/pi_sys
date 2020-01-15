@@ -1,19 +1,19 @@
+/**
+ * 存储， 会全局管理并行写的次数，这样提高性能和读的响应性。
+ * 当有写请求时， 如果并行写次数容许，则立刻写入，否则挂起等待。 写入完毕后检查挂起的存储，继续写入。
+ */
+
+// 默认的最大并行写的数量
+export let parallelWriteCount = 2;
 
 export class Store {
     public readonly dbName: string;
     public readonly tabName: string;
     tab: IDBDatabase;
     map: Map<number | string, any>;
-    /**
-     * 文件已下载 但未写成功的这段时间里缓冲文件数据
-     */
-    dataMap: Map<string, ArrayBuffer>;
-    /**
-     * 考虑事务性能的影响, 将写文件任务作队列排队执行
-     * * TODO 调整方案, 优化为一次事务管理一段时间内的多次 读/写
-     */
-    writeList: Function[] = [];
-    writing: boolean = false;
+    writeWait: Array<Entry> = [];
+    writeLimitSize = 1 * 1024 * 1024;
+
     /**
 	 * @description 判断是否支持IndexedDB
 	 * @example
@@ -53,7 +53,6 @@ export class Store {
                 request.onsuccess = (e) => {
                     let s = new Store(dbName, tabName);
                     s.tab = (<any>e.currentTarget).result;
-                    s.dataMap = new Map();
                     return resolve(s);
                 };
                 request.onerror = reject;
@@ -70,10 +69,6 @@ export class Store {
         this.tabName = tabName;
     }
 
-    private _write = () => {
-        const func = this.writeList.pop();
-        func && func();
-    }
     /**
 	 * @description 读取数据
 	 * @example
@@ -83,22 +78,9 @@ export class Store {
             if (this.map) {
                 return resolve(this.map.get(key));
             }
-            if (this.dataMap) {
-                const data = this.dataMap.get(<string>key);
-                if (data) {
-                    return resolve(data);
-                }
-            }
             let request = this.tab.transaction(this.tabName, "readonly").objectStore(this.tabName).get(key);
-            request.onsuccess = (e) => {
-                if (!(<any>e.target).result) {
-                    console.warn(`not get ${key}`);
-                }
-                resolve((<any>e.target).result);
-            };
-            request.onerror = (err) => {
-                reject(err);
-            };
+            request.onsuccess = (e) => resolve((<any>e.target).result);
+            request.onerror = reject;
         });
     }
     /**
@@ -111,36 +93,30 @@ export class Store {
                 this.map.set(key, data);
                 return resolve();
             }
-            const func = () => {
-                this.writing = true;
+            if(curWriteCount < parallelWriteCount) {
+                curWriteCount++;
                 let tx = this.tab.transaction(this.tabName, "readwrite");
                 tx.objectStore(this.tabName).put(data, key);
                 tx.oncomplete = () => {
-                    if (this.dataMap) {
-                        this.dataMap.delete(<string>key);
-                    }
-
                     resolve();
-
-                    this.writing = false;
-                    this._write();
-                    data = undefined;
+                    writeNext();
                 };
                 tx.onerror = (err) => {
                     reject(err);
-                    this.writing = false;
-                    this._write();
+                    writeNext();
                 };
-            };
-
-            this.writeList.unshift(func);
-
-            if (!this.writing) {
-                this._write();
-            }
-
-            if (this.dataMap) {
-                this.dataMap.set(<string>key, data);
+            }else if(this.writeWait.length > 0) {
+                let cur = this.writeWait[this.writeWait.length - 1];
+                if(cur.size + data.byteLength > this.writeLimitSize) {
+                    cur = new Entry();
+                    this.writeWait.push(cur);
+                }
+                cur.push(key, data, resolve, reject);
+            }else{
+                let cur = new Entry();
+                this.writeWait.push(cur);
+                cur.push(key, data, resolve, reject);
+                storeWait.push(this);
             }
         });
     }
@@ -153,9 +129,6 @@ export class Store {
             if (this.map) {
                 this.map.delete(key);
                 return resolve();
-            }
-            if (this.dataMap) {
-                this.dataMap.delete(<string>key);
             }
             let tx = this.tab.transaction(this.tabName, "readwrite");
             tx.objectStore(this.tabName).delete(key);
@@ -172,9 +145,6 @@ export class Store {
             if (this.map) {
                 this.map.clear();
                 return resolve();
-            }
-            if (this.dataMap) {
-                this.dataMap.clear();
             }
             let tx = this.tab.transaction(this.tabName, "readwrite");
             tx.objectStore(this.tabName).clear();
@@ -211,7 +181,57 @@ export class Store {
         };
         cursor.onerror = errorCallback;
     }
+    // 继续写， 返回是否写完毕
+    writeNext(): boolean {
+        let cur = this.writeWait.shift();
+        let tx = this.tab.transaction(this.tabName, "readwrite");
+        for(let r of cur.arr) {
+            tx.objectStore(this.tabName).put(r.data, r.key);
+        }
+        tx.oncomplete = () => {
+            for(let r of cur.arr) {
+                r.resolve();
+            }
+            writeNext();
+        };
+        tx.onerror = (err) => {
+            for(let r of cur.arr) {
+                r.reject(err);
+            }
+            writeNext();
+        };
+        return this.writeWait.length === 0;
+    }
 }
 
+class Entry {
+    arr: Array<{key: number|string, data: Uint8Array, resolve: (value?:any) => void, reject: (reason?: any) => void}> = [];
+    size = 0;
+
+    push(key: number|string, data: Uint8Array, resolve: (value?:any) => void, reject: (reason?: any) => void) {
+        this.arr.push({key, data, resolve, reject});
+        this.size += data.byteLength;
+    }
+}
+// 当前并行写的数量
+let curWriteCount = 0;
+// 存储器等待数组
+let storeWait: Array<Store> = [];
+
+const writeNext = () => {
+    let len = storeWait.length;
+    if(len === 0) {
+        curWriteCount--;
+        return;
+    }
+    let i = 0;
+    if(len > 1) {
+        i = Math.floor(Math.random() * (len + 1.0));
+    }
+    if(storeWait[i].writeNext()) {
+        storeWait[i] = storeWait[len - 1];
+        storeWait.length = len - 1;
+    }
+}
 // ============================== 立即执行
 let iDB = self.indexedDB; // || self.webkitIndexedDB || self.mozIndexedDB || self.msIndexedDB;
