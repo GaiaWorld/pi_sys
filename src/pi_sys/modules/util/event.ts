@@ -199,7 +199,7 @@ export class HandlerTable {
      * @description 通知组件上的事件监听器
      * @example
      */
-    public notify(eventType: string, args: any[]): boolean {
+    public notify(eventType: string, args: any[] | any): boolean {
         if (this[eventType]) {
             return objCall1(this, eventType, args);
         }

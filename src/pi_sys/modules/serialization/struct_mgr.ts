@@ -2,7 +2,7 @@
 
 // ============================== 导入
 import { arrInsert, arrDelete } from '../util/util';
-import { BonBuffer, BonEncode } from './bon';
+import { BonBuffer, BonEncode, ContainerTypeMap } from './bon';
 import { StructInfo, EnumInfo } from './sinfo';
 
 // ============================== 导出
@@ -212,7 +212,7 @@ export const notifyModify = (struct: MStruct, field: string, value: any, old: an
  * 结构系统管理器
  * @example
  */
-export class StructMgr {
+export class StructMgr implements ContainerTypeMap {
 	numberMap = new Map<number, StructMeta>();//组件元信息表
 	constructMap = new Map<Function, StructMeta>();//组件元信息表
 
@@ -246,43 +246,47 @@ export class StructMgr {
 		return Number.isInteger(key) ? this.numberMap.get(key) : this.constructMap.get(key);
 	}
 
-}
-
-// 读
-export const read = (bb: BonBuffer): any => {
-    return bb.read((bb, t): any => {
-		let c = structMgr.lookup(t).construct; //必须保证mgr中存在该类型的元信息;
-		let r = bb.readBonCode(c);
-		return r;
-        // if (t === 2) {
-        //     return b.readArray(() => {
-        //         return read(b, mgr);
-        //     });
-        // } else if (t === 3) {
-        //     return b.readMap(() => {
-        //         return [read(b, mgr), read(b, mgr)]
-        //     });
-        // } else {
-        //     let c = mgr.lookup(t).construct; //必须保证mgr中存在该类型的元信息;
-        //     let r = bb.readBonCode(c);
-        //     return r;
-        // }
-    });
-}
-
-// 写
-export const write = (o: any, bb: BonBuffer): BonBuffer => {
-	if (o instanceof Struct) {
-		bb.writeCt(o, () => {
-			let h = (<any>o.constructor)._$info.name_hash;
-			bb.writeU32(h);//写类型hash
-			o.bonEncode(bb);
-		});
-	} else {
-		bb.write(o);
+	getConstructor(key: number): Function {
+		return this.numberMap.get(key).construct;
 	}
-	return bb;
 }
+
+// // 读
+// export const read = (bb: BonBuffer): any => {
+//     return bb.read((bb, t): any => {
+// 		let c = structMgr.lookup(t).construct; //必须保证mgr中存在该类型的元信息;
+// 		let r = bb.readBonCode(c);
+// 		return r;
+//         // if (t === 2) {
+//         //     return b.readArray(() => {
+//         //         return read(b, mgr);
+//         //     });
+//         // } else if (t === 3) {
+//         //     return b.readMap(() => {
+//         //         return [read(b, mgr), read(b, mgr)]
+//         //     });
+//         // } else {
+//         //     let c = mgr.lookup(t).construct; //必须保证mgr中存在该类型的元信息;
+//         //     let r = bb.readBonCode(c);
+//         //     return r;
+//         // }
+//     });
+// }
+
+// // 写
+// export const write = (o: any, bb: BonBuffer): BonBuffer => {
+// 	if (o instanceof Struct) {
+// 		bb.writeCt(o, () => {
+// 			let h = (<any>o.constructor)._$info.name_hash;
+// 			bb.writeU32(h);//写类型hash
+// 			o.bonEncode(bb);
+// 		});
+// 	} else {
+// 		bb.write(o);
+// 	}
+// 	return bb;
+// }
 
 export const structMgr = new StructMgr();
 (<any>window).structMgr = structMgr;
+BonBuffer.typeMap = structMgr;

@@ -4,7 +4,7 @@
  */
 
 // ============================== 导入
-import { Func, read, write } from "../serialization/struct_mgr";
+import { Func } from "../serialization/struct_mgr";
 import { BonBuffer, BonEncode } from '../serialization/bon';
 import { Client } from "./mqtt_c";
 
@@ -20,7 +20,7 @@ export const create = (client: Client): Rpc => {
 			let rid = bb.readU32();//消息开始表示此次请求的id
 			bb.readU8(); // timeout TODO
 			if (mqttRpc.wait[rid]) {
-				mqttRpc.wait[rid](read(bb));
+				mqttRpc.wait[rid](bb.read());
 				delete mqttRpc.wait[rid];
 			}
 		}
@@ -45,7 +45,7 @@ class MqttRpc {
 		bb.writeU32(this.rid++); // rid
 		bb.writeU8(timeout); // timeout
 		this.rid >= 0xffffffff && (this.rid = 1);
-		write(req, bb);
+		bb.write(req);
 		this.client.publish(name, bb.getBuffer(), 0, true);
 	}
 }

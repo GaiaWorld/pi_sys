@@ -24,7 +24,8 @@ export class Env {
 
     set(name: string, obj: any) {
         if(this.other.get(name)){
-            throw new Error("NativeObject is exist! name:" + name);
+			console.log("NativeObject is exist! name:" + name);
+            // throw new Error("NativeObject is exist! name:" + name);
         }
         this.other.set(name, obj);
     }
