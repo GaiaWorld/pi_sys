@@ -230,12 +230,9 @@ const count = (e: string) => {
     }
 };
 const onReject = (ev: PromiseRejectionEvent) => {
-    console.warn(ev.reason.stack);
-    let e = JSON.stringify(ev.reason.stack);
-    let c = count(e);
-    c && ((new Image()).src = "errlog?s=" + sid + "&e=" + encodeURIComponent(e) + "&c=" + c + "&r=" + Math.random());
+    onError(ev.reason);
 };
-const onError = (msg: any, uri: string, line: string, column: string, error: any) => {
+const onError = (msg: any, uri?: string, line?: string, column?: string, error?: any) => {
     let e: any;
     if (msg.stack) {
         e = msg.stack;
@@ -243,9 +240,9 @@ const onError = (msg: any, uri: string, line: string, column: string, error: any
         e = error.stack;
     } else {
         return;
- }
+    }
     console.warn(e);
-    e = JSON.stringify(e) + ", uri:" + uri + ", line:" + line + ", column:" + column;
+    e = JSON.stringify(e) + uri?(", uri:" + uri + line?(", line:" + line + ", column:" + column):""):"";
     let c = count(e);
     c && ((new Image()).src = "errlog?s=" + sid + "&e=" + encodeURIComponent(e) + "&c=" + c + "&r=" + Math.random());
 };
