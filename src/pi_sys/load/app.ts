@@ -52,8 +52,12 @@ export let setCfgHandler = (
 		if (!s) {
 			continue;
 		}
-        arr.push(cfgFinish(k, v, handler));
-        cfgTempMap.delete(k);
+        // 如果handler返回false， 表示handler未处理该文件
+        cfgFinish(k, v, handler).then((r) => {
+            if(r !== false) {
+                cfgTempMap.delete(k);
+            }
+        });
 	}
 	return Promise.all(arr);
 }
@@ -544,15 +548,18 @@ const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
         });
     });
 }
-const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<void>): Promise<void> => {
-    return h(file, data).then(() => {
-        let arr = cfgMap.get(file);
-        if (!arr)
-            return;
-        cfgMap.set(file, null);
-        for (let f of arr) {
-            f(null)
+const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<any>): Promise<any> => {
+    return h(file, data).then((r) => {
+        if( r !==  false ) {
+            let arr = cfgMap.get(file);
+            if (!arr)
+                return;
+            cfgMap.set(file, null);
+            for (let f of arr) {
+                f(null);
+            } 
         }
+        return r;
     });
-}
+};
 // ============================== 立即执行
