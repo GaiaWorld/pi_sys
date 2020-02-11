@@ -14,12 +14,18 @@ const loadFile: LoadCall = (tab: ResTab, _type: 'RES_TYPE_FILE', _name: string, 
     return new Promise((resolve, reject) => {
             const info = getFile(_name);
             if (info) {
-                getStore().read(info.path).then((res) => {
-                    if (ArrayBuffer.isView(res)) {
-                        res = (<Uint8Array>res).slice().buffer;
-                    }
-                    resolve(res);
-                });
+                getStore().read(info.path)
+                    .then((res) => {
+                        if (ArrayBuffer.isView(res)) {
+                            res = (<Uint8Array>res).slice().buffer;
+                        }
+                        resolve(res);
+                    })
+                    .catch((e) => {
+                        reject(e);
+                    });
+            } else {
+                reject(`文件不存在 ${_name}`);
             }
         });
 

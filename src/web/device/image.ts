@@ -70,7 +70,8 @@ const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]): Promi
                 // return objInstance;
             })
             .catch((err) => {
-                console.warn(err);
+                // console.warn(err);
+                reject(err);
             });
     });
 };
