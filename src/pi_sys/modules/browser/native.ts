@@ -4,7 +4,7 @@ declare var pi_modules;
  * 封装了高层与底层交互方法
  */
 // ============================== 导入
-import { arrayBufferToBase64 } from '../util/base64';
+import { fromByteArray } from '../util/base64js';
 // ============================== 导出
 
 /**
@@ -109,7 +109,7 @@ export class NativeObject {
 					if (!(value instanceof ArrayBuffer)) {
 						throw new Error(`${className}.${methodName}, type ${p.type} of value ${p.name} isn't match`);
 					}
-					value = arrayBufferToBase64(value);
+					value = fromByteArray(new Uint8Array(value));
 					break;
 				default:
 					throw new Error(`${className}.${methodName}, type ${p.type} of value ${p.name} isn't exist`);
