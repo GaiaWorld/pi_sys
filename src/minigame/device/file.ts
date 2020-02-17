@@ -14,11 +14,18 @@ const loadFile: LoadCall = (tab: ResTab, _type: 'RES_TYPE_FILE', _name: string, 
     return new Promise((resolve, reject) => {
             const down = new BatchLoad([_name]);
 
-            down.load(false).then((res) => {
-                getStore().read(_name).then((res) => {
-                    resolve(res);
+            down.load(false)
+                .then((res) => {
+                    getStore().read(_name).then((res) => {
+                        resolve(res);
+                    })
+                    .catch((e) => {
+                        reject(e);
+                    });
+                })
+                .catch((e) => {
+                    reject(e);
                 });
-            });
         });
 
 };
