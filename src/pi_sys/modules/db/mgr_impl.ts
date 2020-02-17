@@ -9,19 +9,30 @@ import { Handler, Item, Mgr as MgrInterface, Tr as TrInterface, DbListener } fro
 export class Mgr implements MgrInterface {
     public ware_list: Map<string, CDB>;
 	public sessions: Map<string, CSession>;
+	listeners: Map<string, DbListener>;
 	
 	isExist(ware_name: string, tab_name: string): boolean {
-		return false; // PITODO
+		let db = this.ware_list.get(ware_name);
+		if(!db) {
+			return false;
+		}
+
+		return db.tabs.get(tab_name)?true: false;
 	}
-
-    // PITODO
-    notify(_items: Item[]) {
-
-    }
 
     // 表的元信息
     public tabInfo(ware_name: string, tab_name: string): TabMeta {
-        return null;
+		let db = this.ware_list.get(ware_name);
+		if(!db) {
+			return null;
+		}
+
+		let tab = db.tabs.get(tab_name);
+		if(!tab) {
+			return null;
+		}
+
+		return tab.meta;
     }
 
     // 创建事务
@@ -76,19 +87,49 @@ export class Mgr implements MgrInterface {
         }
         throw new Error('read timeout');
 	}
+
+	addListener(name: string, listener: DbListener): boolean {
+		if(!(<any>listener).constructor._$info) {
+			throw new Error("listener is not _$info");
+		}
+
+		if (this.listeners.get(name)) {
+			console.log("DbListener is exist, name: ", name);
+			return false;
+		}
+
+		this.listeners.set(name, listener);
+		return true;
+	}
+
+	cancelListener(name: string): void {
+		this.listeners.delete(name);
+	}
 	
 	/**
-	 * 添加监听器
-	 * @param name 监听器名称， 如果数据库管理器已经存在相同名称的监听器，添加监听器会失败
-	 * @param listner 监听器
-	 */
-	addListener(name: string, listner: DbListener): boolean { return false;}
+	 * 读数据
+	 * @param items 修改的数据
+	*/
+	notify(items: Item[]){
+		if(this.listeners) {
+			this.listeners.forEach((listener) => {
+				listener.listen(items);
+			});
+		}
+	}
+	
+	// /**
+	//  * 添加监听器
+	//  * @param name 监听器名称， 如果数据库管理器已经存在相同名称的监听器，添加监听器会失败
+	//  * @param listner 监听器
+	//  */
+	// addListener(name: string, listner: DbListener): boolean { return false;}
 
-	/**
-	 * 取消监听器
-	 * @param name 监听器名称
-	 */
-	cancelListener(name: string): void {}
+	// /**
+	//  * 取消监听器
+	//  * @param name 监听器名称
+	//  */
+	// cancelListener(name: string): void {}
 }
 
 export class Tr implements TrInterface {
