@@ -278,11 +278,10 @@ export class DbItertor1<K, V> implements Iterator<[K, V]> {
     constructor(inner: IterableIterator<{ key: K; value: V }>) {
         this.inner = inner;
     }
-    // PITODO
+
     public next() {
         const r = this.inner.next();
-
-        return r.done === false ? {done: true, value: [r.value.key, r.value.value] as any} : undefined;
+        return !r.done ? [r.value.key, r.value.value] as any : undefined;
     }
 
 }
