@@ -144,7 +144,6 @@ export class Composer {
 			gl.bindTexture(gl.TEXTURE_2D, null);
 			gl.disableVertexAttribArray(this._a_position_loc);
 			gl.disableVertexAttribArray(this._a_uv_loc);
-			gl.enable(gl.CULL_FACE);
 		}
 	}
 
@@ -317,10 +316,13 @@ export class Composer {
 	 * 外部可重设置
 	 */
 	private defBeforeRender = (gl: WebGLRenderingContext) => {
-		// http://192.168.31.241:8181/docs/front_library/front_library-1bcj847dthmps
-		gl.depthMask(true);
+		// 剔除背面，正面为逆时针方向
+		gl.enable(gl.CULL_FACE);
+		gl.cullFace(gl.BACK);
+		gl.frontFace(gl.CCW);
 
-		gl.disable(gl.CULL_FACE);
+		// 渲染合成器，越后渲染，渲染深度越靠前，因此直接关掉深度写和深度测试
+		gl.depthMask(false);
 		gl.disable(gl.DEPTH_TEST);
 
 		// alpha 混合 - 预乘
