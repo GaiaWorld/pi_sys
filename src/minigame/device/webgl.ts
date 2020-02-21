@@ -292,6 +292,7 @@ export class Scene {
         gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
 
         if (isClear) {
+            gl.depthMask(true);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         }
 
