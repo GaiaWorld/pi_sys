@@ -445,14 +445,14 @@ export class WebGLInstance {
         gl.viewport(0, 0, this.width, this.height);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
     }
-    public loop = (timestamp: number) => {
+    public loop = (timestamp: number = 0) => {
 
         if (!this._isDestroy) {
             this.timestamp = timestamp;
 
             this.renderLoop(timestamp);
 
-            requestAnimationFrame(this.loop);
+            // requestAnimationFrame(this.loop);
         }
     }
     public renderLoop(timestamp: number) {}

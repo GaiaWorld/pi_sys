@@ -22,6 +22,7 @@ export class RenderLauncher {
     }
     public static destroy() {
         if (RenderLauncher.webgldemo && !RenderLauncher.webgldemo.isDestroy) {
+            (<any>window)._$pi.require('pi_sys/modules/util/frame_mgr').getGlobal().clearPermanent(RenderLauncher.webgldemo.loop);
             RenderLauncher.webgldemo.destroy();
             (<any>RenderLauncher.webgldemo) = null;
 
@@ -111,7 +112,8 @@ export class RenderLauncher {
             scene.render(true);
         };
 
-        webgldemo.loop(0);
+        // webgldemo.loop(0);
+        (<any>window)._$pi.require('pi_sys/modules/util/frame_mgr').getGlobal().setPermanent(webgldemo.loop);
 
         RenderLauncher.opt.meshProgress = meshProgress;
     }
