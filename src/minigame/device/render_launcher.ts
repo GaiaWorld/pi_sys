@@ -99,6 +99,10 @@ export class RenderLauncher {
         scene.addMesh(meshProgress);
 
         webgldemo.renderLoop = (timestamp) => {
+            // GUI 初始化后会修改canvas大小
+            (<any>webgldemo).width = webgldemo.canvas.width;
+            (<any>webgldemo).height = webgldemo.canvas.height;
+
             webgldemo.clearColor();
             scene.viewport[0] = 0;
             scene.viewport[1] = 0;

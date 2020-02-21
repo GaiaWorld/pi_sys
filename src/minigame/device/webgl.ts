@@ -288,13 +288,19 @@ export class Scene {
     public render(isClear: boolean) {
         const gl = <WebGLRenderingContext>this.engine.gl;
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+
         if (isClear) {
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         }
 
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.SCISSOR_TEST);
         gl.enable(gl.BLEND);
+
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        gl.bindTexture(gl.TEXTURE0, null);
         this.meshMap.forEach((mesh) => {
             mesh.render(this);
         });
