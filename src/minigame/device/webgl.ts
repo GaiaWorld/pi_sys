@@ -288,13 +288,20 @@ export class Scene {
     public render(isClear: boolean) {
         const gl = <WebGLRenderingContext>this.engine.gl;
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+
         if (isClear) {
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.depthMask(true);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         }
 
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.SCISSOR_TEST);
         gl.enable(gl.BLEND);
+
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        gl.bindTexture(gl.TEXTURE0, null);
         this.meshMap.forEach((mesh) => {
             mesh.render(this);
         });
@@ -439,14 +446,14 @@ export class WebGLInstance {
         gl.viewport(0, 0, this.width, this.height);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
     }
-    public loop = (timestamp: number) => {
+    public loop = (timestamp: number = 0) => {
 
         if (!this._isDestroy) {
             this.timestamp = timestamp;
 
             this.renderLoop(timestamp);
 
-            requestAnimationFrame(this.loop);
+            // requestAnimationFrame(this.loop);
         }
     }
     public renderLoop(timestamp: number) {}
