@@ -289,7 +289,8 @@ export class Scene {
         const gl = <WebGLRenderingContext>this.engine.gl;
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+		gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+		gl.scissor(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
 
         if (isClear) {
             gl.depthMask(true);
@@ -297,11 +298,10 @@ export class Scene {
         }
 
         gl.disable(gl.CULL_FACE);
-        gl.disable(gl.SCISSOR_TEST);
         gl.enable(gl.BLEND);
 
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
-        gl.bindTexture(gl.TEXTURE0, null);
+        // gl.bindTexture(gl.TEXTURE0, null);
         this.meshMap.forEach((mesh) => {
             mesh.render(this);
         });
@@ -365,7 +365,14 @@ export class TextureInstance {
             }
             GL.bindTexture(GL.TEXTURE_2D, this._tex);
             result = true;
-        }
+        } else {
+			if (this._index === 0) {
+                GL.activeTexture(GL.TEXTURE0);
+            } else if (this._index === 1) {
+                GL.activeTexture(GL.TEXTURE1);
+            }
+			GL.bindTexture(GL.TEXTURE_2D, null);
+		}
 
         return result;
     }

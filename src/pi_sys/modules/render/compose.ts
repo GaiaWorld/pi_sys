@@ -7,6 +7,9 @@ import { nextPowerOfTwo } from '../math/math';
  * 渲染合成器, 将多个fbo合成到某个渲染目标上
  */
 export class Composer {
+	// 为null时表示每帧不清屏， 否则清屏
+	public clearColor: [number, number, number, number];
+
 	/**
 	 * 构造函数
 	 * @param gl webgl上下文
@@ -72,7 +75,12 @@ export class Composer {
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, tex);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+		
+		let data = new Uint8Array(w * h * 4);
+		for (let i = 0; i < data.length; ++i) {
+			data[i] = 0;
+		}
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
 		gl.bindTexture(gl.TEXTURE_2D, null);
 		
 		// 创建fbo
@@ -101,7 +109,7 @@ export class Composer {
 	 */
 	public render() {
 		const gl = <WebGLRenderingContext>this.gl;
-		gl.scissor(0, 0, this._width, this._height);
+		
 		this.beforeRender();
 
 		for(let obj of this.list) {
@@ -193,6 +201,7 @@ export class Composer {
 		return this.vshader;
 	}
 	
+
 	public initShader() {
 		if (!this.vshader) {
 			this.getVSShader(this.gl);
@@ -305,7 +314,16 @@ export class Composer {
 			}
 
 			// 视口
+			gl.enable(gl.SCISSOR_TEST);
+			gl.scissor(0, 0, this._width, this._height);
 			gl.viewport(0, 0, this._width, this._height);
+			
+			// 如果设置了清屏颜色，就会清屏，应用项目根据需求决定。
+			// 小游戏上需要保证对null的fbo调用一次而且仅仅调用一次：gl.clear(…)，否则可能出现花屏
+			if(this.clearColor) {
+				gl.clearColor(this.clearColor[0], this.clearColor[1], this.clearColor[2], this.clearColor[3]);
+				gl.clear(gl.COLOR_BUFFER_BIT);
+			}
 
 			this.defBeforeRender && this.defBeforeRender(gl);
 		}

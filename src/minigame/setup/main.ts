@@ -206,13 +206,13 @@ const loadExec = (next: string = '') => {
                 batchLoad.addProcess(bar.onProcess);
                 bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
                 promiseCfg.then(() => {
-                    console.log('bar.clear');
+                    // console.log('bar.clear');
 
-                    try {
-                        bar.clear();
-                    } catch (err) {
-                        console.error(err);
-                    }
+                    // try {
+                    //     bar.clear();
+                    // } catch (err) {
+                    //     console.error(err);
+                    // }
 
                     // const execArr = ENV_MGR.getENV(`${next}exec`);
 
@@ -229,11 +229,24 @@ const loadExec = (next: string = '') => {
                     //     // }));
                     // }
 
-                    resolve(null);
+                    resolve(bar);
 
                     if (!next) {
-                        Promise.all([execMfa(ENV_MGR.getENV("exec")), loadExec('next_')]).then(() => {
-                            execMfa(ENV_MGR.getENV("next_exec"));
+						console.log('bar.clear');
+						try {
+							bar.clear();
+						} catch (err) {
+							console.error(err);
+						}
+                        Promise.all([execMfa(ENV_MGR.getENV("exec")), loadExec('next_')]).then(([_, bar]) => {
+                            execMfa(ENV_MGR.getENV("next_exec")).then(() => {
+								try {
+									console.log('next_bar.clear');
+									bar.clear();
+								} catch (err) {
+									console.error(err);
+								}
+							});
                         });
                     }
 
