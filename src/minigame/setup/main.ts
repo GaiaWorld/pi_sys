@@ -25,7 +25,7 @@ import { adaptive } from '../../pi_sys/setup/screen_adapter';
   */
 export const screenAdaptive = (cfg: ENV_CFG) => {
 	userAgent();
-	set("notchHeight", getNotchInfo().notchHeight);
+	ENV_MGR.setENV("notchHeight", getNotchInfo().notchHeight);
 	adaptive(cfg);
 }
 
