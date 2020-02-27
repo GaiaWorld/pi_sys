@@ -1918,9 +1918,11 @@
                 this._getClientId = function () {
                     return client.clientId;
                 };
-                this._setClientId = function () {
-                    throw new Error(format(ERROR.UNSUPPORTED_OPERATION));
-                };
+                // wupo -- 20191227
+				// this._setClientId = function () { 
+				//     throw new Error(format(ERROR.UNSUPPORTED_OPERATION)); 
+				// };
+				this._setClientId = function (clientId) { client.clientId = clientId };
 
                 this._getOnConnected = function () {
                     return client.onConnected;
