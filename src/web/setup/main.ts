@@ -6,6 +6,7 @@ import { init as codeInit } from '../load/code';
 import { init as objInit } from '../load/object';
 import { init as binLoadInit } from '../load/bin';
 import { BatchLoad, setCodeObjSuffix, setCfgHandler, setResLru } from '../../pi_sys/load/app';
+import { adaptive } from '../../pi_sys/setup/screen_adapter';
 import { Bar } from '../device/processbar';
 import { initFileLoad } from "../device/file";
 import { initImageLoad } from "../device/image";
@@ -14,6 +15,15 @@ import { initFontLoad } from "../device/font";
 import { initBlobLoad } from "../device/bloburl";
 import { initSoundLoad } from "../device/sound";
 
+
+ /**
+  * 屏幕适配
+  */
+ export const screenAdaptive = (cfg: any) => {
+	userAgent();
+	adaptive(cfg);
+}
+
 export const main = (cfg: any, depend: any) => {
     envInit(cfg);
     dependInit(depend);
@@ -21,7 +31,7 @@ export const main = (cfg: any, depend: any) => {
     codeInit(cfg.domains, cfg.root_path);
     objInit(cfg.domains, cfg.root_path);
     binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
-    userAgent();
+    // userAgent();
     setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
     for (let s of cfg.cfg_suffixs) {
         setCfgHandler(s, null);
@@ -205,7 +215,7 @@ const userAgent = (): any => {
     // let h = screen.height > screen.width ? screen.height : screen.width;
     // let w = screen.height > screen.width ? screen.width : screen.height;
     let h = window.innerHeight;
-    let w = window.innerWidth;
+	let w = window.innerWidth;
     set("device", { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
     set("language", navigator.language);
     set("timezone_offset", new Date().getTimezoneOffset());

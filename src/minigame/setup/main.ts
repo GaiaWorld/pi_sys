@@ -5,18 +5,29 @@ import { initAudioLoad } from '../device/audio';
 import { initFileLoad } from '../device/file';
 import { initImageLoad } from '../device/image';
 import { Bar } from '../device/progressbar';
-import { init as logInit } from '../feature/log';
+import { init as logInit, set } from '../feature/log';
 import { setCfgHandler, setCodeObjSuffix, setResLru, BatchLoad } from '../load/app';
 import { CodeLoad, init as codeInit } from '../load/code';
 import { LoadMgr } from '../load/mgr';
 import { initKeyBoard } from '../device/keyboard';
 import { initSoundLoad } from '../device/sound';
 import { initFontLaod } from '../device/font';
+import { getNotchInfo } from '../device/wxInfo';
+import { adaptive } from '../../pi_sys/setup/screen_adapter';
 
 /**
  * 项目初始化入口
  *
  */
+
+ /**
+  * 屏幕适配
+  */
+export const screenAdaptive = (cfg: ENV_CFG) => {
+	userAgent();
+	set("notchHeight", getNotchInfo().notchHeight);
+	adaptive(cfg);
+}
 
 /**
  *
@@ -32,7 +43,7 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     LoadMgr.init(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(''));
 
     // binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
-    userAgent();
+    // userAgent();
     setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
 
     for (const s of cfg.cfg_suffixs) {
@@ -146,8 +157,8 @@ const userAgent = (): any => {
     }
 
     // 通用
-    const h = (<any>document.documentElement).screen.availHeight;
-    const w = (<any>document.documentElement).screen.availWidth;
+    let h = (<any>document.documentElement).screen.availHeight;
+	let w = (<any>document.documentElement).screen.availWidth;
 
     ENV_MGR.setENV('device', { type: (ua.indexOf('mobile') > -1) ? 'mobile' : 'pc', platform: navigator.platform, screen: { colorDepth: screen.colorDepth, height: h, width: w } });
     ENV_MGR.setENV('language', navigator.language);
