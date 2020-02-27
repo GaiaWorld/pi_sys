@@ -66,7 +66,7 @@ export const getAdaptiveResult = (
 	// 布局尺寸，尽量与设计尺寸，设计比率保持一直，当设计比率和屏幕比率有差异时，允许在设计尺寸的的基础上作相应的调整，宽度或高度最大调整比率不超过maxExtend
 	let layoutSize = calcLayoutSize(designSize, ratio);
 	//渲染尺寸
-	let showSize = calcShowSize(availableDeviceSize, ratio);
+	let showSize = calcRenderSize(availableDeviceSize, ratio);
 
 	// 显示尺寸
 	let renderSize = {width: showSize.width*window.devicePixelRatio, height: showSize.height*window.devicePixelRatio};
@@ -80,6 +80,7 @@ export const getAdaptiveResult = (
 		renderSize.width = layoutSize.width;
 		renderSize.height = layoutSize.height;
 	}
+	renderSize = limitRenderSize(renderSize);
 
 	let l: number, t: number;
 
@@ -165,9 +166,6 @@ export const calcShowRatio = (design: Size, screen: Size, maxExtend: number): nu
  * @param maxExtend 最大可扩展比率
  */
 export const calcLayoutSize = (designSize: Size, ratio: number): Size => {
-	if (!designSize.width || !designSize.height || !screen.width || !screen.height ) {
-		throw new Error("width or height is not exist in design or screen");
-	}
 	let d_ratio = designSize.width/designSize.height;
 	
 	if (d_ratio === ratio) {
@@ -188,69 +186,81 @@ export const calcLayoutSize = (designSize: Size, ratio: number): Size => {
  * @param screen 屏幕尺寸
  * @param maxExtend 最大可扩展比率
  */
-export const calcShowSize = (screenSize: Size, ratio: number): Size => {
+export const calcRenderSize = (screenSize: Size, ratio: number): Size => {
 	let s_ratio = screenSize.width/screenSize.height;
-	if (s_ratio === ratio) {
-		return screenSize;
-	}
-
 	if (ratio > s_ratio) {
 		// 如果屏幕宽高比大于设计宽高比， 显示区域的高度应该于屏幕高度相等， 显示区域的宽度应该是保持设计宽高比不变, 但允许对其宽度扩展（最多扩展原宽度的max_extend），
 		// let width = (screen.height * d_ratio) * (1 + maxExtend);
-		return {width: screenSize.width, height:Math.floor(screenSize.width/ratio)};
-	} else {
+		screenSize = {width: screenSize.width, height:Math.floor(screenSize.width/ratio)};
+	} else if(ratio < s_ratio){
 		// 否则屏幕宽高比小于设计宽高比， 显示区域的宽度应该于屏幕宽度相等， 显示区域的高度应该是保持设计宽高比不变, 但允许对其高度扩展（最多扩展原宽度的max_extend），
 		// let height = (screen.width / ratio) * (1 + maxExtend);
-		return {width: Math.floor(screenSize.height * ratio), height: screenSize.height };;
+		screenSize = {width: Math.floor(screenSize.height * ratio), height: screenSize.height };;
 	}
+	return screenSize;
 }
 
-/**
- * 根据显示区域， 手机型号, gpu性能配置， 确定绘制的大小
- * @param show 显示尺寸
- * @param performance 性能指标， 应该大于0， 当小于1时，表示gpu性能较差， 绘制尺寸可低于显示尺寸， 当大于1时， 绘制尺寸可大于显示尺寸， 
- * @param reduction 如果绘制尺寸接近于2的幂次方， 尽量让绘制尺寸在该数值范围内，reduction描述可缩小的最大比率， 如： 宽度大于1024， 但小于1024 + （1024 * reduction），
- * 表示宽度接近1024， 则宽度可缩小到1024， 高度按照比例缩小
- */
-export const calcDrawSize = (show: Size, performance = 1.0, reduction = 0.1): Size => {
-	// 先算出显示的宽高比， 后续计算绘制尺寸时， 无论如何调整宽高， 必须保持该比例不变
-	let s_ratio = show.width / show.height; 
-
-	// 根据gpu性能，计算绘制区域尺寸
-	let width = Math.floor(show.width * performance);
-	let height = Math.floor(show.height * performance);
-
-	// 宽度或高度大于2048， 需要将其缩小到2048范围内
-	let wv = 2048;
-	let hv = 2048;
-
-	// 检验宽度和高度是否接近1024和512（ 根据reduction来判断是否接近）， 记录宽度和高度所接近的阈值
-	let arr = [512, 1024];
-	for (let v of arr) {
-		if (wv === 2048 && width > v && width <= v * (1 + reduction)) {
-			wv = v;
-		}
-		if (hv === 2048 && height > v && height <= v * (1 + reduction)) {
-			hv = v;
-		}
+const limitRenderSize = (size: Size): Size => {
+	let ratio = size.width/size.height;
+	// 将渲染尺寸限定在最大像素范围内
+	let w = size.width, h = size.height;
+	if(w > maxPixel) {
+		w = maxPixel;
+		h = Math.floor(w/ratio);
+	} 
+	if(h > maxPixel) {
+		h = maxPixel;
+		w = Math.floor(h*ratio);
 	}
-
-	// 比较 宽度/其接近的阈值 和 高度/其接近的阈值 的大小， 按最大缩小比，缩小绘制尺寸
-	if (width > wv || height > hv) {
-		if (width/wv > height/hv) {
-			width = wv;
-			height = width / s_ratio;
-		} else {
-			height = hv;
-			width = height * s_ratio;
-		}
-	}
-
-	return {
-		width: Math.floor(width),
-		height: Math.floor(height)
-	};
+	return {width: w, height: h};
 }
+
+// /**
+//  * 根据显示区域， 手机型号, gpu性能配置， 确定绘制的大小
+//  * @param show 显示尺寸
+//  * @param performance 性能指标， 应该大于0， 当小于1时，表示gpu性能较差， 绘制尺寸可低于显示尺寸， 当大于1时， 绘制尺寸可大于显示尺寸， 
+//  * @param reduction 如果绘制尺寸接近于2的幂次方， 尽量让绘制尺寸在该数值范围内，reduction描述可缩小的最大比率， 如： 宽度大于1024， 但小于1024 + （1024 * reduction），
+//  * 表示宽度接近1024， 则宽度可缩小到1024， 高度按照比例缩小
+//  */
+// export const calcDrawSize = (show: Size, performance = 1.0, reduction = 0.1): Size => {
+// 	// 先算出显示的宽高比， 后续计算绘制尺寸时， 无论如何调整宽高， 必须保持该比例不变
+// 	let s_ratio = show.width / show.height; 
+
+// 	// 根据gpu性能，计算绘制区域尺寸
+// 	let width = Math.floor(show.width * performance);
+// 	let height = Math.floor(show.height * performance);
+
+// 	// 宽度或高度大于2048， 需要将其缩小到2048范围内
+// 	let wv = 2048;
+// 	let hv = 2048;
+
+// 	// 检验宽度和高度是否接近1024和512（ 根据reduction来判断是否接近）， 记录宽度和高度所接近的阈值
+// 	let arr = [512, 1024];
+// 	for (let v of arr) {
+// 		if (wv === 2048 && width > v && width <= v * (1 + reduction)) {
+// 			wv = v;
+// 		}
+// 		if (hv === 2048 && height > v && height <= v * (1 + reduction)) {
+// 			hv = v;
+// 		}
+// 	}
+
+// 	// 比较 宽度/其接近的阈值 和 高度/其接近的阈值 的大小， 按最大缩小比，缩小绘制尺寸
+// 	if (width > wv || height > hv) {
+// 		if (width/wv > height/hv) {
+// 			width = wv;
+// 			height = width / s_ratio;
+// 		} else {
+// 			height = hv;
+// 			width = height * s_ratio;
+// 		}
+// 	}
+
+// 	return {
+// 		width: Math.floor(width),
+// 		height: Math.floor(height)
+// 	};
+// }
 
 /**
  * 是否旋转
@@ -299,4 +309,5 @@ export interface AdaptiveResult {
 	styleLeft: number,
 }
 
+let maxPixel = 2048;
 
