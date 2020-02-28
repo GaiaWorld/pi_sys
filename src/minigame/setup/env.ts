@@ -24,3 +24,7 @@ export class ENV_MGR {
 export const get = (key: string) => {
     return ENV_MGR.getENV(key);
 };
+
+export const set = (key: string, value: any) => {
+    return ENV_MGR.setENV(key, value);
+};
