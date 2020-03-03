@@ -42,8 +42,10 @@ export const main = (cfg: ENV_CFG, depend: DEPEND_DATA) => {
     logInit(cfg.log);
     LoadMgr.init(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(''));
 
-    // binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
-    // userAgent();
+	// binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
+	if(!ENV_MGR.getENV("browser")) {
+		userAgent();
+	}
     setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
 
     for (const s of cfg.cfg_suffixs) {

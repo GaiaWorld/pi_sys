@@ -95,7 +95,9 @@ export declare namespace wx {
         /** 客户端基础库版本*/
         SDKVersion: string;
         /** 性能等级*/
-        benchmarkLevel: number;
+		benchmarkLevel: number;
+		/** 在竖屏正方向下的安全区域 */
+		safeArea: {left: number;right:number;top:number;bottom:number;width:number;height:number};
     };
 
     type launchOption = {
