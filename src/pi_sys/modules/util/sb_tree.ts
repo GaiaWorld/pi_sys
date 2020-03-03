@@ -511,8 +511,8 @@ class ItemIter<K, V, T> implements IterableIterator<T> {
 	}
 	public next(): IteratorResult<T> {
 		let node = this.arr.pop();
-		this.add(node.right);
 		if (node) {
+			this.add(node.right);
 			return {
 				done: false,
 				value: this.get(node)

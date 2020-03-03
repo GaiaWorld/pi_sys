@@ -288,13 +288,20 @@ export class Scene {
     public render(isClear: boolean) {
         const gl = <WebGLRenderingContext>this.engine.gl;
 
-        gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.viewport(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+		gl.scissor(this.viewport[0], this.viewport[1], this.viewport[2], this.viewport[3]);
+
         if (isClear) {
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.depthMask(true);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         }
 
+        gl.disable(gl.CULL_FACE);
         gl.enable(gl.BLEND);
+
         gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+        // gl.bindTexture(gl.TEXTURE0, null);
         this.meshMap.forEach((mesh) => {
             mesh.render(this);
         });
@@ -358,7 +365,14 @@ export class TextureInstance {
             }
             GL.bindTexture(GL.TEXTURE_2D, this._tex);
             result = true;
-        }
+        } else {
+			if (this._index === 0) {
+                GL.activeTexture(GL.TEXTURE0);
+            } else if (this._index === 1) {
+                GL.activeTexture(GL.TEXTURE1);
+            }
+			GL.bindTexture(GL.TEXTURE_2D, null);
+		}
 
         return result;
     }
@@ -439,14 +453,14 @@ export class WebGLInstance {
         gl.viewport(0, 0, this.width, this.height);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
     }
-    public loop = (timestamp: number) => {
+    public loop = (timestamp: number = 0) => {
 
         if (!this._isDestroy) {
             this.timestamp = timestamp;
 
             this.renderLoop(timestamp);
 
-            requestAnimationFrame(this.loop);
+            // requestAnimationFrame(this.loop);
         }
     }
     public renderLoop(timestamp: number) {}

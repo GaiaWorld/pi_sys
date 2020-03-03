@@ -32,39 +32,43 @@ const load = (_tab: ResTab, _type: string, _name: string, args: any) => {
     //     return res;
     // });
     return new Promise((resolve, reject) => {
-        loadRes(info, objInstance).then((ab: ArrayBuffer) => {
-            cc.info() && log("Res load image ok !!!");
-            if (objInstance) {
-                const url = createURL(ab, "");
-                let oldOnload = objInstance.onload;
-                objInstance.onload = () => {
-                    resolve({ link: objInstance });
-                    // oldOnload && oldOnload(null);
-                };
-                objInstance.src = url;
-            } else {
-                if (ArrayBuffer.isView(ab)) {
-                    ab = (<Uint8Array>ab).slice().buffer;
-                }
-
-                if (!audioContext) {
-                    console.warn(`not get audioContext`);
+        loadRes(info, objInstance)
+            .then((ab: ArrayBuffer) => {
+                cc.info() && log("Res load image ok !!!");
+                if (objInstance) {
+                    const url = createURL(ab, "");
+                    let oldOnload = objInstance.onload;
+                    objInstance.onload = () => {
+                        resolve({ link: objInstance });
+                        // oldOnload && oldOnload(null);
+                    };
+                    objInstance.src = url;
                 } else {
-                    audioContext.decodeAudioData(
-                        ab,
-                        (buffer) => {
-                            resolve(buffer);
-                        },
-                        (err) => {
-                            console.warn(_name, {
-                                error: 'SOUND_DECODE_ERROR',
-                                reason: `decode fail: ${err}`
-                            });
-                        }
-                    );
+                    if (ArrayBuffer.isView(ab)) {
+                        ab = (<Uint8Array>ab).slice().buffer;
+                    }
+
+                    if (!audioContext) {
+                        console.warn(`not get audioContext`);
+                    } else {
+                        audioContext.decodeAudioData(
+                            ab,
+                            (buffer) => {
+                                resolve(buffer);
+                            },
+                            (err) => {
+                                console.warn(_name, {
+                                    error: 'SOUND_DECODE_ERROR',
+                                    reason: `decode fail: ${err}`
+                                });
+                            }
+                        );
+                    }
                 }
-            }
-        });
+            })
+            .catch((e) => {
+                reject(e);
+            });
     });
 };
 
