@@ -287,7 +287,11 @@ export const getNotchInfo = () => {
         info.notchHeight = (ii.statusBarHeight > 20) ? 40 : ii.statusBarHeight >= 20 ? ii.statusBarHeight : 0; // (ii.statusBarHeight >= 20) ? 34 : 0;
     } else {
         // Android还没有具体的数据，暂定大于等于40为刘海屏，并且认为所有高度都是刘海高度
-        info.notchHeight = ii.statusBarHeight >= 40 ? ii.statusBarHeight : ii.statusBarHeight > 30 ? ii.statusBarHeight : 0;
+        if(ii.safeArea && ii.safeArea.top > 0) {
+			info.notchHeight = ii.safeArea.top;
+		} else {
+			info.notchHeight = ii.statusBarHeight >= 40 ? ii.statusBarHeight : ii.statusBarHeight > 30 ? ii.statusBarHeight : 0;
+		}
     }
     console.log(ii.model);
     return info;

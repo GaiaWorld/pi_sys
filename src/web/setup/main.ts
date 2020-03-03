@@ -30,8 +30,10 @@ export const main = (cfg: any, depend: any) => {
     logInit(cfg.log);
     codeInit(cfg.domains, cfg.root_path);
     objInit(cfg.domains, cfg.root_path);
-    binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
-    // userAgent();
+	binLoadInit(cfg.name, cfg.domains, cfg.batch_path).then(() => loadExec(""));
+	if(!get("browser")) {
+		userAgent();
+	}
     setCodeObjSuffix(cfg.code_suffixs, cfg.obj_suffixs);
     for (let s of cfg.cfg_suffixs) {
         setCfgHandler(s, null);
