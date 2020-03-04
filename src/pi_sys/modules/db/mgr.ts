@@ -26,7 +26,7 @@ export interface Mgr {
     register<T>(ware_name: string, ware: T): boolean;
 
     //写数据库
-    write(txhd: Handler, timeout?: number): void;
+    write(txhd: Handler, timeout?: number): any;
 
     //读数据库
     read(txhd: Handler, timeout?: number): any;

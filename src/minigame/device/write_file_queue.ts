@@ -1,7 +1,8 @@
-import { Store } from "../feature/store";
-import { FileSys } from "./filesys";
-import { WX_DEPEND_MGR } from "./wxdepend";
-import { IFileDependInfo } from "./base";
+import { cc, log } from '../feature/log';
+import { Store } from '../feature/store';
+import { IFileDependInfo } from './base';
+import { FileSys } from './filesys';
+import { WX_DEPEND_MGR } from './wxdepend';
 
 /**
  * 
@@ -16,14 +17,6 @@ export interface IFileWriteInfo {
  * 文件写磁盘的队列
  */
 export class WriteFileQueue {
-    public static create(lstore: Store, wxdepend: WX_DEPEND_MGR): WriteFileQueue {
-        const wfq = new WriteFileQueue();
-
-        wfq.store       = lstore;
-        wfq.wxdepend    = wxdepend;
-
-        return wfq;
-    }
     private store: Store;
     private wxdepend: WX_DEPEND_MGR;
 
@@ -36,6 +29,28 @@ export class WriteFileQueue {
     private writing: boolean = false; // 正在写入
 
     private signMap = new Map<string, string>(); // {path: sign}
+    public static create(lstore: Store, wxdepend: WX_DEPEND_MGR): WriteFileQueue {
+        const wfq = new WriteFileQueue();
+
+        wfq.store       = lstore;
+        wfq.wxdepend    = wxdepend;
+
+        return wfq;
+    }
+    public add(info: IFileDependInfo, data: any) {
+        this.queue.set(info.path, { data, info });
+    }
+
+    public start() {
+        if (this.timer || this.writing) { 
+            return; 
+        }
+
+        this.writing = true;
+        cc.info() && log('store write start', this.queue.size);
+
+        this.writeNext();
+    }
 
     /**
      * 下载到的文件写入到主目录
@@ -43,7 +58,7 @@ export class WriteFileQueue {
      * @param data 
      */
     private write(fileInfo: IFileDependInfo, data: ArrayBuffer | Uint8Array) {
-        console.log("=========== Write File:", this.queue.size, fileInfo.path);
+        cc.info() && log('=========== Write File:', this.queue.size, fileInfo.path);
 
         // 发起写入时立即修改主目录占用的空间记录 - 失败时去除 : 默认成功,这样实际失败了，但没有获得失败的响应的情况下,记录的剩余空间大小不会大于实际剩余空间大小
         // localStorage.dbSize += data.byteLength;
@@ -95,7 +110,7 @@ export class WriteFileQueue {
         this.timer = null;
         this.writing = false;
         this.wxdepend.writeDepend();
-        console.log("write file queue is clean");
+        cc.info() && log('write file queue is clean');
     }
 
     private writeNext() {
@@ -105,6 +120,7 @@ export class WriteFileQueue {
 
             if (done) {
                 this.allFilesComplete();
+
                 return;
             }
 
@@ -118,6 +134,7 @@ export class WriteFileQueue {
                 
                 if (data.byteLength + this.wxdepend.readMainSize() > Store.limitSize) {
                     console.warn(`本地空间不足`);
+
                     return this.allFilesComplete();
                 }
                 
@@ -127,19 +144,5 @@ export class WriteFileQueue {
                 this.write(fileInfo, data);
             }
         }
-    }
-    public add(info: IFileDependInfo, data: any) {
-        this.queue.set(info.path, { data, info });
-    }
-
-    public start() {
-        if (this.timer || this.writing) { 
-            return; 
-        }
-
-        this.writing = true;
-        console.log("store write start", this.queue.size);
-
-        this.writeNext();
     }
 }

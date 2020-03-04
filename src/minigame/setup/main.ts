@@ -3,15 +3,15 @@ import { ENV_CFG, ENV_MGR } from './env';
 
 import { initAudioLoad } from '../device/audio';
 import { initFileLoad } from '../device/file';
+import { initFontLaod } from '../device/font';
 import { initImageLoad } from '../device/image';
+import { initKeyBoard } from '../device/keyboard';
 import { Bar } from '../device/progressbar';
-import { init as logInit, set } from '../feature/log';
-import { setCfgHandler, setCodeObjSuffix, setResLru, BatchLoad } from '../load/app';
+import { initSoundLoad } from '../device/sound';
+import { cc, init as logInit, log } from '../feature/log';
+import { BatchLoad, setCfgHandler, setCodeObjSuffix, setResLru } from '../load/app';
 import { CodeLoad, init as codeInit } from '../load/code';
 import { LoadMgr } from '../load/mgr';
-import { initKeyBoard } from '../device/keyboard';
-import { initSoundLoad } from '../device/sound';
-import { initFontLaod } from '../device/font';
 import { getNotchInfo } from '../device/wxInfo';
 import { adaptive } from '../../pi_sys/setup/screen_adapter';
 
@@ -169,6 +169,7 @@ const userAgent = (): any => {
 
 // 显示加载进度条， 开始加载load， 加载完毕后执行exec
 const loadExec = (next: string = '') => {
+    // tslint:disable-next-line:max-func-body-length
     return new Promise((resolve, reject) => {
         const pakageList = ENV_MGR.getENV(`${next}load`);
 
@@ -212,14 +213,14 @@ const loadExec = (next: string = '') => {
             // const promiseCfg  = batchLoad.load(false);
 
             promiseCode.then(() => {
-                console.log('Code.OK');
+                cc.info() && log('Code.OK');
                 bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
 
                 const promiseCfg  = batchLoad.load(false);
                 batchLoad.addProcess(bar.onProcess);
                 bar.show(ENV_MGR.getENV(`${next}load_text`), 1, 1);
                 promiseCfg.then(() => {
-                    // console.log('bar.clear');
+                    cc.info() && log('bar.clear');
 
                     // try {
                     //     bar.clear();
@@ -326,11 +327,11 @@ const execMfa = (exec: any): Promise<any> => {
         if (!exec || exec.length === 0) {
             return resolve();
         }
-        let arr = [];
+        const arr = [];
         let execCount = 0;
-        for (let execi of exec) {
+        for (const execi of exec) {
             import(execi[0]).then((mod) => {
-                let r = mod[execi[1]](...(execi.slice(2)));
+                const r = mod[execi[1]](...(execi.slice(2)));
                 if (r && r instanceof Promise) {
                     arr.push(r);
                 }
@@ -340,6 +341,7 @@ const execMfa = (exec: any): Promise<any> => {
                         resolve(null);
                     });
                 }
+
                 return mod;
             });
         }
