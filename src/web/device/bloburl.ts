@@ -2,8 +2,9 @@
  * 下载文件为 Blob ， 返回 BlobUrl
  */
 
-import { ResTab, register } from '../../pi_sys/modules/util/res_mgr';
-import { getFile } from "../../pi_sys/setup/depend";
+import { cc, log } from '../../pi_sys/feature/log';
+import { register, ResTab } from '../../pi_sys/modules/util/res_mgr';
+import { getFile } from '../../pi_sys/setup/depend';
 import { HttpDownload } from '../feature/http';
 
 export const RES_TYPE_BLOB = `BLOB_RES`;
@@ -56,10 +57,10 @@ export const loadBlobRes = (resTab: ResTab, path: string) => {
  * 导出成为资源
  */
 export const loadBlobRes2 = (_name: string): Promise<string> => {
-    let info = getFile(_name);
+    const info = getFile(_name);
 
     if (!info) {
-        return Promise.reject("loadImage failed, info not found, path = " + _name);
+        return Promise.reject('loadImage failed, info not found, path = ' + _name);
     }
 
     const down = new HttpDownload(domainUrls, `${domainPath}${info.path}?${info.sign}`, 10000, 1);
@@ -71,7 +72,7 @@ export const loadBlobRes2 = (_name: string): Promise<string> => {
         down.start().then((ab: ArrayBuffer) => {
             resolve(createURL(ab, ''));
         }).catch((err) => {
-            console.log(err);
+            cc.info() && log(err);
             reject(err);
         });
     });
