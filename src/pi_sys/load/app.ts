@@ -96,7 +96,9 @@ export class BatchLoad extends FileLoad {
     public constructor(dirOrFiles: string[]) {
         super();
         this.dirOrFiles = dirOrFiles;
+        
     }
+
     /**
      * @description 添加文件和目录的模式匹配。支持**, *。
      * 如果开头为!，表示为排除的模式匹配
@@ -112,12 +114,14 @@ export class BatchLoad extends FileLoad {
         }
         arr.push(pattern(s));
     }
+
     /**
      * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
      */
     public start() {
         return this.load();
     }
+
     /**
      * @description 加载, 是否对象资源及资源仅下载（如果已经在本地，则不加载）
      */

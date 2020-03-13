@@ -59,11 +59,18 @@ export const main = (cfg: any, depend: any) => {
 const loadExec = (next: string): Promise<any> => {
     let load = new BatchLoad(get(next + "load"));
     let bar = new Bar(get(next + "load_bar"));
-    bar.show(get(next + "load_text"), load.total, load.loaded);
     load.addProcess(bar.onProcess.bind(bar));
+    let loadPromise = load.start();
+    
+    bar.show(get(next + "load_text"), load.total, load.loaded);
 
-    return load.start().then(() => {
+    return loadPromise.then(() => {
+        bar.onProcess("", "", load.total, load.total);
+        bar.flush();
+    }).then(() => {
         bar.clear();
+        bar.flush();
+    }).then(() => {
         if (!next) {
             let arr = [];
             arr.push(loadExec("next_"));
