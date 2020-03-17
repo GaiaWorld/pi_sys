@@ -45,7 +45,15 @@ const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]) => {
 
             try {
                 if ((<any>window).FontFace) {
-                    const fontFamily = args[0] || fileBasename(_name);
+					let fontFamily: string;
+					if(args[0]) {
+						fontFamily = args[0].fontFamily;
+					} else {
+						let baseName = fileBasename(_name);
+						let lastPoint = baseName.lastIndexOf(".");
+						fontFamily = lastPoint > -1?baseName.slice(0, lastPoint):baseName;
+					}
+                    // const fontFamily = args[0]?args[0].fontFamily: fileBasename(_name)?;
                     loadFont(fontFamily, url, resolve, reject, 'err');
                 }
             } catch (err) {
