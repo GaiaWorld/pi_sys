@@ -1175,7 +1175,7 @@ Object.defineProperty(Array, "bonDecode", {
 	writable: true,
 	value: function (bb: BonBuffer): Array<any> {
 		return bb.readArray(() => {
-			bb.read();
+			return bb.read();
 		})
 		// let type = bb.getType();
 		// if (type === 2) {
@@ -1399,10 +1399,16 @@ const containerReadNext = (bb: BonBuffer, t: number, l: number) => {
 			r[bb.readUtf8()] =  bb.read( );
 		}
 	} else if (t === 2) {
-		r = [];
-		while(bb.head - old_head < l) {
-			r.push(bb.read());
-		}
+		r = bb.readArray(() => {
+			return bb.read();
+		});
+		// while(bb.head - old_head < l) {
+		// 	r.push(bb.read());
+		// }
+	} else if(t === 3) {
+		r = bb.readMap(() => {
+			return [bb.read(), bb.read()];
+		});
 	} else {
 		let typeMap: ContainerTypeMap = (<any>bb.constructor).typeMap;
 		if ((<any>bb.constructor).typeMap) {
