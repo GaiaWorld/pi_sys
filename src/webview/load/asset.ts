@@ -4,6 +4,10 @@
 
 import { get as getEnv } from "../../pi_sys/setup/env"
 
+import {get as getWindows, read as readWindows} from "./windows";
+import {get as getAndroid, read as readAndroid} from "./android";
+import {get as getiOS, read as readiOS} from "./ios"
+
 // ============================== 导出
 
 export const enum PlatformType {
@@ -17,7 +21,7 @@ export const enum PlatformType {
  * @description 获取资源信息数组Json, [[file, time, size, sign], ...]
  * 读不到返回空数组
  */
-export const get = (): Promise<any[]> => {
+export const get = (): Promise<string[][]> => {
     if (pType === undefined) {
         pType = getPlatformType();
     }
@@ -25,13 +29,13 @@ export const get = (): Promise<any[]> => {
     return new Promise(resolve => {
         switch (pType) {
             case PlatformType.Windows:
-                resolve([]);
+                getWindows(resolve);
                 break;
             case PlatformType.Android:
-                resolve([]);
+                getAndroid(resolve);
                 break;
             case PlatformType.iOS:
-                resolve([]);
+                getiOS(resolve);
                 break;
             default:
                 resolve([]);
@@ -52,13 +56,13 @@ export const read = (key: string): Promise<ArrayBuffer> => {
     return new Promise(resolve => {
         switch (pType) {
             case PlatformType.Windows:
-                resolve(null);
+                readWindows(key, resolve);
                 break;
             case PlatformType.Android:
-                resolve(null);
+                readAndroid(key, resolve);
                 break;
             case PlatformType.iOS:
-                resolve(null);
+                readiOS(key, resolve);
                 break;
             default:
                 resolve(null);
