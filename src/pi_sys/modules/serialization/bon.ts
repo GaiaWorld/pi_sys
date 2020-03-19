@@ -645,7 +645,7 @@ export class BonBuffer {
 			}
 			// this.extendCapity(5 + estimatedSize);
 			this.u8.set(new Uint8Array(this.u8.buffer, this.u8.byteOffset+tt, len), t + offset);
-			this.tail += offset - tt;
+			this.tail += t + offset - tt;
 		}
 		// 根据实际的限制大小，写入实际长度
 		switch (limitSize) {
@@ -1175,7 +1175,7 @@ Object.defineProperty(Array, "bonDecode", {
 	writable: true,
 	value: function (bb: BonBuffer): Array<any> {
 		return bb.readArray(() => {
-			bb.read();
+			return bb.read();
 		})
 		// let type = bb.getType();
 		// if (type === 2) {
@@ -1399,10 +1399,16 @@ const containerReadNext = (bb: BonBuffer, t: number, l: number) => {
 			r[bb.readUtf8()] =  bb.read( );
 		}
 	} else if (t === 2) {
-		r = [];
-		while(bb.head - old_head < l) {
-			r.push(bb.read());
-		}
+		r = bb.readArray(() => {
+			return bb.read();
+		});
+		// while(bb.head - old_head < l) {
+		// 	r.push(bb.read());
+		// }
+	} else if(t === 3) {
+		r = bb.readMap(() => {
+			return [bb.read(), bb.read()];
+		});
 	} else {
 		let typeMap: ContainerTypeMap = (<any>bb.constructor).typeMap;
 		if ((<any>bb.constructor).typeMap) {
