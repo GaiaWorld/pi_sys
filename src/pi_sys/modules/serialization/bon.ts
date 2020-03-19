@@ -645,7 +645,7 @@ export class BonBuffer {
 			}
 			// this.extendCapity(5 + estimatedSize);
 			this.u8.set(new Uint8Array(this.u8.buffer, this.u8.byteOffset+tt, len), t + offset);
-			this.tail += offset - tt;
+			this.tail += t + offset - tt;
 		}
 		// 根据实际的限制大小，写入实际长度
 		switch (limitSize) {
