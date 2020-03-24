@@ -2,7 +2,7 @@
 import { toByteArray } from "../../pi_sys/modules/util/base64js"
 import { utf8Decode } from "../../pi_sys/modules/util/util"
 
-import { callJSIntercept } from "../util/js_intercept.js"
+import { callJSIntercept } from "../util/js_intercept"
 
 /**
  * iOS，本地资源加载
