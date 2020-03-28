@@ -13,6 +13,11 @@ export const loadImageRes = (resTab: ResTab, path: string, args?: any[]) => {
     return resTab.load(ImageType, path, args || []);
 };
 
+// 往Res中注册Image对象
+export const initImageLoad = () => {
+    register(ImageType, load, destroy);
+};
+
 // ======================= 立即执行
 
 const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]): Promise<HTMLImageElement> => {
@@ -80,8 +85,3 @@ const destroy = (_image: HTMLDivElement) => {
 };
 
 const ImageType = "image";
-
-// 往Res中注册Image对象
-export const initImageLoad = () => {
-    register(ImageType, load, destroy);
-};

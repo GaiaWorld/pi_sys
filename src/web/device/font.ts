@@ -6,6 +6,7 @@ import { createURL } from './bloburl';
 
 // =======================
 declare type FontFace;
+
 // ======================= 导出
 interface FontArg {
     fontFamily: string;
@@ -18,6 +19,15 @@ let globalFontResTab: ResTab;
  */
 export const loadFontRes = (path: string, arg?: FontArg) => {
     return globalFontResTab.load(FontType, path, [arg]);
+};
+
+
+export const FontType = `FONT_RES`;
+
+// 往Res中注册Image对象
+export const initFontLoad = () => {
+    register(FontType, load, destroy);
+    globalFontResTab = new ResTab();
 };
 
 // ======================= 立即执行
@@ -79,12 +89,4 @@ const loadFont = (fontFamily: string, url: string, callback: (f: FontFace) => vo
         (document as any).fonts && (document as any).fonts.remove(font);
         errorCallback && errorCallback(`${fontFamily} 字体加载失败 - ${errText}`);
     });
-};
-
-export const FontType = `FONT_RES`;
-
-// 往Res中注册Image对象
-export const initFontLoad = () => {
-    register(FontType, load, destroy);
-    globalFontResTab = new ResTab();
 };

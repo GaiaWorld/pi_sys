@@ -19,6 +19,8 @@
     }
     public onProcess(url:string, type: string, total:number, loaded: number, data?: Uint8Array) {
     }
+    public flush() {
+    }
     public clear() {
     }
 }
