@@ -113,13 +113,14 @@ export class Composer {
 		this.beforeRender();
 
 		for(let obj of this.list) {
+			gl.useProgram(this.shader_program);
+
 			// 纹理激活
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, obj.texture);
 
 			gl.enableVertexAttribArray(this._a_position_loc);
 			gl.enableVertexAttribArray(this._a_uv_loc);
-			gl.useProgram(this.shader_program);
 
 			this._u_sampler && gl.uniform1i(this._u_sampler, 0);
 
