@@ -73,7 +73,7 @@ export const init = (storeName: string, domainUrls: string[], downloadPath: stri
                     for (let info of arr) {
                         value[info[0]] = "-" + info[2];
                     }
-                    localInitCheck(store, value, false);
+                    localInitCheck(store, value, true);
                 });
             }
         });
