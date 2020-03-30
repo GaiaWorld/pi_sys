@@ -3,8 +3,10 @@
  * 通用Key
  */
 export enum CommonKey {
-    AssetPath = "asset_path",
-    UserAgent = "user_agent",
+    UserAgent = "user_agent",                // navigation.userAgent
+    MobileAssetPath = "mobile_asset_path",   // 移动端的AssetPath
+    WindowsAssetPath = "windows_asset_path", // Windows的AssetPath
+    AssetDependPath = "asset_depend_path",   // 本地包的depend文件名，相对于assetPath，不以/开头
 }
 
 export const init = (json: any) => {

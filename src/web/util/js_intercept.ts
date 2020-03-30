@@ -1,24 +1,24 @@
-import { CommonKey, get as getEnv } from "../../pi_sys/setup/env"
-
+import { PlatformType, getPlatformType } from "../../pi_sys/setup/platform"
 import { toByteArray } from "../../pi_sys/modules/util/base64js"
 
 /**
  * 读本地文件
  * cb：如果错误，返回null，否则返回 Uint8Array
- */ 
+ */
 export const getAssetFile = (path: string, cb?: (content: Uint8Array) => void) => {
-    
-    let platformType = getPlatformType();
-    
-    if (platformType === PlatfromType.Web) {
-        
+
+    let platformType = getType();
+
+    if (platformType === PlatformType.Web) {
+
         setTimeout(() => {
             cb && cb(null);
         }, 0);
         return;
     }
-    
-    if (platformType === PlatfromType.Win) {
+
+    if (platformType === PlatformType.Win) {
+        // Windows 用的是Electron版本，所以有nodejs
         require("fs").readFile(name, (err, data) => {
             if (err) {
                 cb(null);
@@ -41,44 +41,29 @@ export const getAssetFile = (path: string, cb?: (content: Uint8Array) => void) =
         });
     }
 
-    if (platformType === PlatfromType.Android) {
+    if (platformType === PlatformType.Android) {
         window["JSIntercept"].getAssetFile(id, path);
-    } else if (platformType === PlatfromType.iOS) {
+    } else if (platformType === PlatformType.IOS) {
         // TODO
     }
 }
 
 // ========================== 本地
 
-enum PlatfromType {
-    Win,
-    Android,
-    iOS,
-    Web,
-}
 
 let jsInterceptID = 0;
 let jsInterceptMap = new Map<number, Function>();
 
-let platform: PlatfromType = undefined;
+let platform: PlatformType = undefined;
 
-const getPlatformType = () => {
+const getType = () => {
     if (platform !== undefined) {
         return platform;
     }
 
-    platform = PlatfromType.Web;
+    platform = getPlatformType();
 
-    let ua = getEnv(CommonKey.UserAgent);
-    if (ua.indexOf("YINENG_ANDROID") >= 0) {
-        platform = PlatfromType.Android;
-    } else if (ua.indexOf("YINENG_IOS") >= 0) {
-        platform = PlatfromType.iOS;
-    } else if (ua.indexOf("YINENG_WINDOWS") >= 0) {
-        platform = PlatfromType.Win;
-    }
-
-    if (platform !== PlatfromType.Web) {
+    if (platform !== PlatformType.Web) {
         // 注册和底层通信的处理函数
         window["handle_jsintercept_callback"] = (listenerID, isSuccess, r1, r2, r3, r4, r5) => {
             if (jsInterceptMap.has(listenerID)) {
