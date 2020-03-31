@@ -70,7 +70,7 @@ export const init = (store: Store, domainUrls: string[], downloadPath: string, u
                     return assetGet().then((arr: any[]) => {
                         localStore = store;
                         for (let info of arr) {
-                            value[info[0]] = info[3];
+                            value[info[0]] = info[2];
                         }
                         localInitCheck(store, value, false);
                     });

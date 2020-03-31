@@ -47,7 +47,13 @@ export const getAssetFile = (path: string, cb?: (content: Uint8Array) => void) =
     }
 
     if (platformType === PlatformType.Android) {
-        window["JSIntercept"].getAssetFile(id, path);
+        if (window["JSIntercept"] && window["JSIntercept"].getAssetFile) {
+            window["JSIntercept"].getAssetFile(id, path);
+        } else {
+            setTimeout(() => {
+                cb && cb(null);
+            }, 0);
+        }
     } else if (platformType === PlatformType.IOS) {
         // TODO
     }
