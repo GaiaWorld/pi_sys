@@ -6,7 +6,6 @@ import { toByteArray } from "../../pi_sys/modules/util/base64js"
  * cb：如果错误，返回null，否则返回 Uint8Array
  */
 export const getAssetFile = (path: string, cb?: (content: Uint8Array) => void) => {
-
     let platformType = getType();
 
     if (platformType === PlatformType.Web) {
@@ -19,7 +18,13 @@ export const getAssetFile = (path: string, cb?: (content: Uint8Array) => void) =
 
     if (platformType === PlatformType.Win) {
         // Windows 用的是Electron版本，所以有nodejs
-        require("fs").readFile(name, (err, data) => {
+        if (!window.require) {
+            console.warn("window electron, no nodejs require in window");
+            cb(null);
+            return;
+        }
+        console.log("!!!!!!!!!!! window.require");
+        window["require"]("fs").readFile(path, (err, data) => {
             if (err) {
                 cb(null);
             } else {

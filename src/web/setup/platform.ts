@@ -15,11 +15,12 @@ export const getPlatformType = (): PlatformType => {
     platform = PlatformType.Web;
 
     let ua = getEnv(CommonKey.UserAgent);
+    let isExe = !!getEnv(CommonKey.EXE);
     if (ua.indexOf("YINENG_ANDROID") >= 0) {
         platform = PlatformType.Android;
     } else if (ua.indexOf("YINENG_IOS") >= 0) {
         platform = PlatformType.IOS;
-    } else if (ua.indexOf("YINENG_WINDOWS") >= 0) {
+    } else if (isExe || ua.indexOf("YINENG_WINDOWS") >= 0) {
         platform = PlatformType.Win;
     }
 

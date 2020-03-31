@@ -3,6 +3,7 @@
  * 通用Key
  */
 export enum CommonKey {
+    EXE = "exe",
     UserAgent = "user_agent",                // navigation.userAgent
     MobileAssetPath = "mobile_asset_path",   // 移动端的AssetPath
     WindowsAssetPath = "windows_asset_path", // Windows的AssetPath
