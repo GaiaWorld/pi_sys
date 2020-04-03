@@ -1,7 +1,7 @@
 import { ResTab, register } from '../../pi_sys/modules/util/res_mgr';
 import { loadRes } from "../load/app";
 import { getFile } from "../../pi_sys/setup/depend";
-import { cc, log } from "../../pi_sys/feature/log";
+import { cc, log, warn } from "../../pi_sys/feature/log";
 import { createURL } from './bloburl';
 
 // ======================= 导出
@@ -11,6 +11,11 @@ import { createURL } from './bloburl';
  */
 export const loadImageRes = (resTab: ResTab, path: string, args?: any[]) => {
     return resTab.load(ImageType, path, args || []);
+};
+
+// 往Res中注册Image对象
+export const initImageLoad = () => {
+    register(ImageType, load, destroy);
 };
 
 // ======================= 立即执行
@@ -39,8 +44,8 @@ const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]): Promi
                     ab = (<Uint8Array>ab).slice().buffer;
                 }
                 if (!ab) {
-                    console.log(`err loadimageRes`);
-                    console.log(info);
+                    cc.info() && log(`err loadimageRes`);
+                    cc.info() && log(info);
                 }
 
                 const url = createURL(ab, "");
@@ -59,8 +64,8 @@ const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]): Promi
                 };
 
                 objInstance.onerror = (err) => {
-                    console.log(_name);
-                    console.log(ab);
+                    cc.info() && log(`image.onerror ${_name}`);
+                    // console.log(ab);
                     reject(err);
                     oldError && oldError();
                 };
@@ -70,8 +75,7 @@ const load = (_tab: ResTab, _type: string, _name: string, ...args: any[]): Promi
                 // return objInstance;
             })
             .catch((err) => {
-                // console.warn(err);
-                reject(err);
+                cc.warn() && warn(err);
             });
     });
 };
@@ -81,8 +85,3 @@ const destroy = (_image: HTMLDivElement) => {
 };
 
 const ImageType = "image";
-
-// 往Res中注册Image对象
-export const initImageLoad = () => {
-    register(ImageType, load, destroy);
-};

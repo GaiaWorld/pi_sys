@@ -4,12 +4,13 @@
  * 后续通过拷贝将资源拷贝到本地用户目录下面
  */
 // ============================== 导入
-import { FileLoad } from './bin';
-import { DEPEND_MGR, FileInfo } from '../setup/depend';
-import { wx } from '../device/wx';
 import { FileSys } from '../device/filesys';
-import { WX_DEPEND_MGR } from '../device/wxdepend';
 import { WXFontFace } from '../device/font';
+import { wx } from '../device/wx';
+import { WX_DEPEND_MGR } from '../device/wxdepend';
+import { cc, log } from '../feature/log';
+import { DEPEND_MGR, FileInfo } from '../setup/depend';
+import { FileLoad } from './bin';
 
 // ============================== 导出
 type ObjElement = WXFontFace | HTMLImageElement | HTMLAudioElement | WXVideo;
@@ -59,13 +60,13 @@ export class ObjLoad extends FileLoad {
      * @example
      */
     public start() {
-        let map = new Map();
-        let arr = [];
+        const map = new Map();
+        const arr = [];
 
-        for (let info of this.files.values()) {
+        for (const info of this.files.values()) {
             arr.push(new Promise((resolve, reject) => {
-                let suffix = DEPEND_MGR.fileSuffix(info.path);
-                let type = Suffixs[suffix];
+                const suffix = DEPEND_MGR.fileSuffix(info.path);
+                const type = Suffixs[suffix];
 
                 if (type) {
                     loadObj(this, info, type, map, resolve, reject);
@@ -86,7 +87,7 @@ export class ObjLoad extends FileLoad {
 // 字体比较特别，需要单独处理
 const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, WXFontFace>, callback: (f: WXFontFace) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
     if (i >= urls.length) {
-        return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
+        return errorCallback && errorCallback(urls[0] + file.path + ', ' + errText);
     }
 
     const font = new WXFontFace(DEPEND_MGR.fileBasename(file.path), `${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
@@ -103,7 +104,7 @@ const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, WXFontFace>
     font.load().then(() => {
         load.loaded += file.size;
         map.set(file.path, font);
-        load.onProcess(file.path, "objLoad", load.total, load.loaded);
+        load.onProcess(file.path, 'objLoad', load.total, load.loaded);
         callback(font);
     }).catch((errText) => {
         (window as any).fonts.delete(font);
@@ -112,7 +113,7 @@ const loadFont = (load: ObjLoad, file: ObjFileInfo, map: Map<string, WXFontFace>
 };
 
 // TODO: video 在兼容层没做兼容，需要兼容，但优先级不高
-const loadObj = (load: ObjLoad, file: ObjFileInfo, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+const loadObj = (load: ObjLoad, file: ObjFileInfo, eleType: 'img' | 'audio' | 'video', map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
 
     const status = wxdepend.checkMain(file, true);
 
@@ -176,10 +177,10 @@ const loadObj = (load: ObjLoad, file: ObjFileInfo, eleType: "img" | "audio" | "v
 
 };
 
-const loadObjCall = (load: ObjLoad, file: ObjFileInfo, asMain: boolean, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
-    console.log(`loadObjCall : ${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
+const loadObjCall = (load: ObjLoad, file: ObjFileInfo, asMain: boolean, eleType: 'img' | 'audio' | 'video', map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void, errText?: string, i?: number) => {
+    cc.info() && log(`loadObjCall : ${urls[i || 0]}${downPath}/${file.path}?${file.sign}`);
     if (i >= urls.length) {
-        return errorCallback && errorCallback(urls[0] + file.path + ", " + errText);
+        return errorCallback && errorCallback(urls[0] + file.path + ', ' + errText);
     }
 
     FileSys.download(`${urls[i || 0]}${downPath}/${file.path}?${file.sign}`, asMain ? formatMainPath(file.path) : undefined)
@@ -190,9 +191,9 @@ const loadObjCall = (load: ObjLoad, file: ObjFileInfo, asMain: boolean, eleType:
         });
 };
 
-const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleType: "img" | "audio" | "video", map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
+const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleType: 'img' | 'audio' | 'video', map: Map<string, ObjElement>, callback: (e: ObjElement) => void, errorCallback: (err: string) => void) => {
     switch (eleType) {
-        case "img": {
+        case 'img': {
             let n: HTMLImageElement, oldOnLoad: Function;
             if (file.obj) {
                 n = <HTMLImageElement>file.obj;
@@ -205,13 +206,13 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
             n.onload = () => {
                 map.set(file.path, n);
                 load.loaded += file.size;
-                load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+                load.onProcess(file.path, 'objLoad', load.total, load.loaded, n);
                 callback && callback(n);
                 oldOnLoad && oldOnLoad();
             };
             break;
         }
-        case "audio": {
+        case 'audio': {
             let n: HTMLAudioElement, oldOnLoad: Function, oldCanplay: Function;
             if (file.obj) {
                 n = <HTMLAudioElement>file.obj;
@@ -228,17 +229,17 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
             n.oncanplay = () => {
                 map.set(file.path, n);
                 load.loaded += file.size;
-                load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+                load.onProcess(file.path, 'objLoad', load.total, load.loaded, n);
                 callback && callback(n);
                 oldCanplay && oldCanplay();
             };
             break;
         }
-        case "video": {
-            let n = new WXVideo(localTmpPath);
+        case 'video': {
+            const n = new WXVideo(localTmpPath);
             map.set(file.path, n);
             load.loaded += file.size;
-            load.onProcess(file.path, "objLoad", load.total, load.loaded, n);
+            load.onProcess(file.path, 'objLoad', load.total, load.loaded, n);
             callback && callback(n);
             break;
         }
@@ -253,15 +254,15 @@ const createObj = (load: ObjLoad, file: ObjFileInfo, localTmpPath: string, eleTy
 let urls: string[] = [];
 
 // 下载的路径，要含 "?"
-let downPath: string = "";
+let downPath: string = '';
 
 const Suffixs = {
-    png: "img", jpg: "img", jpeg: "img", webp: "img", gif: "img", svg: "img",
-    wav: "audio", mp3: "audio", aac: "audio",
-    webm: "video", mp4: "video", ogg: "video", m3u8: "video",
+    png: 'img', jpg: 'img', jpeg: 'img', webp: 'img', gif: 'img', svg: 'img',
+    wav: 'audio', mp3: 'audio', aac: 'audio',
+    webm: 'video', mp4: 'video', ogg: 'video', m3u8: 'video'
 };
 
 // 小游戏只支持 ttf 格式的字体
-const FontSuffixs = new Set(["ttf", "TTF"]);
+const FontSuffixs = new Set(['ttf', 'TTF']);
 
 // ============================== 立即执行

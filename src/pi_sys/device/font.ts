@@ -39,7 +39,7 @@ const destroy = (_font: HTMLFontElement) => {
 };
 
 // 往Res中注册Image对象
-export const initImageLoad = () => {
+export const initFontLoad = () => {
     register(FontType, load, destroy);
     globalFontResTab = new ResTab();
 };

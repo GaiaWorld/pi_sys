@@ -9,13 +9,13 @@
 // import { arrDrop } from '../util/util';
 // import { console.warn, loadOK, register, Res, ResTab } from './res_mgr';
 
-import { ResTab, register, Res } from '../../pi_sys/modules/util/res_mgr';
-import { loadRes } from "../load/app";
-import { getFile } from "../../pi_sys/setup/depend";
-import { cc, log } from "../../pi_sys/feature/log";
+import { cc, log } from '../../pi_sys/feature/log';
+import { register, Res, ResTab } from '../../pi_sys/modules/util/res_mgr';
+import { getFile } from '../../pi_sys/setup/depend';
 import { loadAudioRes, RES_TYPE_AUDIO } from '../device/audio';
-import { loadBlobRes2 } from './bloburl';
 import { HttpDownload } from '../feature/http';
+import { loadRes } from '../load/app';
+import { loadBlobRes2 } from './bloburl';
 
 // ============================== 导出
 export let globalSoundResTab: SoundResTab;
@@ -588,7 +588,7 @@ const createSoundRes = (name: string, type: string, file: string, fileMap: Map<s
                 resolve(res);
             });
         }).catch((err) => {
-            console.log(err);
+            cc.info() && log(err);
             reject(err);
         });
     });

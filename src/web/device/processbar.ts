@@ -2,7 +2,7 @@
  * 本地进度条
  */
 
- export class Bar {
+export class Bar {
     text: HTMLDivElement;
     div: HTMLDivElement;
     divProcess: HTMLDivElement;
@@ -15,7 +15,7 @@
     last: number = 0;
     opacity: number = 0;
 
-    public constructor(cfg:any) {
+    public constructor(cfg: any) {
         this.text = document.createElement('div');
         this.text.setAttribute("pi", "1");
         this.text.setAttribute("style", "position:absolute;bottom:30px;text-align:center;width: 100%;height: 32px;font-size:20px;");
@@ -34,29 +34,44 @@
         this.text.innerHTML = text;
         this.total = total;
         this.old = loaded;
-        if(this.timeRef)
+        if (this.timeRef)
             return;
         document.body.appendChild(this.text);
         document.body.appendChild(this.div);
         this.timeRef = setTimeout(this.calc.bind(this), 100);
     }
-    public onProcess(url:string, type: string, total:number, loaded: number, data?: Uint8Array) {
+
+    public onProcess(url: string, type: string, total: number, loaded: number, data?: Uint8Array) {
         this.loaded = loaded;
     }
+
     calc() {
+        this.flush();
         setTimeout(this.calc.bind(this), 100);
-        this.opacity += 3;
-        this.text.style.opacity = ""+(Math.abs(this.opacity % 80 - 40)+10)/50;;
-        if(this.last === this.loaded)
-            return;
-        this.last = this.loaded;
-        this.divProcess.style.width = (this.last - this.old) * 100/ (this.total - this.old) + "%";
     }
+
+    flush() {
+        this.opacity += 3;
+        this.text.style.opacity = "" + (Math.abs(this.opacity % 80 - 40) + 10) / 50;;
+        
+        if (this.last === this.loaded) {
+            return;    
+        }
+
+        this.last = this.loaded;
+
+        let value = 0;
+        if (this.total !== this.old) {
+            value = (this.last - this.old) * 100 / (this.total - this.old)
+        }
+        this.divProcess.style.width = value + "%";
+    }
+
     public clear() {
         this.total = 0;
         this.loaded = 0;
         this.old = 0;
-        if(this.timeRef)
+        if (this.timeRef)
             clearTimeout(this.timeRef);
         this.timeRef = 0;
         document.body.removeChild(this.text);

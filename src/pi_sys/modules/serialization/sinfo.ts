@@ -192,6 +192,8 @@ export class StructInfo implements BonEncode {
 	 * 二进制解码
 	 */
     static bonDecode(bb: BonBuffer): StructInfo {
+        let name = bb.readUtf8();
+        let name_hash = bb.readInt();
 		let notes, fields;
         if (!bb.isNil()) {
             notes = bb.readMap(() => {
@@ -202,7 +204,7 @@ export class StructInfo implements BonEncode {
         fields = bb.readArray(() => {
             return bb.readBonCode(FieldInfo);
 		});
-		return new StructInfo(bb.readUtf8(), bb.readInt(), notes, fields);
+		return new StructInfo(name, name_hash, notes, fields);
     }
 }
 

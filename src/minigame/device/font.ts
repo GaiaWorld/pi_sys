@@ -1,8 +1,12 @@
-import { FileSys } from "./filesys";
-import { wx } from "./wx";
-import { ResTab, register } from "../../pi_sys/modules/util/res_mgr";
-import { getFile } from "../setup/depend";
-import { BatchLoad, loadRes } from "../load/app";
+/**
+ * 
+ */
+import { register, ResTab } from '../../pi_sys/modules/util/res_mgr';
+import { cc, log } from '../feature/log';
+import { BatchLoad, loadRes } from '../load/app';
+import { getFile } from '../setup/depend';
+import { FileSys } from './filesys';
+import { wx } from './wx';
 
 let globalFontResTab: ResTab;
 
@@ -30,6 +34,7 @@ export class WXFontFace {
                             this.family = family;
                             this.localPath = localPath;
                         }
+
                         return localPath;
                     });
 
@@ -43,12 +48,13 @@ export const loadFontRes = (path: string, fontFamily?: string) => {
 
 const load = (tab: ResTab, _type: string, _name: string, ...args: any[]) => {
     const info = getFile(_name);
+
     return new Promise((resolve, reject) => {
         // resolve();
         loadRes(info)
             .then((res) => {
                 resolve(res.link);
-                console.log(res);
+                cc.info() && log(res);
             })
             .catch((err) => {
                 reject(err);

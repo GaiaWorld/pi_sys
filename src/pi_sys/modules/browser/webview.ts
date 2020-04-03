@@ -6,7 +6,7 @@ import { NativeObject, ParamType, registerSign } from './native';
 
 // ========================= export
 
-export enum screenMode {
+export enum ScreenMode {
     portrait = "portrait",
     landscape = "landscape"
 }
@@ -33,7 +33,7 @@ export class WebViewManager extends NativeObject {
      * 注：webViewName不能和已有的WebView重复，如果相同，抛异常
      * 注：主WebView的名字是"default"
      */
-    public static open(webViewName: string, url: string, title: string, injectContent: string, screenOrientation: screenMode) {
+    public static open(webViewName: string, url: string, title: string, injectContent: string, screenOrientation: ScreenMode) {
         getInstance().call('openWebView', { webViewName, url, title, injectContent, screenOrientation });
     }
 

@@ -1731,8 +1731,10 @@
                 // Pass trace message back to client's callback function
                 if (this.traceFunction) {
                     for (var i in arguments) {
-                        if (typeof arguments[i] !== "undefined")
-                            arguments.splice(i, 1, JSON.stringify(arguments[i]));
+						if (typeof arguments[i] !== "undefined")
+							// PI_TODO
+							arguments[i] = JSON.stringify(arguments[i]);
+                            // arguments.splice(i, 1, JSON.stringify(arguments[i]));
                     }
                     var record = Array.prototype.slice.call(arguments).join("");
                     this.traceFunction({

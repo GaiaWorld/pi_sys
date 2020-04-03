@@ -70,7 +70,7 @@ export const init = (store: Store, domainUrls: string[], downloadPath: string, u
                     return assetGet().then((arr: any[]) => {
                         localStore = store;
                         for (let info of arr) {
-                            value[info[0]] = info[3];
+                            value[info[0]] = info[2];
                         }
                         localInitCheck(store, value, false);
                     });
@@ -498,6 +498,9 @@ const replace = (s: string) => {
 
 // 保存文件
 const savefile = (path: string, data: Uint8Array, sign: string) => {
+    if(data.byteLength !== data.buffer.byteLength) {
+        data = new Uint8Array(data.slice().buffer);
+    }
     return localStore.write(path, data).then((_) => {
         localSign[path] = sign;
     });

@@ -1,5 +1,10 @@
 declare var pi_modules;
 
+if (!window["pi_modules"]) {
+    window["pi_modules"] = window["_$pi"];
+    window["pi_modules"].globalCallback = {};
+}
+
 /**
  * 封装了高层与底层交互方法
  */

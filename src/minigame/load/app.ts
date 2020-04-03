@@ -11,7 +11,7 @@
 import { Download, LocalLoad, FileLoad, getSign, ResultFunc } from './bin';
 import { IFileDependInfo } from "../device/base";
 import { fileSuffix, DirInfo, getFile, getDir } from "../setup/depend";
-import { cc, log, pattern } from "../feature/log";
+import { cc, log, pattern, error } from "../feature/log";
 import { CodeLoad } from './code';
 import { ObjLoad } from './object';
 
@@ -47,8 +47,12 @@ export let setCfgHandler = (
         if (s !== suffix) {
             continue;
         }
-        cfgFinish(k, v, handler);
-        cfgTempMap.delete(k);
+        // 如果handler返回false， 表示handler未处理该文件
+        cfgFinish(k, v, handler).then((r) => {
+            if(r !== false) {
+                cfgTempMap.delete(k);
+            }
+        });
     }
 };
 // 设置的后缀类型及缓存时间和大小
@@ -75,10 +79,10 @@ export const collect = (time: number) => {
  * @example
  */
 export class BatchLoad extends FileLoad {
-    dirOrFiles: string[];
-    fileFilters: RegExp[][] = [[], []]; // 第0位为匹配路径， 第1位为排除匹配
-    dirFilters: RegExp[][] = [[], []]; // 第0位为匹配路径， 第1位为排除匹配
-    loads: Set<FileLoad> = new Set();
+    public dirOrFiles: string[];
+    public fileFilters: RegExp[][] = [[], []]; // 第0位为匹配路径， 第1位为排除匹配
+    public dirFilters: RegExp[][] = [[], []]; // 第0位为匹配路径， 第1位为排除匹配
+    public loads: Set<FileLoad> = new Set();
 
     /**
      * @description 加载指定文件或目录(以/结尾)及子目录下的所有代码、配置、资源和对象
@@ -155,12 +159,12 @@ export class BatchLoad extends FileLoad {
             (value: any) => this.onResult(value)
         ).catch(
             (reason: any) => () => {
-                console.log(reason);
+                cc.error() && error(reason);
                 this.onResult(null, reason);
             }
         );
     }
-    loadDir(
+    public loadDir(
         path: string,
         dir: DirInfo,
         onlyDown: boolean,
@@ -197,7 +201,7 @@ export class BatchLoad extends FileLoad {
             }
         }
     }
-    loadFile(
+    public loadFile(
         file: IFileDependInfo,
         onlyDown: boolean,
         binload: LocalLoad,
@@ -251,7 +255,7 @@ export class BatchLoad extends FileLoad {
         }
     }
     // 下载或加载
-    downOrload(
+    public downOrload(
         file: IFileDependInfo,
         onlyDown: boolean,
         binload: LocalLoad,
@@ -268,7 +272,7 @@ export class BatchLoad extends FileLoad {
         }
     }
     // 检查是否正在加载
-    checkLoad(file: IFileDependInfo, set: Set<FileLoad>, result: Promise<any>[]) {
+    public checkLoad(file: IFileDependInfo, set: Set<FileLoad>, result: Promise<any>[]) {
         for (let load of set) {
             if (load.files.has(file.path)) { // 文件正在加载
                 if (!this.loads.has(load)) {
@@ -285,14 +289,14 @@ export class BatchLoad extends FileLoad {
         return true;
     }
     // 在下载器上添加进度通知
-    addLoad(load: FileLoad) {
+    public addLoad(load: FileLoad) {
         load.addProcess(this.processValue.bind(this));
         this.loads.add(load);
         this.total += load.total;
         this.loaded += load.loaded;
     }
     // 获得子加载器的进度通知，并计算当前进度，抛出进度事件
-    processValue(url: string, type: string, total: number, loaded: number, data?: Uint8Array) {
+    public processValue(url: string, type: string, total: number, loaded: number, data?: Uint8Array) {
         this.loaded = 0;
         for (let load of this.loads) {
             this.loaded += load.loaded;
@@ -428,20 +432,20 @@ const DownWaitTime: number = 34;
 let downWait: Download;
 
 class Lru {
-    map: Map<string, { time: number, data: Uint8Array }> = new Map();
-    timeout: number;
-    limit: number;
-    size = 0;
+    public map: Map<string, { time: number, data: Uint8Array }> = new Map();
+    public timeout: number;
+    public limit: number;
+    public size = 0;
     constructor(timeout: number, limit: number) {
         this.timeout = timeout;
         this.limit = limit;
     }
-    add(file: string, data: Uint8Array) {
+    public add(file: string, data: Uint8Array) {
         this.map.set(file, { time: Date.now() + this.timeout, data: data });
         this.size += data.byteLength;
         startCollectTimer();
     }
-    remove(file: string) {
+    public remove(file: string) {
         let r = this.map.get(file);
         if (!r) {
             return;
@@ -449,7 +453,7 @@ class Lru {
         this.size -= r.data.byteLength;
         return r.data;
     }
-    collect_time(time: number) {
+    public collect_time(time: number) {
         for (let [k, v] of this.map) {
             if (v.time < time) {
                 break;
@@ -458,7 +462,7 @@ class Lru {
             this.size -= v.data.byteLength;
         }
     }
-    collect_size() {
+    public collect_size() {
         if (this.size < this.limit) {
             return;
         }
@@ -483,20 +487,19 @@ const startCollectTimer = () => {
 const collectTimer = () => {
     if (collect(Date.now())) {
         timerStart = false;
-    }
-    else {
+    } else {
         setTimeout(collectTimer, 100);
     }
 };
 
 // 判断文件是否匹配
 const filter = (path: string, within: RegExp[], without: RegExp[]) => {
-    for (let r of within) {
+    for (const r of within) {
         if (!r.test(path)) {
             return false;
         }
     }
-    for (let r of without) {
+    for (const r of without) {
         if (r.test(path)) {
             return false;
         }
@@ -507,7 +510,7 @@ const filter = (path: string, within: RegExp[], without: RegExp[]) => {
 // 等待加载
 const waitLoad = (load: FileLoad, set: Set<any>, p: Promise<any>) => {
     set.add(load);
-    //p.finally(()=>set.delete(load))
+    // p.finally(()=>set.delete(load))
     return p.then((r) => {
         set.delete(load);
         return r;
@@ -519,7 +522,7 @@ const waitLoad = (load: FileLoad, set: Set<any>, p: Promise<any>) => {
 
 // 检查等待加载
 const checkWaitLoad = (file: IFileDependInfo, set: Set<FileLoad>) => {
-    for (let load of set) {
+    for (const load of set) {
         if (load.files.has(file.path)) { // 文件正在加载
             return new Promise((resolve, reject) => {
                 load.addResult((val: any, err?: any) => {
@@ -539,7 +542,7 @@ const handleBinMap = (map: Map<string, Uint8Array>) => {
         if (st === SuffixType.CFG) {
             arr.push(handleCfg(k, v, suffix));
         } else if (st === SuffixType.RES) {
-            let lru = resMap.get(suffix);
+            const lru = resMap.get(suffix);
             lru.add(k, v);
         }
     }
@@ -553,7 +556,7 @@ const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
         cfgMap.set(file, arr);
     }
     if (arr.length === 0) {
-        let h = handlerMap.get(suffix);
+        const h = handlerMap.get(suffix);
         if (h === null) {
             cfgTempMap.set(file, data);
             return Promise.resolve();
@@ -566,16 +569,20 @@ const handleCfg = (file: string, data: Uint8Array, suffix: string) => {
         });
     });
 };
-const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<void>) => {
-    h(file, data).then(() => {
-        let arr = cfgMap.get(file);
-        if (!arr) {
-            return;
+const cfgFinish = (file: string, data: Uint8Array, h: (file: string, data: Uint8Array) => Promise<any>): Promise<any> => {
+    return h(file, data).then((r) => {
+        if( r !==  false ) {
+            const arr = cfgMap.get(file);
+            if (!arr) {
+                return;
+            }
+            cfgMap.set(file, null);
+            for (const f of arr) {
+                f(null);
+            } 
         }
-        cfgMap.set(file, null);
-        for (let f of arr) {
-            f(null);
-        }
+
+        return r;
     });
 };
 // ============================== 立即执行
