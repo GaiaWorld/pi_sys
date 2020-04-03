@@ -95,13 +95,54 @@ export class WriteFileQueue {
             });
     }
 
-    private oneFileComplete() {
-        this.concurrent--;
-        clearTimeout(this.timer);
+    public writeData(path: string, data: ArrayBuffer | Uint8Array) {
+        cc.info() && log('=========== Write Data:', path);
 
-        this.timer = setTimeout(() => {
-            this.writeNext();
-        }, this.delay);
+        // 发起写入时立即修改主目录占用的空间记录 - 失败时去除 : 默认成功,这样实际失败了，但没有获得失败的响应的情况下,记录的剩余空间大小不会大于实际剩余空间大小
+        // localStorage.dbSize += data.byteLength;
+
+        if (ArrayBuffer.isView(data)) {
+            data = data.slice().buffer;
+        }
+
+        // 所有文件到放到 `store.dbName/store.tabName` 目录下，方便清理
+        const wxpath = this.store.formatStorePath(path);
+
+        FileSys.writeFile(wxpath, data)
+            .then(() => {
+                this.oneFileComplete(true);
+                
+                // depend 信息在成功/失败时修改
+                // this.store.files.add(wxpath);
+                // this.wxdepend.addMain(fileInfo);
+                cc.info() && log('=========== Write Data Succ:', path);
+
+                // TODO: 文件写入本地用户目录后
+                // this.store.db[""][wxpath] = this.signMap.get(wxpath);
+                // delete this.store.db[wxpath];
+            })
+            // 虽然发起下载时可以写入，但最终结果还是失败了
+            .catch(() => {
+                // depend 信息在成功/失败时修改
+                // this.signMap.delete(path);
+                // this.wxdepend.deleteMain(fileInfo.path);
+
+                cc.info() && log('=========== Write Data Fail:', path);
+                this.oneFileComplete(true);
+                // localStorage.dbSize -= data.byteLength;
+                // this.wxdepend.updateMainSize(-data.byteLength);
+            });
+    }
+
+    private oneFileComplete(asData?: boolean) {
+        if (!asData) {
+            this.concurrent--;
+            clearTimeout(this.timer);
+    
+            this.timer = setTimeout(() => {
+                this.writeNext();
+            }, this.delay);
+        }
     }
 
     private allFilesComplete() {

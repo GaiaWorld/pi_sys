@@ -33,6 +33,7 @@ export class Store {
      * 微信空间文件信息
      */
     public wxdepend: WX_DEPEND_MGR;
+    public useForRes: boolean = false;
     /**
      * 主目录下最多存放的数据量
      */
@@ -56,7 +57,9 @@ export class Store {
      */
     // public static create(projectName: string, childDirName?: string): Promise<Store> {
     public static createSync(projectName: string, childDirName?: string): Store {
-        return new Store(projectName, childDirName);
+        const store = new Store(projectName, childDirName);
+        store.useForRes = true;
+        return store;
         // return new Promise((resolve, reject) => {
         //     let store = new Store(projectName, childDirName);
         //     Store.instance = store;
@@ -79,6 +82,7 @@ export class Store {
         // return new Store(projectName, childDirName);
         return new Promise((resolve: (store: Store) => void, reject) => {
             let store = new Store(projectName, childDirName);
+            store.writeFileQueue = WriteFileQueue.create(store, undefined);
             resolve(store);
         });
     }
@@ -107,19 +111,39 @@ export class Store {
      */
     public read(key: string): Promise<any> {
         const fileInfo = DEPEND_MGR.getFile(key);
-
-        if (!fileInfo) {
-            return Promise.reject(`no such file ${key}`);
+        if (this.useForRes) {
+            if (!fileInfo) {
+                return Promise.reject(`no such file ${key}`);
+            } else {
+                // 默认一定足够主目录
+                // const status = this.wxdepend.checkMain(fileInfo);
+    
+                return new Promise((resolve, reject) => {
+                    if (this.fileBufferMap.has(key)) {
+                        return resolve(this.fileBufferMap.get(key));
+                    }
+    
+                    const status = this.wxdepend.checkMain(fileInfo);
+    
+                    let wxpath;
+    
+                    wxpath = this.formatStorePath(key);
+                    FileSys.readFile(wxpath)
+                        .then((value) => {
+                            resolve(value);
+                        })
+                        .catch((err) => {
+                            reject(err);
+                        });
+                });
+            }
         } else {
-            // 默认一定足够主目录
-            // const status = this.wxdepend.checkMain(fileInfo);
-
             return new Promise((resolve, reject) => {
                 if (this.fileBufferMap.has(key)) {
                     return resolve(this.fileBufferMap.get(key));
                 }
 
-                const status = this.wxdepend.checkMain(fileInfo);
+                // const status = this.wxdepend.checkMain(fileInfo);
 
                 let wxpath;
 
@@ -141,66 +165,90 @@ export class Store {
      * @param data 文件数据
      */
     public write(key: string, data: any): Promise<any> {
-        return new Promise((resolve) => {
-
-            const fileInfo = DEPEND_MGR.getFile(key);
-
-            // 写localSign时触发写队列开始写文件
-            if (!fileInfo) {
-                this.writeFileQueue.start();
-            } else {
-                this.fileBufferMap.set(fileInfo.path, data);
-                this.writeFileQueue.add(fileInfo, data);
-            }
-
-            resolve();
-        });
+        
+        if (this.useForRes) {
+            return new Promise((resolve) => {
+    
+                const fileInfo = DEPEND_MGR.getFile(key);
+    
+                // 写localSign时触发写队列开始写文件
+                if (!fileInfo) {
+                    this.writeFileQueue.start();
+                } else {
+                    this.fileBufferMap.set(fileInfo.path, data);
+                    this.writeFileQueue.add(fileInfo, data);
+                }
+    
+                resolve();
+            });
+        } else {
+            return new Promise((resolve) => {
+    
+                this.fileBufferMap.set(key, data);
+                this.writeFileQueue.writeData(key, data);
+    
+                resolve();
+            });
+        }
     }
     /**
      * 删除数据
      */
     public delete(key: string): Promise<any> {
-        const fileInfo = DEPEND_MGR.getFile(key);
 
-        if (!!fileInfo) {
-            return Promise.reject(`no such file ${key}`);
+        if (this.useForRes) {
+            const fileInfo = DEPEND_MGR.getFile(key);
+
+            if (!!fileInfo) {
+                return Promise.reject(`no such file ${key}`);
+            } else {
+                return new Promise((resolve, reject) => {
+
+                    if (this.fileBufferMap.has(key)) {
+                        return resolve([key, this.fileBufferMap.get(key)]);
+                    }
+
+                    let wxpath;
+
+                    const mainInfo = this.wxdepend.readMain(key);
+                    const tempInfo = this.wxdepend.readTemp(key);
+
+                    this.fileBufferMap.has(key) && this.fileBufferMap.delete(key);
+
+                    if (mainInfo) {
+                        // 数据在本地用户文件中
+                        // 获取文件大小
+                        wxpath = this.formatStorePath(key);
+                        this.wxdepend.updateMainSize(-fileInfo.size);
+
+                        FileSys.deleteFile(wxpath)
+                            .then(() => {
+                                this.wxdepend.deleteMain(fileInfo.path);
+                                resolve();
+                            }).catch(reject);
+                    } else if (tempInfo) {
+                        // 数据在本地临时文件中
+
+                        // 本地临时文件无需删除文件，直接删除其在store内的文件路径对照
+                        // 即可，微信对本地临时文件有相应的回收机制
+                        wxpath = tempInfo.path;
+                        this.wxdepend.deleteTemp(key);
+                        resolve();
+                    } else {
+                        // 数据在内存中
+                        resolve();
+                    }
+                });
+            }
         } else {
             return new Promise((resolve, reject) => {
-
-                if (this.fileBufferMap.has(key)) {
-                    return resolve([key, this.fileBufferMap.get(key)]);
-                }
-
-                let wxpath;
-
-                const mainInfo = this.wxdepend.readMain(key);
-                const tempInfo = this.wxdepend.readTemp(key);
-
                 this.fileBufferMap.has(key) && this.fileBufferMap.delete(key);
+                const wxpath = this.formatStorePath(key);
 
-                if (mainInfo) {
-                    // 数据在本地用户文件中
-                    // 获取文件大小
-                    wxpath = this.formatStorePath(key);
-                    this.wxdepend.updateMainSize(-fileInfo.size);
-
-                    FileSys.deleteFile(wxpath)
-                        .then(() => {
-                            this.wxdepend.deleteMain(fileInfo.path);
-                            resolve();
-                        }).catch(reject);
-                } else if (tempInfo) {
-                    // 数据在本地临时文件中
-
-                    // 本地临时文件无需删除文件，直接删除其在store内的文件路径对照
-                    // 即可，微信对本地临时文件有相应的回收机制
-                    wxpath = tempInfo.path;
-                    this.wxdepend.deleteTemp(key);
-                    resolve();
-                } else {
-                    // 数据在内存中
-                    resolve();
-                }
+                FileSys.deleteFile(wxpath)
+                    .then(() => {
+                        resolve();
+                    }).catch(reject);
             });
         }
     }
