@@ -55,7 +55,7 @@ export class Store {
      * 创建指定名称的存储
      */
     // public static create(projectName: string, childDirName?: string): Promise<Store> {
-    public static create(projectName: string, childDirName?: string): Store {
+    public static createSync(projectName: string, childDirName?: string): Store {
         return new Store(projectName, childDirName);
         // return new Promise((resolve, reject) => {
         //     let store = new Store(projectName, childDirName);
@@ -73,6 +73,14 @@ export class Store {
         //         })
         //         .catch(reject);
         // });
+    }
+    // public static create(projectName: string, childDirName?: string): Promise<Store> {
+    public static create(projectName: string, childDirName?: string) {
+        // return new Store(projectName, childDirName);
+        return new Promise((resolve: (store: Store) => void, reject) => {
+            let store = new Store(projectName, childDirName);
+            resolve(store);
+        });
     }
 
     constructor(projectName: string, childDirName: string) {

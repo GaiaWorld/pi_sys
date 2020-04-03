@@ -17,7 +17,7 @@ export class LoadMgr {
     public static init(projectName: string, domainUrls: string[], downloadPath: string, urllimitLength = 1024 - 100, reqSizeLimit = 8 * 1024 * 1024) {
 
         this.projectName    = projectName;
-        this.localStore     = Store.create(projectName, '');
+        this.localStore     = Store.createSync(projectName, '');
         this.wxdepend       = new WX_DEPEND_MGR(this.formatMainPath('depend_main'), this.formatMainPath('depend_temp'));
 
         this.localStore.wxdepend = this.wxdepend;
