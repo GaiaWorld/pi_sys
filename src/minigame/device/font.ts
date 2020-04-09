@@ -53,7 +53,7 @@ const load = (tab: ResTab, _type: string, _name: string, ...args: any[]) => {
         // resolve();
         loadRes(info)
             .then((res) => {
-                resolve(res.link);
+                resolve(res);
                 cc.info() && log(res);
             })
             .catch((err) => {

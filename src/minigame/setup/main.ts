@@ -172,18 +172,33 @@ const loadExec = (next: string = '') => {
     // tslint:disable-next-line:max-func-body-length
     return new Promise((resolve, reject) => {
         const pakageList = ENV_MGR.getENV(`${next}load`);
+        const load_files = ENV_MGR.getENV(`${next}load_files`);
+        const load_custom_files = ENV_MGR.getENV(`${next}load_custom_files`);
+        const load_custom_filters = ENV_MGR.getENV(`${next}load_custom_filters`);
 
         const dirList = [];
         const dirCfg = [];
         pakageList.forEach((key) => {
-            dirList.push(`${key}/`);
-            dirCfg.push(`${key}/combine.dcss`);
-            dirCfg.push(`${key}/combine.scfg`);
-            dirCfg.push(`${key}/combine.widcfg`);
-            dirCfg.push(`${key}/combine.kcss`);
-            dirCfg.push(`${key}/png.imgcfg`);
-            dirCfg.push(`${key}/jpg.imgcfg`);
+            dirCfg.push(`${key}/`);
+            // dirCfg.push(`${key}/combine.dcss`);
+            // dirCfg.push(`${key}/combine.scfg`);
+            // dirCfg.push(`${key}/combine.widcfg`);
+            // dirCfg.push(`${key}/combine.kcss`);
+            // dirCfg.push(`${key}/png.imgcfg`);
+            // dirCfg.push(`${key}/jpg.imgcfg`);
+
+            if (load_files) {
+                load_files.forEach(el => {
+                    dirCfg.push(`${key}/${el}`);
+                });
+            }
         });
+        
+        if (load_custom_files) {
+            load_custom_files.forEach(el => {
+                dirCfg.push(`${el}`);
+            });
+        }
 
         if (pakageList) {
 
@@ -206,6 +221,11 @@ const loadExec = (next: string = '') => {
 
             const batchLoad = new BatchLoad(dirCfg);
             // batchLoad.addProcess(bar.onProcess);
+            if (load_custom_filters) {
+                load_custom_filters.forEach(el => {
+                    batchLoad.addFilter(`${el}`);
+                });
+            }
 
             bar.show(ENV_MGR.getENV(`${next}load_text`), load.total, load.loaded);
 

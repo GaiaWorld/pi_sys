@@ -85,6 +85,10 @@ export class DEPEND_MGR {
      * @param data depend 数据
      */
     public static init(data: DEPEND_DATA) {
+        let root = new DirInfo("");
+        root.children = [];
+        DEPEND_MGR.dirMap.set("", root);
+        
         for (let args of data) {
 
             let fileInfo = new FileInfo(args);
@@ -164,6 +168,12 @@ export class DEPEND_MGR {
         }
         return -1;
     }
+    
+    // 伪后缀
+    public static filePseudoSuffix = (file: string): string => {
+        let dot = file.indexOf(".");
+        return (dot >= 0) ? file.slice(dot + 1) : "";
+    }
     public static fileSuffix(file: string) {
         let dot = DEPEND_MGR.fileDot(file);
         return (dot >= 0) ? file.slice(dot + 1) : "";
@@ -216,5 +226,7 @@ export const getFile  = DEPEND_MGR.getFile;
 export const getDir = DEPEND_MGR.getDir;
 
 export const fileSuffix = DEPEND_MGR.fileSuffix;
+
+export const filePseudoSuffix = DEPEND_MGR.filePseudoSuffix;
 
 export const relativePath = DEPEND_MGR.relativePath;

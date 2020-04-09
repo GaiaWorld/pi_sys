@@ -478,10 +478,12 @@ const collectTimer = () => {
 // 判断文件是否匹配
 const filter = (path: string, within: RegExp[], without: RegExp[]) => {
     for (let r of within) {
+        r.lastIndex = 0;
         if (!r.test(path))
             return false;
     }
     for (let r of without) {
+        r.lastIndex = 0;
         if (r.test(path))
             return false;
     }
