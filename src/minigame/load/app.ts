@@ -225,17 +225,17 @@ export class BatchLoad extends FileLoad {
         if (!st) {
             return cc.warn() && log("batch load, invalid suffix, file:" + file.path);
         }
-        if (st === SuffixType.RES) {
+        if (st === SuffixType.RES || st === SuffixType.OBJ) {
             // 如果Lru中有，则跳过
             let lru = resMap.get(suffix);
-            if (lru.map.get(file.path)) {
+            if (lru && lru.map.get(file.path)) {
                 return;
             }
             this.downOrload(file, onlyDown, binload, download, result);
-        } else if (st === SuffixType.OBJ) {
-            if ((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result)) {
-                objload.add(file);
-            }
+        // } else if (st === SuffixType.OBJ) {
+        //     if ((file.sign !== getSign(file.path) || !onlyDown) && this.checkLoad(file, objLoad, result)) {
+        //         objload.add(file);
+        //     }
         } else if (st === SuffixType.CFG) {
             // 先检查是否在cfgMap
             let rr = cfgMap.get(file.path);
