@@ -133,11 +133,13 @@ export class Composer {
 					4 * 2,
 					0
 				);
+				gl.bindBuffer(gl.ARRAY_BUFFER, null);
 			}
 
 			if (this._a_uv_loc >= 0) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, obj.uv_buffer);
 				gl.vertexAttribPointer(<number>this._a_uv_loc, 2, gl.FLOAT, false, 4 * 2, 0);
+				gl.bindBuffer(gl.ARRAY_BUFFER, null);
 			}
 
 			if (obj.face_buffer) {
@@ -147,6 +149,7 @@ export class Composer {
 					gl.UNSIGNED_SHORT,
 					0
 				);
+				gl.bindBuffer(gl.ARRAY_BUFFER, null);
 			}
 
 			gl.useProgram(null);
@@ -257,6 +260,7 @@ export class Composer {
 				new Float32Array(obj.vertex_data),
 				gl.STATIC_DRAW
 			);
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		}
 
 		if (!obj.face_buffer) {
@@ -266,6 +270,7 @@ export class Composer {
 				new Uint16Array(obj.face_data),
 				gl.STATIC_DRAW
 			);
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		}
 
 		if (!obj.uv_buffer) {
@@ -275,6 +280,7 @@ export class Composer {
 				new Float32Array(obj.uv_data),
 				gl.STATIC_DRAW
 			);
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		}
 	}
 
